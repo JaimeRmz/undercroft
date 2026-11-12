@@ -28,6 +28,25 @@ test('the real mods/ directory (core + example-mod) loads cleanly with zero erro
   }
 });
 
+test('mods/core ships 30+ normal room templates across 2 chapters, plus start/boss/treasure/shop/secret variants', async () => {
+  const registries = new ContentRegistries();
+  const loader = new ModLoader({
+    source: createFsSource(MODS_DIR),
+    registries,
+    events: createEventBus(),
+    log: createLogger('real-mods-test', 'error'),
+  });
+  await loader.loadAll();
+  const rooms = registries.of('room').all();
+  const normals = rooms.filter((r) => r.type === 'normal');
+  assert.ok(normals.length >= 30, `expected 30+ normal templates, got ${normals.length}`);
+  assert.ok(normals.some((r) => r.chapter === 1));
+  assert.ok(normals.some((r) => r.chapter === 2));
+  for (const type of ['start', 'boss', 'treasure', 'shop', 'secret', 'supersecret']) {
+    assert.ok(rooms.some((r) => r.type === type), `expected at least one "${type}" room template`);
+  }
+});
+
 test('core loads before example-mod per loadOrder/dependency', async () => {
   const registries = new ContentRegistries();
   const loader = new ModLoader({

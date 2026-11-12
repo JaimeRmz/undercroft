@@ -24,7 +24,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 
 ## P1 — Core roguelike loop (a full run is possible)
 - [x] P1.1 Floor generation exactly per §3 + 1000-seed tests + minimap (visited/adjacent/special icons)
-- [ ] P1.2 Room templates (ASCII JSON) for normal/treasure/shop/boss/secret/start; 30+ normal layouts across 2 chapters; room transitions (slide)
+- [x] P1.2 Room templates (ASCII JSON) for normal/treasure/shop/boss/secret/start; 30+ normal layouts across 2 chapters; room transitions (slide)
 - [ ] P1.3 Pickups: coins (1/5/10), bombs (placed bombs: fuse, blast radius, destroy rocks, open secret walls, damage everything incl. player), keys, hearts (half/full/soul/black), batteries, chests (normal/locked), room clear rewards per formula
 - [ ] P1.4 Item system v1: passive + active items with charges, item pools with weights and removal, pedestals, pickup banner, 30 items
 - [ ] P1.5 Tear modifier system (all modifiers in §3 as composable components) + weapon types (normal, laser, charge shot, multishot) with priority + explicit synergy rules. Tests proving composition (homing+split, piercing+bounce, laser+homing, etc.)

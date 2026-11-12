@@ -1,0 +1,17 @@
+{
+  "id": "core:normal-04",
+  "type": "normal",
+  "chapter": 2,
+  "weight": 1,
+  "difficulty": 1,
+  "pattern": "centerPitBlock",
+  "rows": [
+    "#############",
+    "#...........#",
+    "#....PPP....#",
+    "#....PPP....#",
+    "#....PPP....#",
+    "#...........#",
+    "#############"
+  ]
+}
