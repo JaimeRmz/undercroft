@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-02",
+  "name": "Lucky Pebble",
+  "description": "Light as a held breath.",
+  "effects": [
+    {
+      "stat": "speed",
+      "value": 0.15
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

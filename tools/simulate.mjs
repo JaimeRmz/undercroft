@@ -27,6 +27,7 @@ import { FloorRuntime } from '../src/systems/floor.js';
 import { createTransitionState, startTransition, updateTransition, detectDoorExit, entryPositionForSide } from '../src/systems/transitions.js';
 import { buildItemPools, spawnItemPedestal, resolveItemPedestals, chargeActivesOnRoomClear, ItemInventory } from '../src/systems/items.js';
 import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from '../src/systems/pickups.js';
+import { TrinketInventory, resolveTrinketPickups } from '../src/systems/trinkets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MODS_DIR = path.join(__dirname, '..', 'mods');
@@ -49,6 +50,7 @@ async function loadContentDefs() {
     enemyDefs: registries.of('enemy').all(),
     bossDefs: registries.of('boss').all(),
     itemDefs: registries.of('item').all(),
+    trinketDefs: registries.of('trinket').all(),
     roomTemplates: registries.of('room').all(),
   };
 }
@@ -330,10 +332,12 @@ function bfsTilePath(tileGrid, startTx, startTy, goalTx, goalTy) {
  * pickups it happens to stand on), until the boss is defeated or the player
  * dies. Mirrors main.js's run-building/update-loop logic headlessly.
  */
-function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates, seedCount = 20) {
+function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemplates, seedCount = 20) {
   console.log(`\n[simulate] (d) bot plays ${seedCount} seeded floors (floorgen -> boss defeated)...`);
   const itemPools = buildItemPools(itemDefs);
   const getItemDef = (id) => itemDefs.find((d) => d.id === id);
+  const trinketPools = buildItemPools(trinketDefs);
+  const getTrinketDef = (id) => trinketDefs.find((d) => d.id === id);
 
   for (let seed = 0; seed < seedCount; seed++) {
     const floorRng = new Rng(`floor-${seed}`);
@@ -384,6 +388,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates, seedCo
     const playerHealth = new Health({ redMax: 6 });
     const currency = new Currency();
     const inventory = new ItemInventory();
+    const trinketInventory = new TrinketInventory();
     const transition = createTransitionState();
     const input = createInputState();
     const events = createEventBus();
@@ -482,7 +487,8 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates, seedCo
       updateProjectiles(room.world, DT, events);
       resolveCombat(room.world, { player, playerHealth, events, rng: spawnRng });
       resolveItemPedestals(room.world, player, { inventory, stats: player.stats, playerHealth, events, pools: itemPools, getItemDef });
-      resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng });
+      resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng, trinketPools });
+      resolveTrinketPickups(room.world, player, { inventory: trinketInventory, stats: player.stats, events, pools: trinketPools, getTrinketDef });
       tickInvuln(playerHealth, DT);
       room.world.reap();
 
@@ -491,7 +497,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates, seedCo
         chargeActivesOnRoomClear(inventory);
         if (floorRuntime.getCurrentCell().type !== ROOM_TYPE.BOSS) {
           const reward = rollRoomClearReward(spawnRng, player.stats.luck);
-          if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng });
+          if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng, trinketPools });
         }
       }
 
@@ -524,7 +530,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates, seedCo
 
 async function main() {
   console.log('=== Undercroft headless simulate harness ===');
-  const { enemyDefs, bossDefs, itemDefs, roomTemplates } = await loadContentDefs();
+  const { enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemplates } = await loadContentDefs();
   if (enemyDefs.length === 0) throw new Error('no enemy definitions loaded from mods/core — check the mod loader');
   if (bossDefs.length === 0) throw new Error('no boss definitions loaded from mods/core — check the mod loader');
 
@@ -532,7 +538,7 @@ async function main() {
   testEachBossAlone(bossDefs);
   testKitchenSink(enemyDefs);
   testBotClearsRooms(enemyDefs);
-  testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates);
+  testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemplates);
 
   console.log('\n=== simulate: ALL CHECKS PASSED ===');
 }

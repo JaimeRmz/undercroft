@@ -1,0 +1,20 @@
+{
+  "id": "core:trinket-10",
+  "name": "Worn Claw",
+  "description": "Everything about you moves a little faster.",
+  "effects": [
+    {
+      "stat": "speed",
+      "value": 0.1
+    },
+    {
+      "stat": "shotSpeed",
+      "value": 0.1
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

@@ -6,6 +6,7 @@
 import { clamp } from '../core/math.js';
 import { circlesOverlap } from '../engine/collision.js';
 import { heal, addSoulHeart, addBlackHeart } from './health.js';
+import { spawnTrinketPickup } from './trinkets.js';
 
 export const PICKUP_TYPE = {
   COIN: 'coin',
@@ -101,7 +102,7 @@ function applyNonChestPickup(pickup, { currency, playerHealth, events }) {
 }
 
 /** Touch resolution for every pickup type, including chest open/lock logic. Call once per tick. */
-export function resolvePickups(world, player, { currency, playerHealth, events, rng } = {}) {
+export function resolvePickups(world, player, { currency, playerHealth, events, rng, trinketPools } = {}) {
   for (const pickup of world.entities.byType('pickup')) {
     if (!pickup.alive) continue;
     if (!circlesOverlap(pickup.x, pickup.y, pickup.radius, player.x, player.y, player.radius)) continue;
@@ -115,7 +116,7 @@ export function resolvePickups(world, player, { currency, playerHealth, events, 
       pickup.opened = true;
       const reward = rollChestReward(rng);
       events?.emit('chest:opened', { chest: pickup, reward });
-      spawnRewardPickup(world, reward, { x: pickup.x, y: pickup.y, rng });
+      spawnRewardPickup(world, reward, { x: pickup.x, y: pickup.y, rng, trinketPools });
       pickup.destroy();
       continue;
     }
@@ -126,8 +127,8 @@ export function resolvePickups(world, player, { currency, playerHealth, events, 
   }
 }
 
-/** Spawns the concrete pickup for a reward category string ('coin'/'heart'/'key'/'bomb'/'chest'/...). No-op for types without an entity yet (card/pill/trinket — P2). */
-export function spawnRewardPickup(world, category, { x, y, rng }) {
+/** Spawns the concrete pickup for a reward category string ('coin'/'heart'/'key'/'bomb'/'chest'/'trinket'/...). No-op for types without an entity yet (card/pill — P2.2) or when a required dependency (trinketPools) isn't passed. */
+export function spawnRewardPickup(world, category, { x, y, rng, trinketPools } = {}) {
   switch (category) {
     case 'coin':
       return spawnPickup(world, PICKUP_TYPE.COIN, { x, y, value: rollCoinValue(rng) });
@@ -139,7 +140,12 @@ export function spawnRewardPickup(world, category, { x, y, rng }) {
       return spawnPickup(world, PICKUP_TYPE.BOMB, { x, y });
     case 'chest':
       return spawnPickup(world, PICKUP_TYPE.CHEST, { x, y });
+    case 'trinket': {
+      if (!trinketPools) return null;
+      const id = trinketPools.draw('treasure', rng);
+      return id ? spawnTrinketPickup(world, id, { x, y }) : null;
+    }
     default:
-      return null; // card/pill/trinket: no entity yet, deferred to P2
+      return null; // card/pill: no entity yet, deferred to P2.2
   }
 }

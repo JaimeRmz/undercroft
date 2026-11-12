@@ -27,6 +27,7 @@ import {
   chargeActivesOnRoomClear,
   useActiveItem,
 } from './systems/items.js';
+import { TrinketInventory, resolveTrinketPickups, dropTrinket } from './systems/trinkets.js';
 import { checkSynergies } from './systems/synergies.js';
 import { stockShop, resolveShopPurchases } from './systems/shop.js';
 import { spawnBoss, spawnTrapdoor, resolveTrapdoor } from './systems/bosses.js';
@@ -40,6 +41,7 @@ import { DecalLayer } from './render/decals.js';
 import { renderRoom } from './render/renderer.js';
 import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
+import { drawTrinketSlot } from './ui/trinketSlot.js';
 import { drawMenuScreen, drawPauseScreen, drawDeathScreen } from './ui/screens.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
@@ -59,6 +61,8 @@ async function boot() {
   const templates = registries.of('room').all();
   const itemPools = buildItemPools(registries.of('item').all());
   const getItemDef = (id) => registries.of('item').get(id);
+  const trinketPools = buildItemPools(registries.of('trinket').all());
+  const getTrinketDef = (id) => registries.of('trinket').get(id);
   const getBossDef = (id) => registries.of('boss').get(id);
   const getBossDefsForChapter = (chapter) => {
     const all = registries.of('boss').all();
@@ -149,6 +153,7 @@ async function boot() {
       banner: createBannerState(),
       currency: new Currency(),
       inventory: new ItemInventory(),
+      trinketInventory: new TrinketInventory(),
       playerHealth: new Health({ redMax: 6 }),
       stats: { kills: 0, floorsCleared: 0, startTime: performance.now(), elapsedSeconds: 0 },
     };
@@ -260,7 +265,14 @@ async function boot() {
         events,
       });
       resolveKeyLockedDoors(run.room, run.player, { currency: run.currency, events });
-      resolvePickups(run.room.world, run.player, { currency: run.currency, playerHealth: run.playerHealth, events, rng: run.spawnRng });
+      resolvePickups(run.room.world, run.player, { currency: run.currency, playerHealth: run.playerHealth, events, rng: run.spawnRng, trinketPools });
+      resolveTrinketPickups(run.room.world, run.player, {
+        inventory: run.trinketInventory,
+        stats: run.player.stats,
+        events,
+        pools: trinketPools,
+        getTrinketDef,
+      });
       const firedSynergies = checkSynergies(run.inventory, run.player.stats, run.playerHealth, run.player, synergyRules, run.appliedSynergyIds);
       for (const ruleId of firedSynergies) {
         const rule = synergyRules.find((r) => r.id === ruleId);
@@ -272,6 +284,9 @@ async function boot() {
       if (input.justPressed.has('bomb') && run.currency.bombs > 0) {
         run.currency.bombs -= 1;
         placeBomb(run.room.world, { x: run.player.x, y: run.player.y });
+      }
+      if (input.justPressed.has('dropTrinket')) {
+        dropTrinket(run.room.world, run.trinketInventory, run.player.stats, { x: run.player.x, y: run.player.y });
       }
       if (input.justPressed.has('useActive') && run.inventory.actives.length > 0) {
         const activeDef = getItemDef(run.inventory.actives[0].id);
@@ -292,7 +307,7 @@ async function boot() {
         // Boss rooms drop their own guaranteed item + trapdoor (CLAUDE.md §3); no extra room-clear roll.
         if (run.floorRuntime.getCurrentCell().type !== 'boss') {
           const reward = rollRoomClearReward(run.spawnRng, run.player.stats.luck);
-          if (reward) spawnRewardPickup(run.room.world, reward, { x: run.centerX, y: run.centerY, rng: run.spawnRng });
+          if (reward) spawnRewardPickup(run.room.world, reward, { x: run.centerX, y: run.centerY, rng: run.spawnRng, trinketPools });
         }
       }
 
@@ -345,6 +360,7 @@ async function boot() {
     const chapter = Math.ceil(run.stage / 2);
     renderRoom(ctx, { room: run.room, camera, playerHealth: run.playerHealth, particles: run.particles, decals: run.decals, dt, chapter });
     drawBanner(ctx, run.banner, { x: 0, y: 80, width: canvas.width });
+    drawTrinketSlot(ctx, run.trinketInventory, { x: 26, y: 50 });
 
     const boss = run.room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
     if (boss) {

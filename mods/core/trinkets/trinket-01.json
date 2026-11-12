@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-01",
+  "name": "Tarnished Clasp",
+  "description": "A faint, favorable pull.",
+  "effects": [
+    {
+      "stat": "luck",
+      "value": 1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

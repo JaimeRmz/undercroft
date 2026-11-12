@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-06",
+  "name": "Trembling Medallion",
+  "description": "A subtle urgency to every shot.",
+  "effects": [
+    {
+      "stat": "shotSpeed",
+      "value": 0.2
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

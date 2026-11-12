@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-15",
+  "name": "Loose Whistle",
+  "description": "You barely feel the floor.",
+  "effects": [
+    {
+      "stat": "speed",
+      "value": 0.2
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

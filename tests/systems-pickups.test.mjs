@@ -14,7 +14,9 @@ import {
   rollRoomClearReward,
   rollChestReward,
   resolvePickups,
+  spawnRewardPickup,
 } from '../src/systems/pickups.js';
+import { buildItemPools } from '../src/systems/items.js';
 
 function freshWorld() {
   return new World({ widthTiles: 40, heightTiles: 40, tileSize: 40 });
@@ -116,6 +118,16 @@ test('resolvePickups emits pickup:collected for non-chest pickups', () => {
   events.on('pickup:collected', (p) => (payload = p));
   resolvePickups(world, player, { currency: new Currency(), events, rng: new Rng('resolve-3') });
   assert.equal(payload.type, PICKUP_TYPE.KEY);
+});
+
+test('spawnRewardPickup("trinket") draws from trinketPools and spawns a trinketPickup; no-op without trinketPools', () => {
+  const world = freshWorld();
+  const pools = buildItemPools([{ id: 'test:lucky', pools: ['treasure'] }]);
+  const spawned = spawnRewardPickup(world, 'trinket', { x: 50, y: 50, rng: new Rng('trinket-reward'), trinketPools: pools });
+  assert.ok(spawned);
+  assert.equal(spawned.trinketId, 'test:lucky');
+
+  assert.equal(spawnRewardPickup(world, 'trinket', { x: 50, y: 50, rng: new Rng('x') }), null);
 });
 
 test('resolvePickups ignores pickups the player has not reached yet', () => {

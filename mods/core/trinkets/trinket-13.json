@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-13",
+  "name": "Small Ring",
+  "description": "An unmistakable, lucky weight.",
+  "effects": [
+    {
+      "stat": "luck",
+      "value": 3
+    }
+  ],
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

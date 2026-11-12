@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-04",
+  "name": "Faded Brooch",
+  "description": "A small, mean edge.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 0.5
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

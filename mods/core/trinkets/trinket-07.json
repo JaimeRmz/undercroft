@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-07",
+  "name": "Quiet Charm",
+  "description": "A dependable, minor sting.",
+  "effects": [
+    {
+      "stat": "flatDamage",
+      "value": 0.5
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

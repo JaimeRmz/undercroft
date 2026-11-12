@@ -1,0 +1,20 @@
+{
+  "id": "core:trinket-11",
+  "name": "Pale Fang",
+  "description": "Reach, and a little fortune besides.",
+  "effects": [
+    {
+      "stat": "range",
+      "value": 0.5
+    },
+    {
+      "stat": "luck",
+      "value": 1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

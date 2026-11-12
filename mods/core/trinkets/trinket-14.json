@@ -1,0 +1,16 @@
+{
+  "id": "core:trinket-14",
+  "name": "Curious Button",
+  "description": "Not much, but it adds up.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 0.8
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}
