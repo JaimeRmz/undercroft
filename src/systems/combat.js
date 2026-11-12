@@ -5,13 +5,15 @@
  */
 import { circlesOverlap } from '../engine/collision.js';
 import { applyDamage } from './health.js';
+import { triggerHitFlash } from '../render/vfx.js';
 
 export function resolveCombat(world, { player, playerHealth, events } = {}) {
   if (player && playerHealth?.alive) {
     for (const enemy of world.entities.byType('enemy')) {
       if (!enemy.alive) continue;
       if (circlesOverlap(player.x, player.y, player.radius, enemy.x, enemy.y, enemy.radius)) {
-        applyDamage(playerHealth, enemy.contactDamageHalfHearts, { events, source: enemy.defId });
+        const result = applyDamage(playerHealth, enemy.contactDamageHalfHearts, { events, source: enemy.defId });
+        if (result.applied > 0) triggerHitFlash(player);
       }
     }
   }
@@ -24,6 +26,7 @@ export function resolveCombat(world, { player, playerHealth, events } = {}) {
         if (!enemy.alive) continue;
         if (!circlesOverlap(projectile.x, projectile.y, projectile.radius, enemy.x, enemy.y, enemy.radius)) continue;
         enemy.hp -= projectile.damage;
+        triggerHitFlash(enemy);
         events?.emit('enemy:hit', { enemy, damage: projectile.damage });
         projectile.destroy();
         events?.emit('projectile:splash', { entity: projectile, reason: 'hit' });
@@ -35,7 +38,8 @@ export function resolveCombat(world, { player, playerHealth, events } = {}) {
       }
     } else if (projectile.team === 'enemy' && player && playerHealth?.alive) {
       if (circlesOverlap(projectile.x, projectile.y, projectile.radius, player.x, player.y, player.radius)) {
-        applyDamage(playerHealth, Math.round(projectile.damage), { events, source: 'enemy-projectile' });
+        const result = applyDamage(playerHealth, Math.round(projectile.damage), { events, source: 'enemy-projectile' });
+        if (result.applied > 0) triggerHitFlash(player);
         projectile.destroy();
         events?.emit('projectile:splash', { entity: projectile, reason: 'hit' });
       }

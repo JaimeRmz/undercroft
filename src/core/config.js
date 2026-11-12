@@ -61,4 +61,7 @@ export const CONFIG = {
 
   // Boss status immunity
   BOSS_STATUS_IMMUNITY_SECONDS: 8,
+
+  // Game feel / VFX
+  HIT_FLASH_SECONDS: 2 / 60, // enemies flash white for 2 frames on a heavy hit
 };

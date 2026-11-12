@@ -18,7 +18,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 - [x] P0.6 Player controller with movement feel per CLAUDE.md §3, 4-way shooting, shots with arc/range/splash, stats pipeline implementing the exact damage and tears formulas (tested against the numbers)
 - [x] P0.7 Health system (red/soul/black, damage order, i-frames, death) + 3 basic enemies (chaser, erratic flier, turret shooter) defined in JSON
 - [x] P0.8 Single room: 13×7 tiles, rocks, pits, destructible blocks, doors that lock while enemies live and open on clear
-- [ ] P0.9 Renderer: procedural sprites from JSON sprite specs, camera, hit flash, basic particles, decals. HUD hearts.
+- [x] P0.9 Renderer: procedural sprites from JSON sprite specs, camera, hit flash, basic particles, decals. HUD hearts.
 - [ ] P0.10 Headless simulate harness + Playwright smoke test working. **GATE P0: test + simulate + smoke all green, screenshot reviewed.**
 
 ## P1 — Core roguelike loop (a full run is possible)

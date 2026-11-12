@@ -1,0 +1,120 @@
+/**
+ * Procedural vector sprites driven by JSON "sprite specs" (shapes/colors/eyes/
+ * outline), per CLAUDE.md §2. computeSpriteDrawOps is pure data-in/data-out so
+ * it's headlessly testable; executeDrawOps is the only part touching a canvas
+ * context, exercised by the Playwright smoke test instead of unit tests.
+ */
+
+/** Built-in specs for the P0 vertical slice. Mods can supply their own via the same shape. */
+export const SPRITES = {
+  player: {
+    shape: 'circle',
+    radius: 14,
+    fill: '#e8d9b0',
+    outline: '#4a3a2a',
+    outlineWidth: 2,
+    eyes: [
+      { dx: -4, dy: -3, r: 2.2 },
+      { dx: 4, dy: -3, r: 2.2 },
+    ],
+  },
+  'core:chaser': {
+    shape: 'circle',
+    radius: 14,
+    fill: '#8a3a4a',
+    outline: '#3a1a22',
+    outlineWidth: 2,
+    eyes: [
+      { dx: -3, dy: -2, r: 1.8 },
+      { dx: 3, dy: -2, r: 1.8 },
+    ],
+  },
+  'core:erratic-flier': {
+    shape: 'circle',
+    radius: 12,
+    fill: '#4a6a8a',
+    outline: '#1a2a3a',
+    outlineWidth: 2,
+    eyes: [
+      { dx: -3, dy: -2, r: 1.6 },
+      { dx: 3, dy: -2, r: 1.6 },
+    ],
+  },
+  'core:turret': {
+    shape: 'rect',
+    width: 26,
+    height: 26,
+    fill: '#6a6a4a',
+    outline: '#2a2a1a',
+    outlineWidth: 2,
+    eyes: [{ dx: 0, dy: -2, r: 2.4 }],
+  },
+  tear: {
+    shape: 'circle',
+    radius: 6,
+    fill: '#cfe8ff',
+    outline: '#3a6a8a',
+    outlineWidth: 1,
+  },
+};
+
+/** Converts a sprite spec into a list of draw ops centered on the entity's local origin. Pure. */
+export function computeSpriteDrawOps(spec) {
+  const ops = [];
+  if (spec.shape === 'circle') {
+    ops.push({ op: 'circle', x: 0, y: 0, radius: spec.radius, fill: spec.fill, outline: spec.outline, outlineWidth: spec.outlineWidth });
+  } else if (spec.shape === 'rect') {
+    ops.push({
+      op: 'rect',
+      x: -spec.width / 2,
+      y: -spec.height / 2,
+      width: spec.width,
+      height: spec.height,
+      fill: spec.fill,
+      outline: spec.outline,
+      outlineWidth: spec.outlineWidth,
+    });
+  }
+  for (const eye of spec.eyes ?? []) {
+    ops.push({ op: 'circle', x: eye.dx, y: eye.dy, radius: eye.r, fill: eye.fill ?? '#1a1a1a' });
+  }
+  return ops;
+}
+
+/** Draws precomputed ops at (x, y), optionally tinted white (hit flash) and scaled. Canvas-only. */
+export function executeDrawOps(ctx, ops, { x, y, scale = 1, flashWhite = false }) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  for (const op of ops) {
+    const fill = flashWhite && op.fill ? '#ffffff' : op.fill;
+    if (op.op === 'circle') {
+      ctx.beginPath();
+      ctx.arc(op.x, op.y, op.radius, 0, Math.PI * 2);
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }
+      if (op.outline && !flashWhite) {
+        ctx.lineWidth = op.outlineWidth ?? 1;
+        ctx.strokeStyle = op.outline;
+        ctx.stroke();
+      }
+    } else if (op.op === 'rect') {
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fillRect(op.x, op.y, op.width, op.height);
+      }
+      if (op.outline && !flashWhite) {
+        ctx.lineWidth = op.outlineWidth ?? 1;
+        ctx.strokeStyle = op.outline;
+        ctx.strokeRect(op.x, op.y, op.width, op.height);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+export function drawSprite(ctx, spec, params) {
+  executeDrawOps(ctx, computeSpriteDrawOps(spec), params);
+}
