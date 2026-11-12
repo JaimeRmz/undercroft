@@ -1,0 +1,17 @@
+{
+  "id": "core:grimtide",
+  "name": "Grimtide",
+  "chapter": 1,
+  "hp": 45,
+  "radius": 26,
+  "speed": 70,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.1,
+  "damage": 2,
+  "range": 8,
+  "phases": [
+    { "hpThreshold": 1.0, "patterns": [{ "id": "spread", "weight": 2 }, { "id": "charge", "weight": 1 }] },
+    { "hpThreshold": 0.5, "patterns": [{ "id": "ring", "weight": 1 }, { "id": "projectileRain", "weight": 2 }, { "id": "charge", "weight": 1 }] }
+  ],
+  "description": "Alternates slow spreads with sudden charges across the room."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "core:maw",
+  "name": "The Maw",
+  "chapter": 1,
+  "hp": 40,
+  "radius": 28,
+  "speed": 60,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1,
+  "damage": 2,
+  "range": 8,
+  "phases": [
+    { "hpThreshold": 1.0, "patterns": [{ "id": "aimedBurst", "weight": 2 }, { "id": "spread", "weight": 1 }] },
+    { "hpThreshold": 0.5, "patterns": [{ "id": "ring", "weight": 2 }, { "id": "spiral", "weight": 1 }, { "id": "summonMinions", "weight": 1 }] }
+  ],
+  "description": "A lumbering, two-phase guardian. Gets desperate once it's bleeding."
+}

@@ -29,6 +29,8 @@ import {
 } from './systems/items.js';
 import { checkSynergies } from './systems/synergies.js';
 import { stockShop, resolveShopPurchases } from './systems/shop.js';
+import { spawnBoss, spawnTrapdoor, resolveTrapdoor } from './systems/bosses.js';
+import { drawBossBar } from './ui/bossbar.js';
 import { createInputState, createKeyboardAdapter, pollGamepads, clearFrameEdges } from './engine/input.js';
 import { events } from './core/events.js';
 import { Camera } from './render/camera.js';
@@ -59,11 +61,18 @@ async function boot() {
   const vfxRng = rngStreams.stream('vfx');
   const spawnRng = rngStreams.stream('spawns');
 
-  const floor = generateFloor(1, floorRng);
+  let stage = 1;
+  let floor = generateFloor(stage, floorRng);
   const templates = registries.of('room').all();
-  const floorRuntime = new FloorRuntime(floor, templates, templateRng);
+  let floorRuntime = new FloorRuntime(floor, templates, templateRng);
   const itemPools = buildItemPools(registries.of('item').all());
   const getItemDef = (id) => registries.of('item').get(id);
+  const getBossDefsForChapter = (chapter) => {
+    const all = registries.of('boss').all();
+    const matching = all.filter((b) => b.chapter === chapter);
+    return matching.length > 0 ? matching : all;
+  };
+  const getBossDef = (id) => registries.of('boss').get(id);
 
   const stockedRooms = new Set();
   function stockRoom(room, cell) {
@@ -85,7 +94,17 @@ async function boot() {
       return;
     }
 
-    if (cell.type !== 'normal' && cell.type !== 'boss') return;
+    if (cell.type === 'boss') {
+      const chapter = Math.ceil(stage / 2);
+      const bossDefs = getBossDefsForChapter(chapter);
+      if (bossDefs.length === 0) return;
+      const def = spawnRng.pick(bossDefs);
+      const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
+      spawnBoss(room.world, def, { x: center.x, y: center.y, stage });
+      return;
+    }
+
+    if (cell.type !== 'normal') return;
     const enemyDefs = registries.of('enemy').all();
     if (enemyDefs.length === 0) return;
     const count = spawnRng.int(1, 3);
@@ -121,9 +140,28 @@ async function boot() {
   const transition = createTransitionState();
   let pendingEntrySide = null;
 
+  function advanceFloor() {
+    stage += 1;
+    floor = generateFloor(stage, floorRng);
+    floorRuntime = new FloorRuntime(floor, templates, templateRng);
+    stockedRooms.clear();
+    room = floorRuntime.getCurrentRoom();
+    stockRoom(room, floorRuntime.getCurrentCell());
+    player.x = centerX;
+    player.y = centerY;
+    player.vx = 0;
+    player.vy = 0;
+    decals.clear();
+  }
+
   events.on('enemy:death', ({ enemy }) => {
     particles.burst(enemy.x, enemy.y, 12, { color: '#8a3a4a', rng: vfxRng });
     decals.add({ x: enemy.x, y: enemy.y, color: '#5a1a1a', size: 10, alpha: 0.5 });
+    if (enemy.isBoss) {
+      const itemId = itemPools.draw('boss', spawnRng);
+      if (itemId) spawnItemPedestal(room.world, itemId, { x: enemy.x, y: enemy.y });
+      spawnTrapdoor(room.world, { x: centerX, y: centerY });
+    }
   });
   events.on('health:damaged', () => camera.shake(4, 0.15));
   events.on('bomb:explode', ({ x, y, radius }) => {
@@ -196,8 +234,17 @@ async function boot() {
       const justCleared = room.update();
       if (justCleared) {
         chargeActivesOnRoomClear(inventory);
-        const reward = rollRoomClearReward(spawnRng, player.stats.luck);
-        if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng });
+        // Boss rooms drop their own guaranteed item + trapdoor (CLAUDE.md §3); no extra room-clear roll.
+        if (floorRuntime.getCurrentCell().type !== 'boss') {
+          const reward = rollRoomClearReward(spawnRng, player.stats.luck);
+          if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng });
+        }
+      }
+
+      if (resolveTrapdoor(room.world, player)) {
+        advanceFloor();
+        clearFrameEdges(input);
+        return;
       }
 
       const exitSide = detectDoorExit(room, player);
@@ -226,6 +273,12 @@ async function boot() {
 
     renderRoom(ctx, { room, camera, playerHealth, particles, decals, dt });
     drawBanner(ctx, banner, { x: 0, y: 80, width: canvas.width });
+
+    const boss = room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
+    if (boss) {
+      const bossDef = getBossDef(boss.defId);
+      drawBossBar(ctx, boss, { x: (canvas.width - 300) / 2, y: canvas.height - 50, name: bossDef?.name ?? '' });
+    }
 
     if (transition.active) {
       const delta = DOOR_DELTA[transition.direction];

@@ -95,6 +95,27 @@ export const CONFIG = {
   // Boss status immunity
   BOSS_STATUS_IMMUNITY_SECONDS: 8,
 
+  // Boss framework (§3 Bosses) — attack pattern tunables. [assumed] no canonical values exist for
+  // this original engine; picked to read clearly as distinct, dodgeable attacks at 60 Hz.
+  BOSS_HP_PER_STAGE_MULT: 0.5, // [assumed] +50% HP per floor stage beyond the first
+  BOSS_PATTERN_DEFAULT_COOLDOWN_SECONDS: 1,
+  BOSS_AIMED_BURST_SHOTS: 4,
+  BOSS_AIMED_BURST_INTERVAL_SECONDS: 0.15,
+  BOSS_RING_SHOT_COUNT: 12,
+  BOSS_SPREAD_SHOT_COUNT: 5,
+  BOSS_SPREAD_ARC_RADIANS: Math.PI / 3,
+  BOSS_SPIRAL_DURATION_SECONDS: 1.5,
+  BOSS_SPIRAL_INTERVAL_SECONDS: 0.08,
+  BOSS_SPIRAL_TURN_RADIANS: 0.5,
+  BOSS_CHARGE_SPEED_MULT: 4,
+  BOSS_SLAM_RADIUS: 110,
+  BOSS_SLAM_DAMAGE_HALF_HEARTS: 2,
+  BOSS_SUMMON_COUNT: 2,
+  BOSS_LASER_WIDTH_PX: 30,
+  BOSS_LASER_DAMAGE_HALF_HEARTS: 2,
+  BOSS_RAIN_DURATION_SECONDS: 1.5,
+  BOSS_RAIN_INTERVAL_SECONDS: 0.2,
+
   // Game feel / VFX
   HIT_FLASH_SECONDS: 2 / 60, // enemies flash white for 2 frames on a heavy hit
 };

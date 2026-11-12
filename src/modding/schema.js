@@ -25,6 +25,7 @@ export const SCHEMAS = {
     id: { required: true, type: 'string' },
     name: { required: true, type: 'string' },
     hp: { required: true, type: 'number' },
+    phases: { required: true, isArray: true },
   },
   room: {
     id: { required: true, type: 'string' },

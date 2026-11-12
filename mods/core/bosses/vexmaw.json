@@ -1,0 +1,17 @@
+{
+  "id": "core:vexmaw",
+  "name": "Vexmaw",
+  "chapter": 2,
+  "hp": 60,
+  "radius": 30,
+  "speed": 0,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.2,
+  "damage": 2,
+  "range": 9,
+  "phases": [
+    { "hpThreshold": 1.0, "patterns": [{ "id": "aimedBurst", "weight": 2 }, { "id": "teleport", "weight": 1 }] },
+    { "hpThreshold": 0.5, "patterns": [{ "id": "spiral", "weight": 2 }, { "id": "telegraphedLaser", "weight": 2 }, { "id": "summonMinions", "weight": 1 }] }
+  ],
+  "description": "Blinks around the room, then locks onto a line and makes you move or die."
+}

@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * Headless simulate harness (P0 scope — CLAUDE.md §5 (a)/(b)/(c), scaled to what
- * exists so far: no bosses/items/floors yet, so this exercises the 3 P0 enemies,
- * a kitchen-sink combat scenario, and a simple bot clearing seeded single rooms.
- * Full scope (bosses, every item at once, 20-seeded-floor runs) lands as these
- * systems are built in P1/P2 — see KNOWN_ISSUES.md.
+ * Headless simulate harness (CLAUDE.md §5 (a)/(b)/(c)): every enemy and boss
+ * alone, a kitchen-sink combat scenario, and a simple bot clearing seeded
+ * single-room encounters. Still a single-room subset of the full gate —
+ * "every item at once" and "20 seeded full floor runs" land once items are
+ * woven into spawnable loadouts and multi-floor runs are easy to script here
+ * — see KNOWN_ISSUES.md.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Room } from '../src/systems/room.js';
 import { createPlayer, updatePlayer } from '../src/systems/player.js';
 import { spawnEnemy, updateEnemies } from '../src/systems/enemies.js';
+import { spawnBoss } from '../src/systems/bosses.js';
 import { updateProjectiles } from '../src/systems/projectiles.js';
 import { resolveCombat } from '../src/systems/combat.js';
 import { Health, tickInvuln } from '../src/systems/health.js';
@@ -31,7 +33,7 @@ function isFinitePos(entity) {
   return Number.isFinite(entity.x) && Number.isFinite(entity.y);
 }
 
-async function loadEnemyDefs() {
+async function loadContentDefs() {
   const registries = new ContentRegistries();
   const loader = new ModLoader({ source: createFsSource(MODS_DIR), registries, events: createEventBus(), log: SILENT_LOG });
   const { errors } = await loader.loadAll();
@@ -39,7 +41,7 @@ async function loadEnemyDefs() {
     console.error('[simulate] mod load errors:', errors);
     throw new Error(`mod loader reported ${errors.length} error(s) loading mods/`);
   }
-  return registries.of('enemy').all();
+  return { enemyDefs: registries.of('enemy').all(), bossDefs: registries.of('boss').all() };
 }
 
 function dummyPlayerEntity() {
@@ -67,6 +69,41 @@ function testEachEnemyAlone(enemyDefs) {
       }
     }
     console.log(`  OK: ${def.id}`);
+  }
+}
+
+/**
+ * (a2) Each boss, spawned alone with a dummy player for 1200 frames while taking steady damage:
+ * no exceptions, no NaN positions, and it must cycle through every one of its phases.
+ */
+function testEachBossAlone(bossDefs) {
+  console.log(`\n[simulate] (a2) spawning each of ${bossDefs.length} bosses alone for 1200 frames, dealing steady damage...`);
+  for (const def of bossDefs) {
+    const room = new Room();
+    const center = room.world.tileGrid.tileCenter(6, 3);
+    const player = { x: center.x + 150, y: center.y, radius: 12, vx: 0, vy: 0, alive: true };
+    const boss = spawnBoss(room.world, def, { x: center.x, y: center.y });
+    const rng = new Rng(`boss-${def.id}`);
+    const events = createEventBus();
+    const phasesSeen = new Set([0]);
+    events.on('boss:phase', ({ phaseIndex }) => phasesSeen.add(phaseIndex));
+    const hpDrainPerFrame = boss.maxHp / 1100; // reach ~0 just before the frame budget runs out
+
+    for (let frame = 0; frame < 1200; frame++) {
+      updateEnemies(room.world, player, DT, { events, rng });
+      updateProjectiles(room.world, DT, events);
+      room.world.reap();
+      if (boss.alive) boss.hp = Math.max(1, boss.hp - hpDrainPerFrame);
+      for (const e of room.world.entities.all()) {
+        if (!isFinitePos(e)) {
+          throw new Error(`${def.id}: entity ${e.type}#${e.id} has a non-finite position at frame ${frame} (${e.x}, ${e.y})`);
+        }
+      }
+    }
+    if (phasesSeen.size !== def.phases.length) {
+      throw new Error(`${def.id}: expected to see all ${def.phases.length} phases, only saw [${[...phasesSeen].join(', ')}]`);
+    }
+    console.log(`  OK: ${def.id} (${def.phases.length} phase(s))`);
   }
 }
 
@@ -185,11 +222,13 @@ function testBotClearsRooms(enemyDefs, seedCount = 20) {
 }
 
 async function main() {
-  console.log('=== Undercroft headless simulate harness (P0 scope) ===');
-  const enemyDefs = await loadEnemyDefs();
+  console.log('=== Undercroft headless simulate harness ===');
+  const { enemyDefs, bossDefs } = await loadContentDefs();
   if (enemyDefs.length === 0) throw new Error('no enemy definitions loaded from mods/core — check the mod loader');
+  if (bossDefs.length === 0) throw new Error('no boss definitions loaded from mods/core — check the mod loader');
 
   testEachEnemyAlone(enemyDefs);
+  testEachBossAlone(bossDefs);
   testKitchenSink(enemyDefs);
   testBotClearsRooms(enemyDefs);
 

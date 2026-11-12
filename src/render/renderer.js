@@ -110,6 +110,18 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     }
   }
 
+  for (const trapdoor of room.world.entities.byType('trapdoor')) {
+    if (!trapdoor.alive) continue;
+    const screen = camera.worldToScreen(trapdoor.x, trapdoor.y);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(screen.x, screen.y, trapdoor.radius * camera.zoom, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#4a3a2a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
   for (const bomb of room.world.entities.byType('bomb')) {
     if (!bomb.alive) continue;
     const screen = camera.worldToScreen(bomb.x, bomb.y);
