@@ -56,6 +56,23 @@ test('destroyRock on a non-rock tile is a no-op and returns false', () => {
   assert.equal(room.destroyRock(6, 3), false); // plain floor
 });
 
+test('addDoorToSide carves a passable door on a side that started without one', () => {
+  const room = new Room({ doorSides: ['north'] }); // only one door to start
+  assert.ok(!room.doors.has('south'));
+  const door = room.addDoorToSide('south');
+  assert.deepEqual(door, { tx: 6, ty: 6, locked: false });
+  assert.ok(!room.world.tileGrid.isSolid(6, 6));
+  assert.equal(room.getTileType(6, 6), TILE.DOOR);
+});
+
+test('addDoorToSide is a no-op if that side already has a door', () => {
+  const room = new Room({ doorSides: ['north'] });
+  const first = room.addDoorToSide('north');
+  const second = room.addDoorToSide('north');
+  assert.deepEqual(first, second);
+  assert.equal(room.doors.size, 1);
+});
+
 test('update() locks doors while an enemy is alive, and opens them once the last one dies', () => {
   const room = new Room();
   const center = room.world.tileGrid.tileCenter(6, 3);

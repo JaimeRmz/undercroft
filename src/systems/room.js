@@ -67,20 +67,37 @@ export class Room {
     }
   }
 
-  _buildDoors(doorSides) {
+  _doorPosition(side) {
     const midX = Math.floor(this.widthTiles / 2);
     const midY = Math.floor(this.heightTiles / 2);
-    const positions = {
+    return {
       north: { tx: midX, ty: 0 },
       south: { tx: midX, ty: this.heightTiles - 1 },
       west: { tx: 0, ty: midY },
       east: { tx: this.widthTiles - 1, ty: midY },
-    };
+    }[side];
+  }
+
+  /** Public accessor for where a door on `side` sits (or would sit, even if not yet carved). */
+  doorPositionForSide(side) {
+    return this._doorPosition(side);
+  }
+
+  _buildDoors(doorSides) {
     for (const side of doorSides) {
-      const pos = positions[side];
+      const pos = this._doorPosition(side);
       this.doors.set(side, { ...pos, locked: false });
       this.setTileType(pos.tx, pos.ty, TILE.DOOR);
     }
+  }
+
+  /** Carves a new door into a side that didn't start with one (e.g. a secret wall revealed by a bomb). Unlocked immediately. */
+  addDoorToSide(side) {
+    if (this.doors.has(side)) return this.doors.get(side);
+    const pos = this._doorPosition(side);
+    this.doors.set(side, { ...pos, locked: false });
+    this.setTileType(pos.tx, pos.ty, TILE.DOOR);
+    return this.doors.get(side);
   }
 
   placeRock(tx, ty) {

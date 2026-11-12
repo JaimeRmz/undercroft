@@ -1,11 +1,13 @@
 /**
  * Ties a generated floor graph (floorgen.js) to actual Room instances: lazily
- * builds a Room per cell (doors only toward real neighbors, template picked by
- * room type/chapter), tracks the current cell, and moves between cells.
+ * builds a Room per cell (doors only toward real, non-secret neighbors,
+ * template picked by room type/chapter), tracks the current cell, and moves
+ * between cells. Secret/super-secret rooms start with no doors at all — a
+ * bomb exploding near the shared wall (revealSecretWall) carves one in.
  */
 import { Room } from './room.js';
 import { applyTemplateToRoom, pickTemplate } from './roomTemplates.js';
-import { cellKey } from './floorgen.js';
+import { cellKey, ROOM_TYPE } from './floorgen.js';
 import { oppositeSide } from './transitions.js';
 
 const SIDE_OF_DELTA = [
@@ -15,10 +17,16 @@ const SIDE_OF_DELTA = [
   { side: 'west', dx: -1, dy: 0 },
 ];
 
+function isSecretType(type) {
+  return type === ROOM_TYPE.SECRET || type === ROOM_TYPE.SUPER_SECRET;
+}
+
 function doorSidesForCell(floor, cell) {
+  if (isSecretType(cell.type)) return []; // only gained via revealSecretWall
   const sides = [];
   for (const { side, dx, dy } of SIDE_OF_DELTA) {
-    if (floor.cells.has(cellKey(cell.x + dx, cell.y + dy))) sides.push(side);
+    const neighbor = floor.cells.get(cellKey(cell.x + dx, cell.y + dy));
+    if (neighbor && !isSecretType(neighbor.type)) sides.push(side);
   }
   return sides;
 }
@@ -58,15 +66,39 @@ export class FloorRuntime {
     return this.floor.cells.get(this.currentKey);
   }
 
-  /** Moves to the neighbor in `direction`, if the floor graph has one there. Returns { room, enteredFrom } or null. */
+  /** Moves to the neighbor in `direction`, only if a (possibly just-revealed) door already exists that way. */
   move(direction) {
     const cell = this.getCurrentCell();
     const delta = SIDE_OF_DELTA.find((d) => d.side === direction);
     const key = cellKey(cell.x + delta.dx, cell.y + delta.dy);
     if (!this.floor.cells.has(key)) return null;
+    if (!this.getRoom(this.currentKey).doors.has(direction)) return null;
 
     this.currentKey = key;
     this.visited.add(key);
     return { room: this.getRoom(key), enteredFrom: oppositeSide(direction) };
+  }
+
+  /** If a bomb exploding at (x, y) in the current room lands near a wall shared with a secret room, carves a door both ways. */
+  revealSecretWall(x, y) {
+    const cell = this.getCurrentCell();
+    const room = this.getCurrentRoom();
+    const tileSize = room.world.tileGrid.tileSize;
+
+    for (const { side, dx, dy } of SIDE_OF_DELTA) {
+      if (room.doors.has(side)) continue;
+      const neighborKey = cellKey(cell.x + dx, cell.y + dy);
+      const neighbor = this.floor.cells.get(neighborKey);
+      if (!neighbor || !isSecretType(neighbor.type)) continue;
+
+      const pos = room.doorPositionForSide(side);
+      const center = room.world.tileGrid.tileCenter(pos.tx, pos.ty);
+      if (Math.hypot(center.x - x, center.y - y) > tileSize * 2) continue; // [assumed] blast must reach near that wall
+
+      room.addDoorToSide(side);
+      this.getRoom(neighborKey).addDoorToSide(oppositeSide(side));
+      return { side, neighborKey };
+    }
+    return null;
   }
 }

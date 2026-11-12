@@ -16,6 +16,8 @@ import { updateProjectiles } from './systems/projectiles.js';
 import { resolveCombat } from './systems/combat.js';
 import { Health, tickInvuln } from './systems/health.js';
 import { Stats } from './systems/stats.js';
+import { placeBomb, updateBombs } from './systems/bombs.js';
+import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from './systems/pickups.js';
 import { createInputState, createKeyboardAdapter, pollGamepads, clearFrameEdges } from './engine/input.js';
 import { events } from './core/events.js';
 import { Camera } from './render/camera.js';
@@ -75,6 +77,7 @@ async function boot() {
   const centerY = (room.heightTiles * tileSize) / 2;
   const player = createPlayer(room.world, { x: centerX, y: centerY, stats: new Stats() });
   const playerHealth = new Health({ redMax: 6 });
+  const currency = new Currency();
 
   const input = createInputState();
   createKeyboardAdapter(input, window);
@@ -90,6 +93,11 @@ async function boot() {
     decals.add({ x: enemy.x, y: enemy.y, color: '#5a1a1a', size: 10, alpha: 0.5 });
   });
   events.on('health:damaged', () => camera.shake(4, 0.15));
+  events.on('bomb:explode', ({ x, y, radius }) => {
+    particles.burst(x, y, 20, { color: '#e8a030', speed: 140, life: 0.4, rng: vfxRng });
+    camera.shake(8, 0.2);
+    floorRuntime.revealSecretWall(x, y);
+  });
 
   const loop = new FixedStepLoop({
     update: (dt) => {
@@ -113,10 +121,22 @@ async function boot() {
       updatePlayer(room.world, player, input, dt, { events });
       updateEnemies(room.world, player, dt, { events, rng: aiRng });
       updateProjectiles(room.world, dt, events);
+      updateBombs(room.world, dt, { player, playerHealth, room, events });
       resolveCombat(room.world, { player, playerHealth, events });
+      resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng });
       tickInvuln(playerHealth, dt);
       room.world.reap();
-      room.update();
+
+      if (input.justPressed.has('bomb') && currency.bombs > 0) {
+        currency.bombs -= 1;
+        placeBomb(room.world, { x: player.x, y: player.y });
+      }
+
+      const justCleared = room.update();
+      if (justCleared) {
+        const reward = rollRoomClearReward(spawnRng, player.stats.luck);
+        if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng });
+      }
 
       const exitSide = detectDoorExit(room, player);
       if (exitSide) {
