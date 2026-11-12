@@ -40,6 +40,8 @@ export const SCHEMAS = {
   floor: {
     id: { required: true, type: 'string' },
     chapter: { required: true, type: 'number' },
+    name: { type: 'string' },
+    stage: { type: 'number' },
   },
   pickup: {
     id: { required: true, type: 'string' },

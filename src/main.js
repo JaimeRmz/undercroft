@@ -22,13 +22,14 @@ import { placeBomb, updateBombs } from './systems/bombs.js';
 import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from './systems/pickups.js';
 import {
   ItemInventory,
+  pickUpItem,
   buildItemPools,
   spawnItemPedestal,
   resolveItemPedestals,
   chargeActivesOnRoomClear,
   useActiveItem,
 } from './systems/items.js';
-import { TrinketInventory, resolveTrinketPickups, dropTrinket } from './systems/trinkets.js';
+import { TrinketInventory, resolveTrinketPickups, dropTrinket, equipTrinket } from './systems/trinkets.js';
 import { ConsumableInventory, resolveConsumablePickups, useConsumableSlot } from './systems/consumables.js';
 import { PillIdentity } from './systems/pills.js';
 import { updateTempStatBoosts } from './systems/effects.js';
@@ -47,8 +48,8 @@ import { DecalLayer } from './render/decals.js';
 import { renderRoom } from './render/renderer.js';
 import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
-import { drawTrinketSlot } from './ui/trinketSlot.js';
-import { drawConsumableSlot } from './ui/consumableSlot.js';
+import { computeHudModel } from './ui/hudModel.js';
+import { drawHudPanels, drawFloorBanner } from './ui/hudPanels.js';
 import { drawMenuScreen, drawPauseScreen, drawDeathScreen } from './ui/screens.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
@@ -130,6 +131,16 @@ async function boot() {
     }
   }
 
+  /** Floor display name from the floor registry (mods/core/floors), with a fallback past the authored floors. */
+  function floorTitle(stage) {
+    const def = registries.of('floor').all().find((f) => f.stage === stage);
+    return { name: def?.name ?? `Depth ${stage}`, chapter: def?.chapter ?? Math.ceil(stage / 2) };
+  }
+  function announceFloor(run) {
+    const { name, chapter } = floorTitle(run.stage);
+    showBanner(run.floorBanner, name, `Floor ${run.stage} - Chapter ${chapter}`, 3);
+  }
+
   function advanceFloor(run) {
     run.stage += 1;
     run.stats.floorsCleared += 1;
@@ -151,6 +162,7 @@ async function boot() {
     const pos = entrySide ? entryPositionForSide(run.room, entrySide) : { x: run.centerX, y: run.centerY };
     placePlayerInRoom(run.player, previousWorld, run.room, pos);
     run.decals.clear();
+    announceFloor(run);
   }
 
   /** Builds a brand-new run (fresh seeds, floor 1, starting stats) — called on first start and on restart. */
@@ -170,6 +182,7 @@ async function boot() {
       particles: new ParticlePool(),
       decals: new DecalLayer(),
       banner: createBannerState(),
+      floorBanner: createBannerState(),
       currency: new Currency(),
       inventory: new ItemInventory(),
       trinketInventory: new TrinketInventory(),
@@ -186,6 +199,7 @@ async function boot() {
     run.centerX = (run.room.widthTiles * tileSize) / 2;
     run.centerY = (run.room.heightTiles * tileSize) / 2;
     run.player = createPlayer(run.room.world, { x: run.centerX, y: run.centerY, stats: new Stats() });
+    announceFloor(run);
     return run;
   }
 
@@ -438,6 +452,22 @@ async function boot() {
       const run = currentRun;
       return spawnEnemy(run.room.world, def, { x: run.player.x, y: run.player.y, rng: run.spawnRng });
     },
+    /** Gives a representative loadout (active item w/ partial charge, trinket, card, pickups) to exercise the HUD. */
+    giveLoadout() {
+      const run = currentRun;
+      const active = registries.of('item').all().find((d) => d.type === 'active');
+      if (active) {
+        pickUpItem(run.inventory, run.player.stats, run.playerHealth, active, run.player);
+        run.inventory.actives[run.inventory.actives.length - 1].charge = 1;
+      }
+      const trinket = registries.of('trinket').all()[0];
+      if (trinket) equipTrinket(run.trinketInventory, run.player.stats, trinket);
+      const card = registries.of('card').all()[0];
+      if (card) run.consumableInventory.current = { kind: 'card', cardId: card.id };
+      run.currency.coins = 23;
+      run.currency.bombs = 3;
+      run.currency.keys = 2;
+    },
     enemyIds: () => registries.of('enemy').all().map((d) => d.id),
   };
 
@@ -461,14 +491,27 @@ async function boot() {
     camera.update(dt, run.vfxRng);
     run.particles.update(dt);
     updateBanner(run.banner, dt);
+    updateBanner(run.floorBanner, dt);
 
     const chapter = Math.ceil(run.stage / 2);
     renderRoom(ctx, { room: run.room, camera, playerHealth: run.playerHealth, particles: run.particles, decals: run.decals, dt, chapter });
     const ps = camera.worldToScreen(run.player.x, run.player.y);
     lastPlayerScreen = { x: ps.x * viewport.scale, y: ps.y * viewport.scale }; // canvas backing-store pixels (for the smoke pixel check)
-    drawBanner(ctx, run.banner, { x: ROOM_RECT.x, y: ROOM_RECT.y + 36, width: ROOM_RECT.w });
-    drawTrinketSlot(ctx, run.trinketInventory, { x: 590, y: 120 });
-    drawConsumableSlot(ctx, run.consumableInventory, { getCardDef, getPillDef, pillIdentity: run.pillIdentity }, { x: 590, y: 140 });
+    drawHudPanels(ctx, computeHudModel({
+      playerHealth: run.playerHealth,
+      currency: run.currency,
+      stats: run.player.stats,
+      inventory: run.inventory,
+      trinketInventory: run.trinketInventory,
+      consumableInventory: run.consumableInventory,
+      getItemDef,
+      getCardDef,
+      getPillDef,
+      pillIdentity: run.pillIdentity,
+    }));
+    drawFloorBanner(ctx, run.floorBanner);
+    // Item pickup banner sits in the bottom wall row so it never covers walkable floor.
+    drawBanner(ctx, run.banner, { x: ROOM_RECT.x, y: ROOM_RECT.y + ROOM_RECT.h - 20, width: ROOM_RECT.w });
 
     const boss = run.room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
     if (boss) {

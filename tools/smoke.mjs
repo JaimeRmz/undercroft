@@ -202,6 +202,27 @@ async function main() {
     expect(transitions >= 4, `only completed ${transitions} door transitions (need 4)`);
     await shot('after-4-transitions');
 
+    // --- full HUD + boss fight --------------------------------------------------------------------
+    {
+      await page.evaluate(() => window.__undercroft.giveLoadout());
+      const s = await snap();
+      const boss = s.floorCells.find((c) => c.type === 'boss');
+      if (boss) {
+        await page.evaluate((key) => {
+          window.__undercroft.gotoCell(key);
+          window.__undercroft.setHealth(6);
+        }, boss.key);
+        await page.evaluate(() => window.__undercroft.setPlayer(120, 200)); // gotoCell drops the player at room center, on top of the boss
+        await page.waitForTimeout(1800);
+        await page.evaluate(() => window.__undercroft.setHealth(6));
+        expect((await snap()).enemies > 0, 'boss room has no boss');
+        await shot('boss-and-hud');
+        await page.evaluate(() => window.__undercroft.killAllEnemies());
+      } else {
+        await shot('hud-full');
+      }
+    }
+
     // --- shop ----------------------------------------------------------------------------------
     {
       const s = await snap();

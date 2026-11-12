@@ -1,6 +1,5 @@
 /** Draws one room: tiles, decals, entities (via sprite specs), particles, and the HUD. Canvas-only, no game logic. */
 import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, SPRITES } from './sprites.js';
-import { drawHud } from '../ui/hud.js';
 import { isFlashing, updateHitFlash } from './vfx.js';
 
 /** Per-chapter palette (CLAUDE.md §3: "each with its own palette"). [assumed] colors — chapter 1 is the original default tint. */
@@ -185,5 +184,4 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     ctx.globalAlpha = 1;
   }
 
-  if (playerHealth) drawHud(ctx, playerHealth, { x: 62, y: 8, size: 12, gap: 2 });
 }

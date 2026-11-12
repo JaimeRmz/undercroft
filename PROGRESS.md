@@ -46,7 +46,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 ## P1.F — Playtest fixes (user playtest, 2026-11-12; do these before any P2 work)
 - [x] P1.F1 Player (and 13 of 16 enemies + all bosses) invisible. Root causes: (1) the player entity lived only in room 1's World, so after any door `renderRoom` (which finds the player via `room.world`) never drew it — fixed by `placePlayerInRoom` re-homing the entity on every room change; (2) `SPRITES` only had specs for 3 enemies, so every other enemy/boss was silently skipped — fixed with generated specs (`resolveEnemySpec`); (3) trinket/card/pill pickups had no draw code. Tests: `systems-roomEntry` (10+ transitions, all 4 directions), `render-audit` (every entity type draws).
 - [x] P1.F2 Room is small and off-center: fixed 640x360 logical view, room centered (520x280, camera locked), integer-scaled + letterboxed + resize-aware (render/viewport.js, ui/layout.js zones keep HUD in the margins). Smoke checks 3 window sizes and screenshots them.
-- [ ] P1.F3 Full HUD: coin/bomb/key counters, active item + charge bar, trinket, consumable, stats column, floor banner, boss HP bar
+- [x] P1.F3 Full HUD: coin/bomb/key counters with icons, stats column (DMG/TEARS/SPEED/RANGE/SHOT/LUCK), active item + segmented charge bar, trinket + card/pill slots, floor-name banner (new mods/core/floors data), boss HP bar. Pure model in ui/hudModel.js, drawing in ui/hudPanels.js; test asserts nothing draws over the play area.
 - [ ] P1.F4 Fairness: ~0.5s enemy grace on room entry, blinking i-frames, high-contrast enemy projectiles, "Killed by <enemy>" on death screen
 
 ---
