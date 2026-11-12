@@ -18,6 +18,7 @@ You are running **unattended overnight**. Nobody will answer questions. You make
 8. **Original IP only.** Mechanics, numbers and systems may match Afterbirth exactly (game mechanics aren't copyrightable). But **never** use Isaac's character names, item names, enemy or boss names, the story, sprites, sound files, music or any extracted game data. Invent your own names and art. Do not download or extract any game files.
 9. **No placeholders in core systems.** Content can be thin early on; systems can't be fake.
 10. **Don't gold-plate.** Gameplay comes first. No splash screens, credits or polish passes until P0–P2 are done.
+11. **Visual verification is mandatory.** Passing tests ≠ working game. Any task that touches what the player sees ends with a Playwright screenshot that you read and judge as a first-time player would. If the player, threats, or HUD aren't clearly readable, the task isn't done.
 
 ---
 

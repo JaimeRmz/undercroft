@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
  * Playwright smoke test (CLAUDE.md §5): boots server.js, loads the page in
- * headless Chromium, starts a run, holds movement + shoot keys for 10s,
- * asserts zero console errors, and saves a timestamped screenshot.
- * Room-transition coverage is added once floor/room-to-room transitions
- * exist (P1.2) — for now this exercises the single P0 room.
+ * headless Chromium (1920x1080), starts a run, holds movement + shoot keys,
+ * then walks through 4+ REAL doors (checking after every one that the player
+ * is actually painted on the canvas), visits a shop, dies, and saves
+ * screenshots (menu, start room, combat, after transitions, shop, death) to
+ * tools/screenshots/ for visual review. Zero console errors is required.
  */
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -17,6 +18,8 @@ const ROOT = path.join(__dirname, '..');
 const PORT = 8099; // avoid clobbering a dev server the user may have running on 8080
 const URL = `http://localhost:${PORT}/`;
 const SCREENSHOT_DIR = path.join(__dirname, 'screenshots');
+const SIDE_KEY = { north: 'KeyW', south: 'KeyS', east: 'KeyD', west: 'KeyA' };
+const SIDE_DELTA = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
 
 function startServer() {
   return new Promise((resolve, reject) => {
@@ -53,47 +56,183 @@ async function main() {
   const server = await startServer();
 
   const consoleErrors = [];
+  const failures = [];
+  const shots = [];
   let browser;
   try {
-    console.log('[smoke] launching headless Chromium...');
+    console.log('[smoke] launching headless Chromium (1920x1080)...');
     browser = await chromium.launch();
-    const page = await browser.newPage();
+    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
     page.on('pageerror', (err) => consoleErrors.push(String(err)));
 
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const shot = async (name) => {
+      const file = path.join(SCREENSHOT_DIR, `smoke-${stamp}-${name}.png`);
+      await page.screenshot({ path: file });
+      shots.push(file);
+      console.log(`[smoke] screenshot: ${file}`);
+    };
+    const snap = () => page.evaluate(() => window.__undercroft.snapshot());
+    const expect = (cond, msg) => {
+      if (!cond) {
+        failures.push(msg);
+        console.error(`[smoke] CHECK FAILED: ${msg}`);
+      }
+    };
+    /** Samples the canvas where the player should be drawn; true if bright player-body pixels are there. */
+    const playerPainted = () =>
+      page.evaluate(() => {
+        const s = window.__undercroft.snapshot();
+        if (!s.playerPixel) return false;
+        const ctx = document.getElementById('game').getContext('2d');
+        const px = ctx.getImageData(Math.round(s.playerPixel.x), Math.round(s.playerPixel.y), 1, 1).data;
+        // Player body #e8d9b0 / belly #f5ecd2 / hit-flash white are bright and warm; floor and walls are dark.
+        return px[0] > 150 && px[1] > 140 && px[2] > 100;
+      });
+
     console.log(`[smoke] loading ${URL} ...`);
     await page.goto(URL, { waitUntil: 'load' });
-    await page.waitForTimeout(500); // let main.js boot (mod loading is async)
+    await page.waitForFunction(() => window.__undercroft, null, { timeout: 15000 }); // main.js boot (mod loading is async)
+    await page.waitForTimeout(300);
 
+    await shot('menu');
     console.log('[smoke] dismissing the main menu...');
-    await page.keyboard.press('Space'); // menu -> playing (CLAUDE.md §1.9's "useActive" confirm action)
-    await page.waitForTimeout(200);
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(900); // enemy grace period + first frames
+    expect(await playerPainted(), 'no player pixels in the start room');
+    await shot('start-room');
 
-    console.log('[smoke] holding movement + shoot keys for 10s...');
+    console.log('[smoke] holding movement + shoot keys for 6s...');
     await page.keyboard.down('KeyW');
     await page.keyboard.down('KeyD');
     await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(10000);
+    await page.waitForTimeout(6000);
     await page.keyboard.up('KeyW');
     await page.keyboard.up('KeyD');
     await page.keyboard.up('ArrowRight');
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(200);
+    if ((await snap()).state === 'dead') {
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(400);
+    }
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const screenshotPath = path.join(SCREENSHOT_DIR, `smoke-${timestamp}.png`);
-    await page.screenshot({ path: screenshotPath });
-    console.log(`[smoke] screenshot saved to ${screenshotPath}`);
+    // --- walk through >= 4 real doors ---------------------------------------------------------
+    const visited = new Set();
+    let transitions = 0;
+    let combatShot = false;
+    for (let guard = 0; guard < 14 && transitions < 4; guard++) {
+      let s = await snap();
+      visited.add(s.cellKey);
+      await page.evaluate(() => window.__undercroft.setHealth(6));
+
+      if (!combatShot && s.enemies > 0 && s.cellType === 'normal') {
+        console.log('[smoke] fighting in a normal room...');
+        await page.waitForTimeout(800); // enemy grace period
+        await page.keyboard.down('ArrowRight');
+        await page.keyboard.down('KeyA');
+        await page.waitForTimeout(1800);
+        await page.keyboard.up('KeyA');
+        await page.keyboard.up('ArrowRight');
+        await page.evaluate(() => window.__undercroft.setHealth(6));
+        await shot('combat');
+        combatShot = true;
+      }
+
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+      await page.waitForTimeout(250);
+      s = await snap();
+
+      const cells = new Map(s.floorCells.map((c) => [c.key, c.type]));
+      const options = s.doors
+        .filter((d) => !d.keyLocked)
+        .map((d) => {
+          const [x, y] = s.cellKey.split(',').map(Number);
+          const [dx, dy] = SIDE_DELTA[d.side];
+          const key = `${x + dx},${y + dy}`;
+          return { ...d, key, type: cells.get(key) };
+        })
+        .filter((d) => d.type && d.type !== 'boss' && d.type !== 'secret' && d.type !== 'supersecret');
+      options.sort((a, b) => Number(visited.has(a.key)) - Number(visited.has(b.key)));
+      const door = options[0];
+      if (!door) break;
+
+      // Stand 2 tiles inside the door, hold the direction key until the cell changes.
+      const [dx, dy] = SIDE_DELTA[door.side];
+      await page.evaluate(
+        ({ tx, ty, dx, dy }) => window.__undercroft.setPlayer((tx - dx * 2 + 0.5) * 40, (ty - dy * 2 + 0.5) * 40),
+        { tx: door.tx, ty: door.ty, dx, dy }
+      );
+      await page.keyboard.down(SIDE_KEY[door.side]);
+      const before = s.cellKey;
+      for (let i = 0; i < 40; i++) {
+        await page.waitForTimeout(100);
+        if ((await snap()).cellKey !== before) break;
+      }
+      await page.keyboard.up(SIDE_KEY[door.side]);
+      await page.waitForTimeout(600); // transition + entry
+      s = await snap();
+      if (s.cellKey === before) {
+        console.warn(`[smoke] did not get through the ${door.side} door; trying another`);
+        continue;
+      }
+      transitions++;
+      console.log(`[smoke] transition ${transitions}: went ${door.side} into ${s.cellKey} (${s.cellType}), enemies=${s.enemies}`);
+      expect(s.player.inWorld, `player missing from the room world after transition ${transitions}`);
+      expect(await playerPainted(), `no player pixels at the player's screen position after transition ${transitions}`);
+      if (transitions === 1) await shot('after-transition-1');
+    }
+    expect(transitions >= 4, `only completed ${transitions} door transitions (need 4)`);
+    await shot('after-4-transitions');
+
+    // --- shop ----------------------------------------------------------------------------------
+    {
+      const s = await snap();
+      const shop = s.floorCells.find((c) => c.type === 'shop');
+      if (shop) {
+        await page.evaluate((key) => {
+          window.__undercroft.gotoCell(key);
+          window.__undercroft.giveCoins(30);
+        }, shop.key);
+        await page.waitForTimeout(500);
+        expect(await playerPainted(), 'no player pixels in the shop');
+        await shot('shop');
+      } else {
+        console.warn('[smoke] no shop on this floor; skipping shop screenshot');
+      }
+    }
+
+    // --- death ---------------------------------------------------------------------------------
+    {
+      const s = await snap();
+      const normal = s.floorCells.find((c) => c.type === 'normal');
+      if (normal) await page.evaluate((key) => window.__undercroft.gotoCell(key), normal.key);
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+      await page.waitForTimeout(300);
+      await page.evaluate(() => {
+        window.__undercroft.setHealth(1);
+        window.__undercroft.spawnEnemyOnPlayer('core:chaser');
+      });
+      for (let i = 0; i < 50; i++) {
+        await page.waitForTimeout(100);
+        if ((await snap()).state === 'dead') break;
+      }
+      expect((await snap()).state === 'dead', 'player did not die when overlapped by an enemy at 1 half-heart');
+      await page.waitForTimeout(300);
+      await shot('death');
+    }
 
     if (consoleErrors.length > 0) {
       console.error('[smoke] console errors detected:');
       for (const err of consoleErrors) console.error(`  - ${err}`);
       throw new Error(`${consoleErrors.length} console error(s) during smoke test`);
     }
+    if (failures.length > 0) throw new Error(`${failures.length} smoke check(s) failed:\n  - ${failures.join('\n  - ')}`);
 
-    console.log('[smoke] PASSED: page loaded, ran for 10s, zero console errors.');
+    console.log(`[smoke] PASSED: ${transitions} door transitions, ${shots.length} screenshots, zero console errors.`);
   } finally {
     if (browser) await browser.close();
     server.kill();

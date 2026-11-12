@@ -1,5 +1,5 @@
 /** Draws one room: tiles, decals, entities (via sprite specs), particles, and the HUD. Canvas-only, no game logic. */
-import { computeSpriteDrawOps, executeDrawOps, SPRITES } from './sprites.js';
+import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, SPRITES } from './sprites.js';
 import { drawHud } from '../ui/hud.js';
 import { isFlashing, updateHitFlash } from './vfx.js';
 
@@ -39,7 +39,7 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
   }
 
   const drawEntity = (entity, spriteKey, facing = {}) => {
-    const spec = SPRITES[spriteKey];
+    const spec = typeof spriteKey === 'string' ? SPRITES[spriteKey] : spriteKey;
     if (!spec) return;
     updateHitFlash(entity, dt);
     const screen = camera.worldToScreen(entity.x, entity.y - (entity.height ?? 0));
@@ -52,7 +52,7 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
   };
 
   for (const enemy of room.world.entities.byType('enemy')) {
-    if (enemy.alive) drawEntity(enemy, enemy.defId);
+    if (enemy.alive) drawEntity(enemy, resolveEnemySpec(enemy));
   }
   for (const projectile of room.world.entities.byType('projectile')) {
     if (projectile.alive) drawEntity(projectile, 'tear');
@@ -84,6 +84,37 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, 8 * camera.zoom, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  for (const pickup of room.world.entities.byType('trinketPickup')) {
+    if (!pickup.alive) continue;
+    const screen = camera.worldToScreen(pickup.x, pickup.y);
+    const r = 8 * camera.zoom;
+    ctx.fillStyle = '#c08a3a';
+    ctx.fillRect(screen.x - r, screen.y - r, r * 2, r * 2);
+    ctx.strokeStyle = '#2a1a0a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(screen.x - r, screen.y - r, r * 2, r * 2);
+  }
+
+  for (const pickup of room.world.entities.byType('consumablePickup')) {
+    if (!pickup.alive) continue;
+    const screen = camera.worldToScreen(pickup.x, pickup.y);
+    if (pickup.kind === 'card') {
+      ctx.fillStyle = '#e8e4d0';
+      ctx.fillRect(screen.x - 7 * camera.zoom, screen.y - 10 * camera.zoom, 14 * camera.zoom, 20 * camera.zoom);
+      ctx.strokeStyle = '#3a6a8a';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(screen.x - 7 * camera.zoom, screen.y - 10 * camera.zoom, 14 * camera.zoom, 20 * camera.zoom);
+    } else {
+      ctx.fillStyle = pickup.pillColor ?? '#ddd';
+      ctx.beginPath();
+      ctx.arc(screen.x, screen.y, 8 * camera.zoom, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
 
   for (const pedestal of room.world.entities.byType('itemPedestal')) {

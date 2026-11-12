@@ -148,3 +148,51 @@ export function executeDrawOps(ctx, ops, { x, y, scale = 1, flashWhite = false }
 export function drawSprite(ctx, spec, params) {
   executeDrawOps(ctx, computeSpriteDrawOps(spec), params);
 }
+
+function hashString(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+const generatedSpecCache = new Map();
+
+/**
+ * Sprite spec for an enemy/boss entity. Uses a hand-authored SPRITES entry when
+ * one exists; otherwise procedurally generates one from the def id (stable hue,
+ * the entity's own collision radius, eyes) so EVERY registered enemy is visible.
+ * Bosses get a thicker outline and bigger eyes so they read as bosses.
+ */
+export function resolveEnemySpec(entity) {
+  if (SPRITES[entity.defId]) return SPRITES[entity.defId];
+  const radius = Math.round(entity.radius ?? 14);
+  const key = `${entity.defId}|${radius}|${entity.isBoss ? 'b' : 'e'}`;
+  let spec = generatedSpecCache.get(key);
+  if (spec) return spec;
+
+  const hash = hashString(String(entity.defId));
+  const hue = hash % 360;
+  const rectLike = (hash >> 9) % 3 === 0;
+  const eyeR = Math.max(1.6, radius * (entity.isBoss ? 0.16 : 0.14));
+  const eyeDx = radius * 0.3;
+  spec = {
+    shape: rectLike ? 'rect' : 'circle',
+    radius,
+    width: radius * 1.8,
+    height: radius * 1.8,
+    fill: `hsl(${hue}, 45%, ${entity.isBoss ? 38 : 45}%)`,
+    outline: `hsl(${hue}, 50%, 14%)`,
+    outlineWidth: entity.isBoss ? 4 : 2,
+    eyes: [
+      { dx: -eyeDx, dy: -radius * 0.15, r: eyeR, fill: '#f5f0e0' },
+      { dx: eyeDx, dy: -radius * 0.15, r: eyeR, fill: '#f5f0e0' },
+      { dx: -eyeDx, dy: -radius * 0.15, r: eyeR * 0.5 },
+      { dx: eyeDx, dy: -radius * 0.15, r: eyeR * 0.5 },
+    ],
+  };
+  generatedSpecCache.set(key, spec);
+  return spec;
+}

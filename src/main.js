@@ -12,6 +12,7 @@ import {
   resolveKeyLockedDoors,
 } from './systems/transitions.js';
 import { createPlayer, updatePlayer } from './systems/player.js';
+import { placePlayerInRoom } from './systems/roomEntry.js';
 import { spawnEnemy, updateEnemies } from './systems/enemies.js';
 import { updateProjectiles } from './systems/projectiles.js';
 import { resolveCombat } from './systems/combat.js';
@@ -133,12 +134,20 @@ async function boot() {
     run.floor = generateFloor(run.stage, run.floorRng);
     run.floorRuntime = new FloorRuntime(run.floor, templates, run.templateRng);
     run.stockedRooms.clear();
+    const previousWorld = run.room.world;
     run.room = run.floorRuntime.getCurrentRoom();
     stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
-    run.player.x = run.centerX;
-    run.player.y = run.centerY;
-    run.player.vx = 0;
-    run.player.vy = 0;
+    placePlayerInRoom(run.player, previousWorld, run.room, { x: run.centerX, y: run.centerY });
+    run.decals.clear();
+  }
+
+  /** Makes floorRuntime's current cell the active room: stock it, re-home the player, clear decals. `entrySide` null = room center. */
+  function enterCurrentRoom(run, entrySide) {
+    const previousWorld = run.room.world;
+    run.room = run.floorRuntime.getCurrentRoom();
+    stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
+    const pos = entrySide ? entryPositionForSide(run.room, entrySide) : { x: run.centerX, y: run.centerY };
+    placePlayerInRoom(run.player, previousWorld, run.room, pos);
     run.decals.clear();
   }
 
@@ -184,6 +193,7 @@ async function boot() {
 
   let gameState = 'menu'; // 'menu' | 'playing' | 'paused' | 'dead'
   let currentRun = null;
+  let lastPlayerScreen = null;
 
   events.on('enemy:death', ({ enemy }) => {
     if (!currentRun) return;
@@ -233,16 +243,7 @@ async function boot() {
       const run = currentRun;
 
       if (run.transition.active) {
-        if (updateTransition(run.transition, dt)) {
-          run.room = run.floorRuntime.getCurrentRoom();
-          stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
-          const pos = entryPositionForSide(run.room, run.pendingEntrySide);
-          run.player.x = pos.x;
-          run.player.y = pos.y;
-          run.player.vx = 0;
-          run.player.vy = 0;
-          run.decals.clear();
-        }
+        if (updateTransition(run.transition, dt)) enterCurrentRoom(run, run.pendingEntrySide);
         clearFrameEdges(input);
         return;
       }
@@ -373,6 +374,55 @@ async function boot() {
   });
   loop.start();
 
+  // Dev/test hook used by tools/smoke.mjs (Playwright) to drive the real game through real doors.
+  window.__undercroft = {
+    state: () => gameState,
+    snapshot() {
+      const run = currentRun;
+      if (!run) return { state: gameState };
+      const room = run.room;
+      return {
+        state: gameState,
+        stage: run.stage,
+        cellKey: run.floorRuntime.currentKey,
+        cellType: run.floorRuntime.getCurrentCell().type,
+        player: { x: run.player.x, y: run.player.y, inWorld: room.world.entities.byType('player').includes(run.player) },
+        enemies: room.world.entities.byType('enemy').filter((e) => e.alive).length,
+        doors: [...room.doors].map(([side, d]) => ({ side, tx: d.tx, ty: d.ty, locked: d.locked, keyLocked: !!d.keyLocked })),
+        transitioning: run.transition.active,
+        hp: run.playerHealth.red,
+        killedBy: run.stats.killedBy ?? null,
+        playerPixel: lastPlayerScreen,
+        floorCells: [...run.floor.cells.values()].map((c) => ({ key: `${c.x},${c.y}`, type: c.type })),
+      };
+    },
+    killAllEnemies() {
+      for (const e of currentRun.room.world.entities.byType('enemy')) e.alive = false;
+    },
+    setPlayer(x, y) {
+      currentRun.player.x = x;
+      currentRun.player.y = y;
+    },
+    setHealth(red) {
+      currentRun.playerHealth.red = red;
+    },
+    giveCoins(n) {
+      currentRun.currency.coins += n;
+    },
+    gotoCell(key) {
+      const run = currentRun;
+      run.floorRuntime.currentKey = key;
+      run.floorRuntime.visited.add(key);
+      enterCurrentRoom(run, null);
+    },
+    spawnEnemyOnPlayer(defId) {
+      const def = registries.of('enemy').get(defId);
+      const run = currentRun;
+      return spawnEnemy(run.room.world, def, { x: run.player.x, y: run.player.y, rng: run.spawnRng });
+    },
+    enemyIds: () => registries.of('enemy').all().map((d) => d.id),
+  };
+
   let lastTime = performance.now();
   function frame(now) {
     const dt = Math.min((now - lastTime) / 1000, CONFIG.MAX_FRAME_TIME);
@@ -394,6 +444,7 @@ async function boot() {
 
     const chapter = Math.ceil(run.stage / 2);
     renderRoom(ctx, { room: run.room, camera, playerHealth: run.playerHealth, particles: run.particles, decals: run.decals, dt, chapter });
+    lastPlayerScreen = camera.worldToScreen(run.player.x, run.player.y);
     drawBanner(ctx, run.banner, { x: 0, y: 80, width: canvas.width });
     drawTrinketSlot(ctx, run.trinketInventory, { x: 26, y: 50 });
     drawConsumableSlot(ctx, run.consumableInventory, { getCardDef, getPillDef, pillIdentity: run.pillIdentity }, { x: 26, y: 76 });
