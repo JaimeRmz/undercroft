@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { ModLoader } from '../src/modding/modloader.js';
-import { createFsSource } from '../src/modding/source.js';
+import { createFsSource } from '../src/modding/source-fs.js';
 import { ContentRegistries } from '../src/core/registry.js';
 import { createEventBus } from '../src/core/events.js';
 import { createLogger } from '../src/core/log.js';

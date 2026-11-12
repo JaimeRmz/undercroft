@@ -1,10 +1,8 @@
 /**
- * Mod data sources. The loader is written once against this interface and
- * runs identically in Node (fs source — used by tests, tools/simulate.mjs,
- * tools/smoke.mjs) and in the browser (http source — talks to server.js).
- *
- * Interface: listMods(), listFiles(modDir, folder), readFile(modDir, relPath),
- * importScript(modDir, relPath).
+ * Node fs-backed mod source — used by tests and tools/*.mjs (headless). Kept in
+ * its own module (separate from source-http.js) so main.js, which only needs
+ * the http source, never pulls in `node:fs`/`node:path` — the browser can't
+ * resolve those imports even if the code path is unused.
  */
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -55,32 +53,6 @@ export function createFsSource(modsRootDir) {
       const full = path.join(modsRootDir, modDir, relPath);
       const url = `${pathToFileURL(full).href}?t=${Date.now()}`;
       return import(url);
-    },
-  };
-}
-
-export function createHttpSource(baseUrl = '') {
-  return {
-    async listMods() {
-      const res = await fetch(`${baseUrl}/api/mods`);
-      const data = await res.json();
-      return data.mods;
-    },
-
-    async listFiles(modDir, folder) {
-      const res = await fetch(`${baseUrl}/api/mods/${encodeURIComponent(modDir)}/list?folder=${encodeURIComponent(folder)}`);
-      const data = await res.json();
-      return data.files;
-    },
-
-    async readFile(modDir, relPath) {
-      const res = await fetch(`${baseUrl}/mods/${modDir}/${relPath}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.text();
-    },
-
-    async importScript(modDir, relPath) {
-      return import(`${baseUrl}/mods/${modDir}/${relPath}?t=${Date.now()}`);
     },
   };
 }

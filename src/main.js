@@ -16,7 +16,7 @@ import { DecalLayer } from './render/decals.js';
 import { renderRoom } from './render/renderer.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
-import { createHttpSource } from './modding/source.js';
+import { createHttpSource } from './modding/source-http.js';
 import { registries } from './core/registry.js';
 import { log } from './core/log.js';
 
