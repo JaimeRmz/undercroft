@@ -1,0 +1,18 @@
+{
+  "id": "core:item-02",
+  "name": "Gleaming Tooth",
+  "type": "passive",
+  "description": "A heavy, cruel weight.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

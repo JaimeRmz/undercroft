@@ -1,0 +1,18 @@
+{
+  "id": "core:item-04",
+  "name": "Ashen Tooth",
+  "type": "passive",
+  "description": "Your sorrow quickens.",
+  "effects": [
+    {
+      "stat": "tears",
+      "value": 1.4
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "secret"
+  ]
+}

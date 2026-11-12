@@ -1,0 +1,22 @@
+{
+  "id": "core:item-15",
+  "name": "Petrified Tooth",
+  "type": "passive",
+  "description": "Far-reaching, but slower to loose.",
+  "effects": [
+    {
+      "stat": "range",
+      "value": 2.5
+    },
+    {
+      "stat": "shotSpeed",
+      "value": -0.1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "angel"
+  ]
+}

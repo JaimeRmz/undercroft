@@ -1,0 +1,18 @@
+{
+  "id": "core:item-19",
+  "name": "Mossy Tooth",
+  "type": "passive",
+  "description": "Nothing escapes your aim.",
+  "effects": [
+    {
+      "stat": "shotSpeed",
+      "value": 0.5
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "boss"
+  ]
+}

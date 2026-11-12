@@ -57,6 +57,49 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
   const player = room.world.entities.byType('player')[0];
   if (player) drawEntity(player, 'player');
 
+  const PICKUP_COLORS = {
+    coin: '#d4af37',
+    key: '#c0c0c0',
+    bomb: '#444',
+    heart_half: '#c0283c',
+    heart_full: '#c0283c',
+    heart_soul: '#8fd0ff',
+    heart_black: '#4a3a5a',
+    battery: '#e8a030',
+    chest: '#8a5a2a',
+    chest_locked: '#5a3a1a',
+  };
+  for (const pickup of room.world.entities.byType('pickup')) {
+    if (!pickup.alive) continue;
+    const screen = camera.worldToScreen(pickup.x, pickup.y);
+    ctx.fillStyle = PICKUP_COLORS[pickup.pickupType] ?? '#999';
+    ctx.beginPath();
+    ctx.arc(screen.x, screen.y, 8 * camera.zoom, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  for (const pedestal of room.world.entities.byType('itemPedestal')) {
+    if (!pedestal.alive) continue;
+    const screen = camera.worldToScreen(pedestal.x, pedestal.y);
+    ctx.fillStyle = '#6a4aa0';
+    ctx.fillRect(screen.x - 10 * camera.zoom, screen.y - 10 * camera.zoom, 20 * camera.zoom, 20 * camera.zoom);
+    ctx.strokeStyle = '#e0d0ff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(screen.x - 10 * camera.zoom, screen.y - 10 * camera.zoom, 20 * camera.zoom, 20 * camera.zoom);
+  }
+
+  for (const bomb of room.world.entities.byType('bomb')) {
+    if (!bomb.alive) continue;
+    const screen = camera.worldToScreen(bomb.x, bomb.y);
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(screen.x, screen.y, 10 * camera.zoom, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = bomb.fuse < 0.5 ? '#ff4040' : '#aaa';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
   for (const p of particles.particles) {
     if (!p.alive) continue;
     const screen = camera.worldToScreen(p.x, p.y);

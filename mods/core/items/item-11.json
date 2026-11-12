@@ -1,0 +1,18 @@
+{
+  "id": "core:item-11",
+  "name": "Feral Tooth",
+  "type": "passive",
+  "description": "Something dark protects you.",
+  "effects": [
+    {
+      "stat": "blackHearts",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "boss"
+  ]
+}

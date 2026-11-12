@@ -24,6 +24,8 @@ export function createPlayer(world, { x, y, stats }) {
     stats,
     fireCooldown: 0,
     aimAction: null,
+    speedBoostTimer: 0,
+    speedBoostMult: 1,
     tags: ['player'],
   });
 }
@@ -40,8 +42,13 @@ function resolveShootAction(input, currentAction) {
 }
 
 export function updatePlayer(world, player, input, dt, { events } = {}) {
+  if (player.speedBoostTimer > 0) {
+    player.speedBoostTimer = Math.max(0, player.speedBoostTimer - dt);
+    if (player.speedBoostTimer === 0) player.speedBoostMult = 1;
+  }
+
   const inputDir = normalizeDiagonal(input.moveX, input.moveY);
-  const maxSpeed = player.stats.clampedSpeed * CONFIG.PLAYER_BASE_SPEED_PX_PER_SEC;
+  const maxSpeed = player.stats.clampedSpeed * player.speedBoostMult * CONFIG.PLAYER_BASE_SPEED_PX_PER_SEC;
   const targetVx = inputDir.x * maxSpeed;
   const targetVy = inputDir.y * maxSpeed;
   const accelerating = inputDir.x !== 0 || inputDir.y !== 0;

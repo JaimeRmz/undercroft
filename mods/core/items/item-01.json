@@ -1,0 +1,17 @@
+{
+  "id": "core:item-01",
+  "name": "Cursed Tooth",
+  "type": "passive",
+  "description": "Your tears strike harder.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 1
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

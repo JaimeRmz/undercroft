@@ -1,0 +1,21 @@
+{
+  "id": "core:item-17",
+  "name": "Charred Tooth",
+  "type": "passive",
+  "description": "Rapid and lucky.",
+  "effects": [
+    {
+      "stat": "tears",
+      "value": 1
+    },
+    {
+      "stat": "luck",
+      "value": 1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

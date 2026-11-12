@@ -18,6 +18,14 @@ import { Health, tickInvuln } from './systems/health.js';
 import { Stats } from './systems/stats.js';
 import { placeBomb, updateBombs } from './systems/bombs.js';
 import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from './systems/pickups.js';
+import {
+  ItemInventory,
+  buildItemPools,
+  spawnItemPedestal,
+  resolveItemPedestals,
+  chargeActivesOnRoomClear,
+  useActiveItem,
+} from './systems/items.js';
 import { createInputState, createKeyboardAdapter, pollGamepads, clearFrameEdges } from './engine/input.js';
 import { events } from './core/events.js';
 import { Camera } from './render/camera.js';
@@ -25,6 +33,7 @@ import { ParticlePool } from './render/particles.js';
 import { DecalLayer } from './render/decals.js';
 import { renderRoom } from './render/renderer.js';
 import { computeMinimapIcons, drawMinimap } from './ui/map.js';
+import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
 import { createHttpSource } from './modding/source-http.js';
@@ -50,12 +59,23 @@ async function boot() {
   const floor = generateFloor(1, floorRng);
   const templates = registries.of('room').all();
   const floorRuntime = new FloorRuntime(floor, templates, templateRng);
+  const itemPools = buildItemPools(registries.of('item').all());
+  const getItemDef = (id) => registries.of('item').get(id);
 
   const stockedRooms = new Set();
   function stockRoom(room, cell) {
     const key = `${cell.x},${cell.y}`;
     if (stockedRooms.has(key)) return;
     stockedRooms.add(key);
+
+    if (cell.type === 'treasure') {
+      const tileSize = room.world.tileGrid.tileSize;
+      const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
+      const itemId = itemPools.draw('treasure', spawnRng);
+      if (itemId) spawnItemPedestal(room.world, itemId, { x: center.x, y: center.y });
+      return;
+    }
+
     if (cell.type !== 'normal' && cell.type !== 'boss') return;
     const enemyDefs = registries.of('enemy').all();
     if (enemyDefs.length === 0) return;
@@ -78,6 +98,8 @@ async function boot() {
   const player = createPlayer(room.world, { x: centerX, y: centerY, stats: new Stats() });
   const playerHealth = new Health({ redMax: 6 });
   const currency = new Currency();
+  const inventory = new ItemInventory();
+  const banner = createBannerState();
 
   const input = createInputState();
   createKeyboardAdapter(input, window);
@@ -98,6 +120,7 @@ async function boot() {
     camera.shake(8, 0.2);
     floorRuntime.revealSecretWall(x, y);
   });
+  events.on('item:pickup', ({ name, description }) => showBanner(banner, name, description));
 
   const loop = new FixedStepLoop({
     update: (dt) => {
@@ -124,6 +147,14 @@ async function boot() {
       updateBombs(room.world, dt, { player, playerHealth, room, events });
       resolveCombat(room.world, { player, playerHealth, events });
       resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng });
+      resolveItemPedestals(room.world, player, {
+        inventory,
+        stats: player.stats,
+        playerHealth,
+        events,
+        pools: itemPools,
+        getItemDef,
+      });
       tickInvuln(playerHealth, dt);
       room.world.reap();
 
@@ -131,9 +162,14 @@ async function boot() {
         currency.bombs -= 1;
         placeBomb(room.world, { x: player.x, y: player.y });
       }
+      if (input.justPressed.has('useActive') && inventory.actives.length > 0) {
+        const activeDef = getItemDef(inventory.actives[0].id);
+        if (activeDef) useActiveItem(inventory, 0, activeDef, { world: room.world, player, playerHealth, events, rng: spawnRng });
+      }
 
       const justCleared = room.update();
       if (justCleared) {
+        chargeActivesOnRoomClear(inventory);
         const reward = rollRoomClearReward(spawnRng, player.stats.luck);
         if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng });
       }
@@ -160,8 +196,10 @@ async function boot() {
     if (!transition.active) camera.centerOn(player.x, player.y);
     camera.update(dt, vfxRng);
     particles.update(dt);
+    updateBanner(banner, dt);
 
     renderRoom(ctx, { room, camera, playerHealth, particles, decals, dt });
+    drawBanner(ctx, banner, { x: 0, y: 80, width: canvas.width });
 
     if (transition.active) {
       const delta = DOOR_DELTA[transition.direction];

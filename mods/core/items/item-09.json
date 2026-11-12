@@ -1,0 +1,17 @@
+{
+  "id": "core:item-09",
+  "name": "Gilded Tooth",
+  "type": "passive",
+  "description": "Your body hardens.",
+  "effects": [
+    {
+      "stat": "redHeartContainers",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

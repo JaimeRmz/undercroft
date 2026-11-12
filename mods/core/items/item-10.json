@@ -1,0 +1,18 @@
+{
+  "id": "core:item-10",
+  "name": "Shattered Tooth",
+  "type": "passive",
+  "description": "A ghostly ward surrounds you.",
+  "effects": [
+    {
+      "stat": "soulHearts",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

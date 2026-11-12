@@ -1,0 +1,17 @@
+{
+  "id": "core:item-25",
+  "name": "Spectral Tooth",
+  "type": "passive",
+  "description": "A deeper, stranger ward.",
+  "effects": [
+    {
+      "stat": "soulHearts",
+      "value": 4
+    }
+  ],
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

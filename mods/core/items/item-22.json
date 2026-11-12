@@ -1,0 +1,22 @@
+{
+  "id": "core:item-22",
+  "name": "Forsaken Tooth",
+  "type": "passive",
+  "description": "Modest, well-rounded growth.",
+  "effects": [
+    {
+      "stat": "tears",
+      "value": 0.5
+    },
+    {
+      "stat": "range",
+      "value": 1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "devil"
+  ]
+}

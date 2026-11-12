@@ -1,0 +1,22 @@
+{
+  "id": "core:item-16",
+  "name": "Luminous Tooth",
+  "type": "passive",
+  "description": "Power at the cost of grace.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 1.5
+    },
+    {
+      "stat": "speed",
+      "value": -0.1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "curse"
+  ]
+}

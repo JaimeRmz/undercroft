@@ -1,0 +1,17 @@
+{
+  "id": "core:item-21",
+  "name": "Weeping Tooth",
+  "type": "passive",
+  "description": "Your constitution swells.",
+  "effects": [
+    {
+      "stat": "redHeartContainers",
+      "value": 4
+    }
+  ],
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "shop"
+  ]
+}

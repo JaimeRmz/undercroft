@@ -1,0 +1,18 @@
+{
+  "id": "core:item-08",
+  "name": "Frostbitten Tooth",
+  "type": "passive",
+  "description": "Fortune leans your way.",
+  "effects": [
+    {
+      "stat": "luck",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "curse"
+  ]
+}

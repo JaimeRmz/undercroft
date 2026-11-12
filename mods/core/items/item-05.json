@@ -1,0 +1,17 @@
+{
+  "id": "core:item-05",
+  "name": "Hollow Tooth",
+  "type": "passive",
+  "description": "Your reach extends.",
+  "effects": [
+    {
+      "stat": "range",
+      "value": 1.5
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "shop"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "core:item-20",
+  "name": "Brittle Tooth",
+  "type": "passive",
+  "description": "A brutal, singular purpose.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 3
+    }
+  ],
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "secret"
+  ]
+}

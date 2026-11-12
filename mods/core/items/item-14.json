@@ -1,0 +1,18 @@
+{
+  "id": "core:item-14",
+  "name": "Rusted Tooth",
+  "type": "passive",
+  "description": "A flat, dependable edge.",
+  "effects": [
+    {
+      "stat": "flatDamage",
+      "value": 1
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "devil"
+  ]
+}

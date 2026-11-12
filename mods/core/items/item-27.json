@@ -1,0 +1,18 @@
+{
+  "id": "core:item-27",
+  "name": "Searing Tooth",
+  "type": "active",
+  "description": "Unleashes a ring of searing force.",
+  "activeEffect": {
+    "type": "nova",
+    "radius": 140,
+    "damage": 15
+  },
+  "maxCharges": 4,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

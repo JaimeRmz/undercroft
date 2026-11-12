@@ -26,7 +26,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 - [x] P1.1 Floor generation exactly per §3 + 1000-seed tests + minimap (visited/adjacent/special icons)
 - [x] P1.2 Room templates (ASCII JSON) for normal/treasure/shop/boss/secret/start; 30+ normal layouts across 2 chapters; room transitions (slide)
 - [x] P1.3 Pickups: coins (1/5/10), bombs (placed bombs: fuse, blast radius, destroy rocks, open secret walls, damage everything incl. player), keys, hearts (half/full/soul/black), batteries, chests (normal/locked), room clear rewards per formula
-- [ ] P1.4 Item system v1: passive + active items with charges, item pools with weights and removal, pedestals, pickup banner, 30 items
+- [x] P1.4 Item system v1: passive + active items with charges, item pools with weights and removal, pedestals, pickup banner, 30 items
 - [ ] P1.5 Tear modifier system (all modifiers in §3 as composable components) + weapon types (normal, laser, charge shot, multishot) with priority + explicit synergy rules. Tests proving composition (homing+split, piercing+bounce, laser+homing, etc.)
 - [ ] P1.6 Shop (priced items/pickups, sale signs), locked treasure/shop doors from floor 2, secret rooms (bomb the wall)
 - [ ] P1.7 Enemy AI behavior library: all archetypes in §3, composable via JSON; 15 enemies; champions

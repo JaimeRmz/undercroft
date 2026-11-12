@@ -1,0 +1,22 @@
+{
+  "id": "core:item-24",
+  "name": "Tarnished Tooth",
+  "type": "passive",
+  "description": "Strength and fortune entwined.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 1
+    },
+    {
+      "stat": "luck",
+      "value": 1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "curse"
+  ]
+}

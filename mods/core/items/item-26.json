@@ -1,0 +1,17 @@
+{
+  "id": "core:item-26",
+  "name": "Gnarled Tooth",
+  "type": "active",
+  "description": "Mends your wounds in a burst of warmth.",
+  "activeEffect": {
+    "type": "heal",
+    "value": 4
+  },
+  "maxCharges": 3,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "core:item-30",
+  "name": "Iridescent Tooth",
+  "type": "active",
+  "description": "A smaller, quicker detonation.",
+  "activeEffect": {
+    "type": "nova",
+    "radius": 90,
+    "damage": 8
+  },
+  "maxCharges": 2,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

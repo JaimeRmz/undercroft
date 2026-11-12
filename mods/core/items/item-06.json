@@ -1,0 +1,18 @@
+{
+  "id": "core:item-06",
+  "name": "Verdant Tooth",
+  "type": "passive",
+  "description": "Tears fly true and fast.",
+  "effects": [
+    {
+      "stat": "shotSpeed",
+      "value": 0.3
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "devil"
+  ]
+}
