@@ -44,7 +44,7 @@ test('laser weapon fires one tear that pierces infinitely', () => {
 test('melee weapon hits an adjacent enemy directly without spawning a projectile', () => {
   const { world, player } = freshPlayer();
   setWeaponType(player, 'melee');
-  const enemy = spawnEnemy(world, { id: 'e', hp: 10, radius: 10, behavior: 'chaser' }, { x: 130, y: 100 });
+  const enemy = spawnEnemy(world, { id: 'e', hp: 10, radius: 10, behavior: 'chase' }, { x: 130, y: 100 });
   const events = createEventBus();
   let hit = false;
   events.on('enemy:hit', () => (hit = true));

@@ -9,7 +9,7 @@ import { Health } from '../src/systems/health.js';
 import { resolveCombat } from '../src/systems/combat.js';
 import { createEventBus } from '../src/core/events.js';
 
-const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chaser', contactDamageHalfHearts: 1 };
+const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chase', contactDamageHalfHearts: 1 };
 
 function freshWorld() {
   return new World({ widthTiles: 40, heightTiles: 40, tileSize: 40 });

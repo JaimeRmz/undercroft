@@ -7,6 +7,7 @@
 import { circlesOverlap } from '../engine/collision.js';
 import { applyDamage } from './health.js';
 import { triggerHitFlash } from '../render/vfx.js';
+import { applyEnemyDamage } from './enemies.js';
 
 const DEFAULT_FUSE_SECONDS = 1.5; // [assumed]
 const DEFAULT_BLAST_RADIUS = 60; // px, [assumed] ~1.5 tiles
@@ -17,7 +18,7 @@ export function placeBomb(world, { x, y, fuseSeconds = DEFAULT_FUSE_SECONDS, rad
   return world.spawn('bomb', { x, y, radius: 10, fuse: fuseSeconds, blastRadius: radius, damage, tags: ['bomb'] });
 }
 
-function explodeBomb(world, bomb, { player, playerHealth, room, events }) {
+function explodeBomb(world, bomb, { player, playerHealth, room, events, rng }) {
   events?.emit('bomb:explode', { x: bomb.x, y: bomb.y, radius: bomb.blastRadius });
 
   if (player && playerHealth?.alive && circlesOverlap(bomb.x, bomb.y, bomb.blastRadius, player.x, player.y, player.radius)) {
@@ -28,13 +29,7 @@ function explodeBomb(world, bomb, { player, playerHealth, room, events }) {
   for (const enemy of world.entities.byType('enemy')) {
     if (!enemy.alive) continue;
     if (!circlesOverlap(bomb.x, bomb.y, bomb.blastRadius, enemy.x, enemy.y, enemy.radius)) continue;
-    enemy.hp -= bomb.damage;
-    triggerHitFlash(enemy);
-    events?.emit('enemy:hit', { enemy, damage: bomb.damage });
-    if (enemy.hp <= 0) {
-      enemy.destroy();
-      events?.emit('enemy:death', { enemy });
-    }
+    applyEnemyDamage(world, enemy, bomb.damage, { player, playerHealth, events, rng });
   }
 
   if (room) {
@@ -54,12 +49,12 @@ function explodeBomb(world, bomb, { player, playerHealth, room, events }) {
   }
 }
 
-export function updateBombs(world, dt, { player, playerHealth, room, events } = {}) {
+export function updateBombs(world, dt, { player, playerHealth, room, events, rng } = {}) {
   for (const bomb of world.entities.byType('bomb')) {
     if (!bomb.alive) continue;
     bomb.fuse -= dt;
     if (bomb.fuse <= 0) {
-      explodeBomb(world, bomb, { player, playerHealth, room, events });
+      explodeBomb(world, bomb, { player, playerHealth, room, events, rng });
       bomb.destroy();
     }
   }

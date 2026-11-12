@@ -1,0 +1,10 @@
+{
+  "id": "core:globule",
+  "name": "Globule",
+  "hp": 6,
+  "speed": 55,
+  "radius": 15,
+  "behaviors": ["chase", "splitter"],
+  "contactDamageHalfHearts": 1,
+  "description": "Splits into two smaller, weaker copies of itself the instant it's killed."
+}

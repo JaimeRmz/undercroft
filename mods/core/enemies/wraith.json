@@ -1,0 +1,11 @@
+{
+  "id": "core:wraith",
+  "name": "Wraith",
+  "hp": 5,
+  "speed": 65,
+  "radius": 12,
+  "behavior": "wallPhasingGhost",
+  "flies": true,
+  "contactDamageHalfHearts": 1,
+  "description": "Drifts straight through rocks, pits, and even walls on its way to the player."
+}

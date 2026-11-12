@@ -85,7 +85,7 @@ test('useActiveItem refuses to fire below full charge, and resets charge to 0 af
 test('nova active damages/kills enemies in radius around the player', () => {
   const world = new World({ widthTiles: 40, heightTiles: 40, tileSize: 40 });
   const player = createPlayer(world, { x: 100, y: 100, stats: new Stats() });
-  const enemy = spawnEnemy(world, { id: 'e', hp: 10, behavior: 'chaser' }, { x: 130, y: 100 });
+  const enemy = spawnEnemy(world, { id: 'e', hp: 10, behavior: 'chase' }, { x: 130, y: 100 });
   const inventory = new ItemInventory();
   pickUpItem(inventory, new Stats(), new Health(), NOVA_ACTIVE);
   chargeActivesOnRoomClear(inventory);

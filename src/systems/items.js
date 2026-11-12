@@ -7,6 +7,7 @@
  */
 import { addRedContainer, addSoulHeart, addBlackHeart, heal } from './health.js';
 import { circlesOverlap } from '../engine/collision.js';
+import { applyEnemyDamage } from './enemies.js';
 
 const STAT_FIELD_APPLIERS = {
   damageUps: (stats, v) => (stats.damageUps += v),
@@ -66,12 +67,7 @@ function applyActiveEffect(def, { world, player, playerHealth, events, rng }) {
       for (const enemy of world.entities.byType('enemy')) {
         if (!enemy.alive) continue;
         if (!circlesOverlap(player.x, player.y, radius, enemy.x, enemy.y, enemy.radius)) continue;
-        enemy.hp -= damage;
-        events?.emit('enemy:hit', { enemy, damage });
-        if (enemy.hp <= 0) {
-          enemy.destroy();
-          events?.emit('enemy:death', { enemy });
-        }
+        applyEnemyDamage(world, enemy, damage, { player, playerHealth, events, rng });
       }
       break;
     }

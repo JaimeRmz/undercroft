@@ -1,0 +1,10 @@
+{
+  "id": "core:rattler",
+  "name": "Rattler",
+  "hp": 5,
+  "speed": 110,
+  "radius": 13,
+  "behavior": "fourDirectionBouncer",
+  "contactDamageHalfHearts": 1,
+  "description": "Ricochets around the room in a straight cardinal line, bouncing off every wall it hits."
+}

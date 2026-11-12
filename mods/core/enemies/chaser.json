@@ -4,7 +4,7 @@
   "hp": 5,
   "speed": 90,
   "radius": 14,
-  "behavior": "chaser",
+  "behavior": "chase",
   "contactDamageHalfHearts": 1,
   "description": "Walks straight at the player at a steady pace."
 }

@@ -1,0 +1,10 @@
+{
+  "id": "core:broodmother",
+  "name": "Broodmother",
+  "hp": 6,
+  "speed": 55,
+  "radius": 14,
+  "behavior": "fleeingSpawner",
+  "contactDamageHalfHearts": 1,
+  "description": "Runs from the player while periodically dropping a small, fast minion."
+}

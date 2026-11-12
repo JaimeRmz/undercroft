@@ -1,0 +1,10 @@
+{
+  "id": "core:grudge",
+  "name": "Grudge",
+  "hp": 4,
+  "speed": 60,
+  "radius": 13,
+  "behaviors": ["chase", "exploder"],
+  "contactDamageHalfHearts": 1,
+  "description": "Chases the player down and detonates in a damaging blast the moment it's killed."
+}

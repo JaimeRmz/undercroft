@@ -1,0 +1,14 @@
+{
+  "id": "core:peeker",
+  "name": "Peeker",
+  "hp": 5,
+  "speed": 0,
+  "radius": 13,
+  "behavior": "hideAndPopShooter",
+  "contactDamageHalfHearts": 1,
+  "fireCooldownSeconds": 0.7,
+  "shotSpeed": 1.1,
+  "damage": 2,
+  "range": 5,
+  "description": "Hides and is untouchable, then pops up to fire a tear before ducking back down."
+}

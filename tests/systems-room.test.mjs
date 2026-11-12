@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Room, TILE } from '../src/systems/room.js';
 import { spawnEnemy } from '../src/systems/enemies.js';
 
-const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chaser' };
+const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chase' };
 
 test('room is 13x7 tiles with solid border walls', () => {
   const room = new Room();

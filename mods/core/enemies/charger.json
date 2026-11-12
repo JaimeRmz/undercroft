@@ -1,0 +1,10 @@
+{
+  "id": "core:charger",
+  "name": "Charger",
+  "hp": 7,
+  "speed": 70,
+  "radius": 14,
+  "behavior": "dashCharger",
+  "contactDamageHalfHearts": 1,
+  "description": "Repositions slowly, then rockets down any row or column it shares with the player."
+}

@@ -1,0 +1,11 @@
+{
+  "id": "core:satellite",
+  "name": "Satellite",
+  "hp": 5,
+  "speed": 90,
+  "radius": 12,
+  "behavior": "orbiter",
+  "flies": true,
+  "contactDamageHalfHearts": 1,
+  "description": "Sweeps a fixed circular patrol, swinging through contact range with anything that gets close."
+}

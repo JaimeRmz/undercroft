@@ -1,0 +1,10 @@
+{
+  "id": "core:grubber",
+  "name": "Grubber",
+  "hp": 6,
+  "speed": 65,
+  "radius": 13,
+  "behavior": "burrower",
+  "contactDamageHalfHearts": 1,
+  "description": "Tunnels in safely out of reach, closing the distance, then surfaces briefly and vulnerable."
+}

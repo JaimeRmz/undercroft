@@ -9,7 +9,7 @@ import { Health } from '../src/systems/health.js';
 import { placeBomb, updateBombs } from '../src/systems/bombs.js';
 import { createEventBus } from '../src/core/events.js';
 
-const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chaser' };
+const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chase' };
 
 test('a bomb does nothing before its fuse expires', () => {
   const world = new World({ widthTiles: 40, heightTiles: 40, tileSize: 40 });

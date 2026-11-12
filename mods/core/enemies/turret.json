@@ -4,7 +4,7 @@
   "hp": 6,
   "speed": 0,
   "radius": 14,
-  "behavior": "turret",
+  "behavior": "turretShooter",
   "contactDamageHalfHearts": 1,
   "fireCooldownSeconds": 1.2,
   "shotSpeed": 1.0,

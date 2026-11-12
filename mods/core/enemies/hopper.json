@@ -1,0 +1,10 @@
+{
+  "id": "core:hopper",
+  "name": "Hopper",
+  "hp": 5,
+  "speed": 60,
+  "radius": 13,
+  "behavior": "hopLeap",
+  "contactDamageHalfHearts": 1,
+  "description": "Sits still, then launches itself at the player in a short, fast leap."
+}

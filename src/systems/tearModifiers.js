@@ -8,6 +8,7 @@
  */
 import { normalize } from '../core/math.js';
 import { circlesOverlap } from '../engine/collision.js';
+import { applyEnemyDamage } from './enemies.js';
 
 export const tearModifierRegistry = new Map();
 
@@ -84,12 +85,7 @@ function explodeAt(tear, ctx, radius, damage) {
   for (const enemy of ctx.world.entities.byType('enemy')) {
     if (!enemy.alive) continue;
     if (!circlesOverlap(tear.x, tear.y, radius, enemy.x, enemy.y, enemy.radius)) continue;
-    enemy.hp -= damage;
-    ctx.events?.emit('enemy:hit', { enemy, damage });
-    if (enemy.hp <= 0) {
-      enemy.destroy();
-      ctx.events?.emit('enemy:death', { enemy });
-    }
+    applyEnemyDamage(ctx.world, enemy, damage, ctx);
   }
 }
 
@@ -239,12 +235,7 @@ registerTearModifier('chainLightning', {
       .find((e) => e.alive && e !== enemy && Math.hypot(e.x - enemy.x, e.y - enemy.y) <= tear.chainRange);
     if (nearby) {
       const chainDamage = tear.damage * 0.5; // [assumed] chained hit does half damage
-      nearby.hp -= chainDamage;
-      ctx.events?.emit('enemy:hit', { enemy: nearby, damage: chainDamage });
-      if (nearby.hp <= 0) {
-        nearby.destroy();
-        ctx.events?.emit('enemy:death', { enemy: nearby });
-      }
+      applyEnemyDamage(ctx.world, nearby, chainDamage, ctx);
     }
   },
 });

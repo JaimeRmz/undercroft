@@ -58,9 +58,39 @@ export const CONFIG = {
   SACRIFICE_ROOM_CHANCE_FULL_HEALTH: 1 / 3,
   CHALLENGE_ROOM_CHANCE_FLOOR2: 0.5,
 
-  // Champions
+  // Champions (CLAUDE.md §3: base ~5% chance, x2.6 HP always, one random secondary effect)
   CHAMPION_CHANCE: 0.05,
   CHAMPION_HP_MULT: 2.6,
+  CHAMPION_SPEED_MULT: 1.3, // [assumed] the "faster" secondary effect
+  CHAMPION_COINS_ON_HIT_VALUE: 1, // [assumed]
+
+  // AI behavior archetypes (§3) — tunables shared by every enemy using that archetype;
+  // per-enemy overrides come from the enemy's own JSON def, not here.
+  WANDER_MIN_SECONDS: 1,
+  WANDER_MAX_SECONDS: 2.5, // [assumed] slower direction changes than erratic_flier
+  HOP_IDLE_SECONDS: 0.8, // [assumed]
+  HOP_LEAP_SECONDS: 0.35,
+  HOP_LEAP_SPEED_MULT: 3.5,
+  DASH_ALIGN_TOLERANCE_PX: 16, // [assumed] how close to the player's row/column counts as "aligned"
+  DASH_SPEED_MULT: 3.5,
+  DASH_MIN_INTERVAL_SECONDS: 1.2, // [assumed] cooldown between dashes so it isn't a permanent beeline
+  FLEEING_SPAWNER_INTERVAL_SECONDS: 3, // [assumed]
+  FLEEING_SPAWNER_MINION_HP: 1,
+  FLEEING_SPAWNER_MAX_MINIONS: 3, // [assumed] caps total spawns per spawner so a room can't fill up forever
+  HIDE_SECONDS: 1.2, // [assumed] hide-and-pop: time spent hidden/invulnerable
+  POP_SECONDS: 0.8, // time spent popped up and shooting
+  BURROW_SECONDS: 1.5, // [assumed] burrower: time spent underground (invulnerable, fast approach)
+  SURFACE_SECONDS: 1, // time spent surfaced (vulnerable, still)
+  FRONT_ARMOR_DAMAGE_MULT: 0.1, // [assumed] damage taken when hit from the armored-facing side
+  BOUNCER_SPEED: 110, // [assumed]
+  ORBITER_RADIUS: 90, // [assumed]
+  ORBITER_ANGULAR_SPEED: 1.6, // rad/s [assumed]
+  EXPLODER_RADIUS: 70, // [assumed]
+  EXPLODER_DAMAGE_HALF_HEARTS: 2, // [assumed]
+  SPLITTER_CHILD_COUNT: 2,
+  SPLITTER_HP_FRACTION: 0.5,
+  SPLITTER_RADIUS_FRACTION: 0.65,
+  MIRROR_HOMING_FRACTION: 0.3, // [assumed] a pure velocity-copy would keep the relative offset constant forever (uncatchable); this blends in a slow pull toward the player
 
   // Boss status immunity
   BOSS_STATUS_IMMUNITY_SECONDS: 8,

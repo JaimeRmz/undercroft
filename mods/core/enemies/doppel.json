@@ -1,0 +1,10 @@
+{
+  "id": "core:doppel",
+  "name": "Doppel",
+  "hp": 6,
+  "speed": 180,
+  "radius": 14,
+  "behavior": "mirrorOfPlayer",
+  "contactDamageHalfHearts": 1,
+  "description": "A living shadow that always moves in exactly the same direction the player is currently moving."
+}

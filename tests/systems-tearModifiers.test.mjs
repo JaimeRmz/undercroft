@@ -19,9 +19,9 @@ function statsWith(overrides) {
 
 test('piercing: a tear survives an enemy hit and keeps flying, destroyed only after pierceCount hits exhausted', () => {
   const world = freshWorld();
-  const e1 = spawnEnemy(world, { id: 'e1', hp: 1, radius: 10, behavior: 'chaser' }, { x: 200, y: 100 });
-  const e2 = spawnEnemy(world, { id: 'e2', hp: 1, radius: 10, behavior: 'chaser' }, { x: 260, y: 100 });
-  const e3 = spawnEnemy(world, { id: 'e3', hp: 1, radius: 10, behavior: 'chaser' }, { x: 320, y: 100 });
+  const e1 = spawnEnemy(world, { id: 'e1', hp: 1, radius: 10, behavior: 'chase' }, { x: 200, y: 100 });
+  const e2 = spawnEnemy(world, { id: 'e2', hp: 1, radius: 10, behavior: 'chase' }, { x: 260, y: 100 });
+  const e3 = spawnEnemy(world, { id: 'e3', hp: 1, radius: 10, behavior: 'chase' }, { x: 320, y: 100 });
   const tear = spawnTear(world, {
     x: 100, y: 100, dir: { x: 1, y: 0 },
     stats: statsWith({ range: 20 }),
@@ -98,7 +98,7 @@ test('splitting: on expiring at max range, spawns two child tears that fly outwa
 
 test('splitting composed with homing: child tears inherit the homing modifier and steer toward enemies', () => {
   const world = freshWorld();
-  spawnEnemy(world, { id: 'target', hp: 100, radius: 10, behavior: 'chaser' }, { x: 100, y: 500 }); // far below the flight path
+  spawnEnemy(world, { id: 'target', hp: 100, radius: 10, behavior: 'chase' }, { x: 100, y: 500 }); // far below the flight path
   const tear = spawnTear(world, {
     x: 100, y: 100, dir: { x: 1, y: 0 },
     stats: statsWith({ range: 1 }),
@@ -117,9 +117,9 @@ test('splitting composed with homing: child tears inherit the homing modifier an
 
 test('exploding: destroys the tear on enemy hit and damages other enemies within the blast radius', () => {
   const world = freshWorld();
-  const direct = spawnEnemy(world, { id: 'direct', hp: 3, radius: 10, behavior: 'chaser' }, { x: 200, y: 100 });
-  const splashVictim = spawnEnemy(world, { id: 'splash', hp: 3, radius: 10, behavior: 'chaser' }, { x: 230, y: 100 });
-  const farAway = spawnEnemy(world, { id: 'far', hp: 3, radius: 10, behavior: 'chaser' }, { x: 2000, y: 2000 });
+  const direct = spawnEnemy(world, { id: 'direct', hp: 3, radius: 10, behavior: 'chase' }, { x: 200, y: 100 });
+  const splashVictim = spawnEnemy(world, { id: 'splash', hp: 3, radius: 10, behavior: 'chase' }, { x: 230, y: 100 });
+  const farAway = spawnEnemy(world, { id: 'far', hp: 3, radius: 10, behavior: 'chase' }, { x: 2000, y: 2000 });
   const tear = spawnTear(world, {
     x: 100, y: 100, dir: { x: 1, y: 0 },
     stats: statsWith({ range: 20, damageUps: 10 }),
@@ -135,8 +135,8 @@ test('exploding: destroys the tear on enemy hit and damages other enemies within
 
 test('chainLightning: damages a second nearby enemy in addition to the one directly hit', () => {
   const world = freshWorld();
-  const direct = spawnEnemy(world, { id: 'direct', hp: 100, radius: 10, behavior: 'chaser' }, { x: 200, y: 100 });
-  const chained = spawnEnemy(world, { id: 'chained', hp: 100, radius: 10, behavior: 'chaser' }, { x: 230, y: 100 });
+  const direct = spawnEnemy(world, { id: 'direct', hp: 100, radius: 10, behavior: 'chase' }, { x: 200, y: 100 });
+  const chained = spawnEnemy(world, { id: 'chained', hp: 100, radius: 10, behavior: 'chase' }, { x: 230, y: 100 });
   const tear = spawnTear(world, {
     x: 100, y: 100, dir: { x: 1, y: 0 },
     stats: statsWith({ range: 20 }),
@@ -150,7 +150,7 @@ test('chainLightning: damages a second nearby enemy in addition to the one direc
 
 test('status modifiers (poison/burn/etc.) tag the hit enemy without affecting whether the tear is destroyed', () => {
   const world = freshWorld();
-  const enemy = spawnEnemy(world, { id: 'e', hp: 100, radius: 10, behavior: 'chaser' }, { x: 200, y: 100 });
+  const enemy = spawnEnemy(world, { id: 'e', hp: 100, radius: 10, behavior: 'chase' }, { x: 200, y: 100 });
   const tear = spawnTear(world, {
     x: 100, y: 100, dir: { x: 1, y: 0 },
     stats: statsWith({ range: 20 }),
@@ -208,7 +208,7 @@ test('wiggle: lateral velocity oscillates over time instead of flying perfectly 
 
 test('a tear with no modifiers behaves exactly as before: destroyed on its first enemy hit', () => {
   const world = freshWorld();
-  const enemy = spawnEnemy(world, { id: 'e', hp: 1, radius: 10, behavior: 'chaser' }, { x: 200, y: 100 });
+  const enemy = spawnEnemy(world, { id: 'e', hp: 1, radius: 10, behavior: 'chase' }, { x: 200, y: 100 });
   const tear = spawnTear(world, { x: 100, y: 100, dir: { x: 1, y: 0 }, stats: statsWith({ range: 20 }) });
   tear.x = enemy.x; tear.y = enemy.y;
   resolveCombat(world, { events: createEventBus() });
@@ -218,7 +218,7 @@ test('a tear with no modifiers behaves exactly as before: destroyed on its first
 
 test('a piercing tear does not deal repeated damage to the same enemy across multiple resolveCombat calls while overlapping', () => {
   const world = freshWorld();
-  const enemy = spawnEnemy(world, { id: 'e', hp: 100, radius: 10, behavior: 'chaser' }, { x: 200, y: 100 });
+  const enemy = spawnEnemy(world, { id: 'e', hp: 100, radius: 10, behavior: 'chase' }, { x: 200, y: 100 });
   const tear = spawnTear(world, {
     x: 100, y: 100, dir: { x: 1, y: 0 },
     stats: statsWith({ range: 20 }),

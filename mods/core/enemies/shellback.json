@@ -1,0 +1,10 @@
+{
+  "id": "core:shellback",
+  "name": "Shellback",
+  "hp": 8,
+  "speed": 55,
+  "radius": 15,
+  "behavior": "frontArmoredKnight",
+  "contactDamageHalfHearts": 1,
+  "description": "A hardened shell faces whatever it's chasing; shots from that side barely scratch it. Flank it."
+}

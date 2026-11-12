@@ -123,9 +123,14 @@ function testBotClearsRooms(enemyDefs, seedCount = 20) {
     const count = 1 + (seed % 3);
     for (let i = 0; i < count; i++) {
       const def = enemyDefs[rng.int(0, enemyDefs.length - 1)];
-      const angle = rng.range(0, Math.PI * 2);
-      const dist = 100 + rng.range(0, 60);
-      spawnEnemy(room.world, def, { x: centerX + Math.cos(angle) * dist, y: centerY + Math.sin(angle) * dist });
+      // Tile-based placement (same pattern main.js's stockRoom uses) rather than a raw polar offset from
+      // center: a 13x7 room's interior is wider than it is tall, so a polar distance big enough to spread
+      // enemies out horizontally could land a stationary one inside/behind the border wall vertically —
+      // permanently unreachable, since turretShooter/hideAndPopShooter don't move to self-correct out of it.
+      const tx = rng.int(2, room.widthTiles - 3);
+      const ty = rng.int(2, room.heightTiles - 3);
+      const center = room.world.tileGrid.tileCenter(tx, ty);
+      spawnEnemy(room.world, def, { x: center.x, y: center.y });
     }
 
     const input = createInputState();
@@ -154,10 +159,12 @@ function testBotClearsRooms(enemyDefs, seedCount = 20) {
         const dy = nearest.y - player.y;
         if (Math.abs(dx) > Math.abs(dy)) input.held.add(dx > 0 ? 'shootRight' : 'shootLeft');
         else input.held.add(dy > 0 ? 'shootDown' : 'shootUp');
-        if (bestDist > 150) {
-          input.moveX = Math.sign(dx);
-          input.moveY = Math.sign(dy);
-        }
+        // Close each axis independently (not just overall distance) so the bot keeps adjusting
+        // position to stay cardinal-aligned with a fleeing/erratic target, instead of freezing
+        // the moment it's "close enough" by Euclidean distance while still off-axis for its shot.
+        const ALIGN_TOLERANCE_PX = 12;
+        input.moveX = Math.abs(dx) > ALIGN_TOLERANCE_PX ? Math.sign(dx) : 0;
+        input.moveY = Math.abs(dy) > ALIGN_TOLERANCE_PX ? Math.sign(dy) : 0;
       }
 
       updatePlayer(room.world, player, input, DT, { events });

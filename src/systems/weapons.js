@@ -9,6 +9,7 @@
 import { spawnTear } from './projectiles.js';
 import { circlesOverlap } from '../engine/collision.js';
 import { CONFIG } from '../core/config.js';
+import { applyEnemyDamage } from './enemies.js';
 
 function fireNormal(world, player, dir, ctx) {
   return [
@@ -68,12 +69,7 @@ function fireMelee(world, player, dir, ctx) {
   for (const enemy of world.entities.byType('enemy')) {
     if (!enemy.alive) continue;
     if (!circlesOverlap(hitX, hitY, hitRadius, enemy.x, enemy.y, enemy.radius)) continue;
-    enemy.hp -= player.stats.damage;
-    ctx.events?.emit('enemy:hit', { enemy, damage: player.stats.damage });
-    if (enemy.hp <= 0) {
-      enemy.destroy();
-      ctx.events?.emit('enemy:death', { enemy });
-    }
+    applyEnemyDamage(world, enemy, player.stats.damage, ctx);
   }
   return [];
 }

@@ -1,0 +1,10 @@
+{
+  "id": "core:drifter",
+  "name": "Drifter",
+  "hp": 4,
+  "speed": 50,
+  "radius": 13,
+  "behavior": "wander",
+  "contactDamageHalfHearts": 1,
+  "description": "Shuffles around at random, oblivious to the player, until you're standing in its way."
+}
