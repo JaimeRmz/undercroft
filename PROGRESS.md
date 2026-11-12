@@ -15,7 +15,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 - [x] P0.3 Engine: entities, world, tile grid collision (circle vs tiles), circle vs circle with spatial hash. Unit tests.
 - [x] P0.4 Mod loader v1 (manifest, load order, JSON loading, schema validation with readable errors) + `mods/core/` skeleton. Core content loads only through the loader. Tests incl. a deliberately broken test mod.
 - [x] P0.5 Input adapter (WASD move, arrow keys shoot, E bomb, Space active item, Q consumable, Ctrl drop trinket, Tab map, Esc pause, ` console) + gamepad support
-- [ ] P0.6 Player controller with movement feel per CLAUDE.md §3, 4-way shooting, shots with arc/range/splash, stats pipeline implementing the exact damage and tears formulas (tested against the numbers)
+- [x] P0.6 Player controller with movement feel per CLAUDE.md §3, 4-way shooting, shots with arc/range/splash, stats pipeline implementing the exact damage and tears formulas (tested against the numbers)
 - [ ] P0.7 Health system (red/soul/black, damage order, i-frames, death) + 3 basic enemies (chaser, erratic flier, turret shooter) defined in JSON
 - [ ] P0.8 Single room: 13×7 tiles, rocks, pits, destructible blocks, doors that lock while enemies live and open on clear
 - [ ] P0.9 Renderer: procedural sprites from JSON sprite specs, camera, hit flash, basic particles, decals. HUD hearts.

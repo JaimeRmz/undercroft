@@ -1,0 +1,51 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { World } from '../src/engine/world.js';
+import { spawnTear, updateProjectiles } from '../src/systems/projectiles.js';
+import { Stats } from '../src/systems/stats.js';
+import { createEventBus } from '../src/core/events.js';
+import { CONFIG } from '../src/core/config.js';
+
+test('spawnTear sets velocity along dir scaled by shotSpeed, plus inherited owner velocity', () => {
+  const world = new World();
+  const stats = new Stats({ shotSpeed: 2 });
+  const tear = spawnTear(world, { x: 100, y: 100, dir: { x: 1, y: 0 }, stats, ownerVelocity: { x: 10, y: 0 } });
+  const expectedVx = 1 * (2 * CONFIG.TEAR_BASE_SPEED_PX_PER_SEC) + 10 * CONFIG.SHOT_INHERITS_PLAYER_VELOCITY;
+  assert.ok(Math.abs(tear.vx - expectedVx) < 1e-6);
+  assert.equal(tear.vy, 0);
+  assert.equal(tear.damage, stats.damage);
+});
+
+test('updateProjectiles moves the tear and arcs its height up then back to 0 across its range', () => {
+  const world = new World({ widthTiles: 40, heightTiles: 40, tileSize: 40 }); // big open room, no walls in the way
+  const stats = new Stats({ range: 1 }); // short range so the test runs fast
+  const tear = spawnTear(world, { x: 100, y: 100, dir: { x: 1, y: 0 }, stats });
+  const events = createEventBus();
+
+  const heights = [];
+  for (let i = 0; i < 2000 && tear.alive; i++) {
+    updateProjectiles(world, 1 / 240, events); // small dt for fine-grained sampling
+    heights.push(tear.height);
+  }
+  assert.ok(!tear.alive, 'tear should have expired at max range');
+  const mid = heights[Math.floor(heights.length / 2)];
+  assert.ok(mid > 0, 'tear should be above 0 height mid-flight');
+  assert.ok(heights[0] >= 0 && heights[0] < mid);
+});
+
+test('updateProjectiles destroys the tear early and emits projectile:splash on hitting a solid tile', () => {
+  const world = new World({ widthTiles: 10, heightTiles: 10, tileSize: 40 });
+  world.tileGrid.setSolid(5, 2, true); // wall tile directly in the tear's path
+  const stats = new Stats({ range: 100 }); // long range; wall should stop it first
+  const tear = spawnTear(world, { x: 40, y: 100, dir: { x: 1, y: 0 }, stats });
+  const events = createEventBus();
+  let splash;
+  events.on('projectile:splash', (p) => (splash = p));
+
+  for (let i = 0; i < 500 && tear.alive; i++) {
+    updateProjectiles(world, 1 / 60, events);
+  }
+  assert.ok(!tear.alive);
+  assert.ok(splash);
+  assert.equal(splash.reason, 'wall');
+});

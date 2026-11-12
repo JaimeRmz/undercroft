@@ -35,6 +35,13 @@ export const CONFIG = {
   // Movement feel
   PLAYER_ACCEL_FRAMES: 3.5, // frames to reach full speed [assumed within 3-4 frame spec]
   PLAYER_FRICTION_FRAMES: 2.5,
+  PLAYER_RADIUS: 12, // px
+  PLAYER_BASE_SPEED_PX_PER_SEC: 180, // [assumed] px/s at speed stat = 1.0 (4.5 tiles/s at TILE_SIZE 40)
+
+  // Tears / projectiles
+  TEAR_RADIUS: 6, // px
+  TEAR_BASE_SPEED_PX_PER_SEC: 300, // [assumed] px/s at shotSpeed stat = 1.0
+  TEAR_ARC_HEIGHT: 20, // [assumed] px, visual arc amplitude over the shot's travel
 
   // Room clear reward roll (§3)
   ROOM_REWARD_NOTHING_THRESHOLD: 0.22,
