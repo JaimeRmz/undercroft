@@ -16,6 +16,8 @@ export const CONFIG = {
   // Health
   MAX_HEART_CONTAINERS: 12, // in halves: 24
   INVULN_FRAMES: 60, // [assumed] ~1s at 60Hz, with blinking
+  INVULN_BLINK_FRAMES: 4, // the player sprite toggles faint/solid every this many frames while invulnerable
+  ROOM_ENTRY_GRACE_SECONDS: 0.5, // enemies neither move nor attack for this long after the player enters a room
   CONTACT_DAMAGE_HALF_HEARTS: 1, // most enemy contact/projectile damage
   CHAPTER4_CONTACT_DAMAGE_HALF_HEARTS: 2, // chapter 4+ enemies deal a full heart
 

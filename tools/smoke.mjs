@@ -202,6 +202,30 @@ async function main() {
     expect(transitions >= 4, `only completed ${transitions} door transitions (need 4)`);
     await shot('after-4-transitions');
 
+    // --- fairness: entry grace + readable enemy projectiles ---------------------------------------
+    {
+      const s0 = await snap();
+      const normal = s0.floorCells.find((c) => c.type === 'normal');
+      await page.evaluate((key) => {
+        window.__undercroft.gotoCell(key);
+        window.__undercroft.setHealth(6);
+        window.__undercroft.setPlayer(120, 200);
+        window.__undercroft.spawnEnemyAt('core:turret', 400, 120);
+        window.__undercroft.spawnEnemyAt('core:chaser', 260, 200);
+      }, normal.key);
+      const a = await snap();
+      await page.waitForTimeout(250);
+      const b = await snap();
+      expect(a.graceTimer > 0, 'no enemy grace period right after entering a room');
+      expect(JSON.stringify(a.enemyPos) === JSON.stringify(b.enemyPos), 'enemies moved during the entry grace period');
+      expect(b.hp === 6 && b.enemyShots === 0, 'player was attacked during the entry grace period');
+      await page.waitForTimeout(1500);
+      await page.evaluate(() => window.__undercroft.setHealth(6));
+      expect((await snap()).enemyShots > 0 || (await snap()).enemies > 0, 'no enemy activity after grace');
+      await shot('enemy-projectiles');
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+    }
+
     // --- full HUD + boss fight --------------------------------------------------------------------
     {
       await page.evaluate(() => window.__undercroft.giveLoadout());

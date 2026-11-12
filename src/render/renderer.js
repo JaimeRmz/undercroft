@@ -1,6 +1,6 @@
 /** Draws one room: tiles, decals, entities (via sprite specs), particles, and the HUD. Canvas-only, no game logic. */
 import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, SPRITES } from './sprites.js';
-import { isFlashing, updateHitFlash } from './vfx.js';
+import { isFlashing, updateHitFlash, playerBlinkAlpha } from './vfx.js';
 
 /** Per-chapter palette (CLAUDE.md §3: "each with its own palette"). [assumed] colors — chapter 1 is the original default tint. */
 const CHAPTER_PALETTES = {
@@ -51,18 +51,26 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     });
   };
 
+  // Entry grace: enemies are drawn translucent while they are inert, so the player can tell they can't act yet.
+  const enemyAlpha = room.world.enemyGraceTimer > 0 ? 0.55 : 1;
   for (const enemy of room.world.entities.byType('enemy')) {
-    if (enemy.alive) drawEntity(enemy, resolveEnemySpec(enemy));
+    if (!enemy.alive) continue;
+    ctx.globalAlpha = enemyAlpha;
+    drawEntity(enemy, resolveEnemySpec(enemy));
+    ctx.globalAlpha = 1;
   }
   for (const projectile of room.world.entities.byType('projectile')) {
-    if (projectile.alive) drawEntity(projectile, 'tear');
+    if (projectile.alive) drawEntity(projectile, projectile.team === 'enemy' ? 'enemyTear' : 'tear');
   }
   const player = room.world.entities.byType('player')[0];
   if (player) {
+    // I-frame blink: faint/solid toggle (never fully transparent); alpha is always restored.
+    ctx.globalAlpha = playerBlinkAlpha(playerHealth?.invulnTimer ?? 0);
     drawEntity(player, 'player', {
       headAngle: Math.atan2(player.facingDir?.y ?? -1, player.facingDir?.x ?? 0),
       bodyAngle: Math.atan2(player.moveDir?.y ?? 1, player.moveDir?.x ?? 0),
     });
+    ctx.globalAlpha = 1;
   }
 
   const PICKUP_COLORS = {

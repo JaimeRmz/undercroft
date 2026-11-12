@@ -8,7 +8,7 @@ import { clamp } from '../core/math.js';
 import { attachModifier, runModifiersOnUpdate, runModifiersOnHitWall, runModifiersOnExpire } from './tearModifiers.js';
 
 /** `modifiers` is an array of modifier ids (strings) or { id, config } objects. */
-export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 }, team = 'player', modifiers = [] }) {
+export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 }, team = 'player', modifiers = [], ownerDefId = null }) {
   const speed = stats.shotSpeed * CONFIG.TEAR_BASE_SPEED_PX_PER_SEC;
   const inherit = CONFIG.SHOT_INHERITS_PLAYER_VELOCITY;
   const vx = dir.x * speed + ownerVelocity.x * inherit;
@@ -24,6 +24,7 @@ export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 
     traveled: 0,
     height: 0,
     team,
+    ownerDefId, // enemy/boss def id that fired this (for "Killed by ..."); null for player tears
     tags: ['tear'],
   });
   for (const entry of modifiers) {

@@ -31,7 +31,9 @@ function damageMultiplierFor(enemy, projectile) {
 export function resolveCombat(world, { player, playerHealth, events, rng } = {}) {
   const enemies = world.entities.byType('enemy');
 
-  if (player && playerHealth?.alive) {
+  const enemiesInert = world.enemyGraceTimer > 0; // entry grace: no enemy damage of any kind
+
+  if (player && playerHealth?.alive && !enemiesInert) {
     for (const enemy of enemies) {
       if (!enemy.alive || enemy.status?.charm) continue; // charmed enemies no longer hurt the player (CLAUDE.md §3)
       if (circlesOverlap(player.x, player.y, player.radius, enemy.x, enemy.y, enemy.radius)) {
@@ -90,9 +92,9 @@ export function resolveCombat(world, { player, playerHealth, events, rng } = {})
           break;
         }
       }
-    } else if (projectile.team === 'enemy' && player && playerHealth?.alive) {
+    } else if (projectile.team === 'enemy' && player && playerHealth?.alive && !enemiesInert) {
       if (circlesOverlap(projectile.x, projectile.y, projectile.radius, player.x, player.y, player.radius)) {
-        const result = applyDamage(playerHealth, Math.round(projectile.damage), { events, source: 'enemy-projectile' });
+        const result = applyDamage(playerHealth, Math.round(projectile.damage), { events, source: projectile.ownerDefId ?? 'enemy-projectile' });
         if (result.applied > 0) triggerHitFlash(player);
         projectile.destroy();
         events?.emit('projectile:splash', { entity: projectile, reason: 'hit' });

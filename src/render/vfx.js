@@ -14,6 +14,17 @@ export function updateHitFlash(entity, dt) {
   if (entity.hitFlashTimer > 0) entity.hitFlashTimer = Math.max(0, entity.hitFlashTimer - dt);
 }
 
+/**
+ * Alpha for the player sprite while invulnerable: toggles between faint and
+ * solid every CONFIG.INVULN_BLINK_FRAMES frames. Never reaches 0, so the
+ * player is always at least faintly visible. Returns 1 when not invulnerable.
+ */
+export function playerBlinkAlpha(invulnSecondsLeft) {
+  if (!(invulnSecondsLeft > 0)) return 1;
+  const frame = Math.floor((invulnSecondsLeft * CONFIG.TICK_RATE) / CONFIG.INVULN_BLINK_FRAMES);
+  return frame % 2 === 0 ? 0.3 : 1;
+}
+
 export function isFlashing(entity) {
   return (entity.hitFlashTimer ?? 0) > 0;
 }

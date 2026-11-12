@@ -5,6 +5,8 @@
  * world (the renderer, spatial queries) loses it. (This was the root cause of
  * the "player invisible after the first door" playtest bug.)
  */
+import { CONFIG } from '../core/config.js';
+
 /** Removes `player` from `fromWorld` (if present) and adds it to `toWorld`. Idempotent. */
 export function movePlayerToWorld(player, fromWorld, toWorld) {
   if (fromWorld && fromWorld !== toWorld) fromWorld.entities.remove(player.id);
@@ -13,7 +15,8 @@ export function movePlayerToWorld(player, fromWorld, toWorld) {
 
 /**
  * Enters `room` with the player at (x, y): re-homes the entity, zeroes
- * velocity and drops any in-flight charge.
+ * velocity, drops any in-flight charge, and starts the enemy grace period:
+ * nothing in the new room moves or attacks for CONFIG.ROOM_ENTRY_GRACE_SECONDS.
  */
 export function placePlayerInRoom(player, fromWorld, room, { x, y }) {
   movePlayerToWorld(player, fromWorld, room.world);
@@ -23,4 +26,5 @@ export function placePlayerInRoom(player, fromWorld, room, { x, y }) {
   player.vy = 0;
   player.chargeAction = null;
   player.chargeTime = 0;
+  room.world.enemyGraceTimer = CONFIG.ROOM_ENTRY_GRACE_SECONDS;
 }

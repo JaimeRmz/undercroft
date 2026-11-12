@@ -134,6 +134,16 @@ export function killEnemy(world, enemy, ctx = {}) {
 }
 
 export function updateEnemies(world, player, dt, { events, rng } = {}) {
+  // Entry grace: for the first ~0.5s after the player enters, nothing in the room moves or attacks.
+  if (world.enemyGraceTimer > 0) {
+    world.enemyGraceTimer = Math.max(0, world.enemyGraceTimer - dt);
+    for (const enemy of world.entities.byType('enemy')) {
+      enemy.vx = 0;
+      enemy.vy = 0;
+    }
+    return;
+  }
+
   for (const enemy of world.entities.byType('enemy')) {
     if (!enemy.alive) continue;
 

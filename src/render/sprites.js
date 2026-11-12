@@ -55,12 +55,23 @@ export const SPRITES = {
     outlineWidth: 2,
     eyes: [{ dx: 0, dy: -2, r: 2.4 }],
   },
+  // Player tears: cool pale blue. Enemy projectiles must never be mistaken for these (see enemyTear).
   tear: {
     shape: 'circle',
     radius: 6,
     fill: '#cfe8ff',
     outline: '#3a6a8a',
     outlineWidth: 1,
+  },
+  // Enemy/boss projectiles: hot red-orange body, bright core, dark outline and a soft red glow ring.
+  enemyTear: {
+    shape: 'circle',
+    radius: 6,
+    fill: '#ff4a1a',
+    outline: '#1a0000',
+    outlineWidth: 2,
+    glow: { extra: 4, fill: 'rgba(255, 60, 20, 0.35)' },
+    core: { radiusFraction: 0.45, fill: '#ffe08a' },
   },
 };
 
@@ -77,6 +88,7 @@ function rotateVec(x, y, angle) {
  */
 export function computeSpriteDrawOps(spec, { headAngle, bodyAngle } = {}) {
   const ops = [];
+  if (spec.glow) ops.push({ op: 'circle', x: 0, y: 0, radius: spec.radius + spec.glow.extra, fill: spec.glow.fill });
   if (spec.shape === 'circle') {
     ops.push({ op: 'circle', x: 0, y: 0, radius: spec.radius, fill: spec.fill, outline: spec.outline, outlineWidth: spec.outlineWidth });
   } else if (spec.shape === 'rect') {
@@ -91,6 +103,8 @@ export function computeSpriteDrawOps(spec, { headAngle, bodyAngle } = {}) {
       outlineWidth: spec.outlineWidth,
     });
   }
+
+  if (spec.core) ops.push({ op: 'circle', x: 0, y: 0, radius: spec.radius * spec.core.radiusFraction, fill: spec.core.fill });
 
   if (spec.belly && bodyAngle !== undefined) {
     const dist = spec.radius * (spec.belly.distanceFraction ?? 0.4);

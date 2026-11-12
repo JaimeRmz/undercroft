@@ -13,6 +13,7 @@ import {
 } from './systems/transitions.js';
 import { createPlayer, updatePlayer } from './systems/player.js';
 import { placePlayerInRoom } from './systems/roomEntry.js';
+import { describeDeathCause } from './systems/deathCause.js';
 import { spawnEnemy, updateEnemies } from './systems/enemies.js';
 import { updateProjectiles } from './systems/projectiles.js';
 import { resolveCombat } from './systems/combat.js';
@@ -239,6 +240,13 @@ async function boot() {
     }
   });
   events.on('health:damaged', () => camera.shake(4, 0.15));
+  events.on('health:death', ({ source }) => {
+    if (!currentRun || currentRun.stats.killedBy) return;
+    currentRun.stats.killedBy = describeDeathCause(source, {
+      getEnemyDef: (id) => registries.of('enemy').get(id),
+      getBossDef: (id) => registries.of('boss').get(id),
+    });
+  });
   events.on('bomb:explode', ({ x, y, radius }) => {
     if (!currentRun) return;
     currentRun.particles.burst(x, y, 20, { color: '#e8a030', speed: 140, life: 0.4, rng: currentRun.vfxRng });
@@ -420,6 +428,9 @@ async function boot() {
         cellType: run.floorRuntime.getCurrentCell().type,
         player: { x: run.player.x, y: run.player.y, inWorld: room.world.entities.byType('player').includes(run.player) },
         enemies: room.world.entities.byType('enemy').filter((e) => e.alive).length,
+        enemyPos: room.world.entities.byType('enemy').filter((e) => e.alive).map((e) => ({ x: e.x, y: e.y })),
+        enemyShots: room.world.entities.byType('projectile').filter((p) => p.alive && p.team === 'enemy').length,
+        graceTimer: room.world.enemyGraceTimer ?? 0,
         doors: [...room.doors].map(([side, d]) => ({ side, tx: d.tx, ty: d.ty, locked: d.locked, keyLocked: !!d.keyLocked })),
         transitioning: run.transition.active,
         hp: run.playerHealth.red,
@@ -467,6 +478,10 @@ async function boot() {
       run.currency.coins = 23;
       run.currency.bombs = 3;
       run.currency.keys = 2;
+    },
+    spawnEnemyAt(defId, x, y) {
+      const run = currentRun;
+      return spawnEnemy(run.room.world, registries.of('enemy').get(defId), { x, y, rng: run.spawnRng });
     },
     enemyIds: () => registries.of('enemy').all().map((d) => d.id),
   };
@@ -544,6 +559,7 @@ async function boot() {
           kills: run.stats.kills,
           coins: run.currency.coins,
           elapsedSeconds: run.stats.elapsedSeconds,
+          killedBy: run.stats.killedBy,
         },
       });
     }

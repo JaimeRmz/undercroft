@@ -27,10 +27,11 @@ export function drawPauseScreen(ctx, { width, height }) {
   ctx.restore();
 }
 
-/** `stats`: { floorsCleared, kills, coins, elapsedSeconds }. */
+/** `stats`: { floorsCleared, kills, coins, elapsedSeconds, killedBy }. */
 export function drawDeathScreen(ctx, { width, height, stats }) {
   overlay(ctx, width, height, 0.9);
   centeredText(ctx, 'YOU DIED', width / 2, height / 2 - 50, { font: 'bold 26px sans-serif', color: '#c0283c' });
+  centeredText(ctx, `Killed by ${stats.killedBy ?? 'Unknown causes'}`, width / 2, height / 2 - 34, { font: 'bold 12px sans-serif', color: '#ffb060' });
   const lines = [
     `Floors cleared: ${stats.floorsCleared}`,
     `Enemies defeated: ${stats.kills}`,

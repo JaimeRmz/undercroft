@@ -33,6 +33,7 @@ function fireAimedTear(world, boss, player) {
     dir,
     stats: { shotSpeed: boss.shotSpeed ?? 1, damage: boss.damage ?? 2, range: boss.range ?? 8 },
     team: 'enemy',
+    ownerDefId: boss.defId,
   });
 }
 
@@ -43,6 +44,7 @@ function fireTearAtAngle(world, boss, angle) {
     dir: { x: Math.cos(angle), y: Math.sin(angle) },
     stats: { shotSpeed: boss.shotSpeed ?? 1, damage: boss.damage ?? 2, range: boss.range ?? 8 },
     team: 'enemy',
+    ownerDefId: boss.defId,
   });
 }
 
@@ -208,6 +210,7 @@ registerBossPattern('projectileRain', {
         dir,
         stats: { shotSpeed: boss.shotSpeed ?? 1, damage: boss.damage ?? 2, range: 2 },
         team: 'enemy',
+        ownerDefId: boss.defId,
       });
     }
   },
