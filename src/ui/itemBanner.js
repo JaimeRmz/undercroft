@@ -25,12 +25,12 @@ export function drawBanner(ctx, state, { x, y, width } = {}) {
   ctx.globalAlpha = alpha;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#f0e6c8';
-  ctx.font = 'bold 18px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   ctx.fillText(state.text, x + width / 2, y);
   if (state.subtext) {
-    ctx.font = '13px sans-serif';
+    ctx.font = '9px sans-serif';
     ctx.fillStyle = '#c0b8a0';
-    ctx.fillText(state.subtext, x + width / 2, y + 20);
+    ctx.fillText(state.subtext, x + width / 2, y + 12);
   }
   ctx.restore();
 }

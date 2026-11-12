@@ -41,7 +41,7 @@ const COLORS = {
   black: '#4a3a5a',
 };
 
-export function drawHud(ctx, health, { x = 16, y = 16, size = 18, gap = 4 } = {}) {
+export function drawHud(ctx, health, { x = 16, y = 16, size = 12, gap = 2 } = {}) {
   const icons = computeHeartIcons(health);
   icons.forEach((icon, i) => {
     const cx = x + i * (size + gap) + size / 2;

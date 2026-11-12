@@ -6,7 +6,7 @@ export function computeTrinketSlotLabel(trinketInventory) {
   return held ? held.name : null;
 }
 
-export function drawTrinketSlot(ctx, trinketInventory, { x, y, radius = 10 } = {}) {
+export function drawTrinketSlot(ctx, trinketInventory, { x, y, radius = 6 } = {}) {
   const label = computeTrinketSlotLabel(trinketInventory);
   ctx.save();
   ctx.beginPath();
@@ -17,7 +17,7 @@ export function drawTrinketSlot(ctx, trinketInventory, { x, y, radius = 10 } = {
   ctx.strokeStyle = '#111';
   ctx.stroke();
   if (label) {
-    ctx.font = '12px sans-serif';
+    ctx.font = '8px sans-serif';
     ctx.fillStyle = '#e8d9b0';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';

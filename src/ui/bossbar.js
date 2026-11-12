@@ -20,7 +20,7 @@ export function drawBossBar(ctx, boss, { x, y, width = 300, height = 20, name = 
   ctx.strokeRect(x, y, width, height);
   if (name) {
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px sans-serif';
+    ctx.font = 'bold 9px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(name, x + width / 2, y - 6);
   }

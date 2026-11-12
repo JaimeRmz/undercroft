@@ -14,8 +14,9 @@ function paletteForChapter(chapter) {
 }
 
 export function renderRoom(ctx, { room, camera, playerHealth, particles, decals, dt, chapter = 1 }) {
-  const { width, height } = ctx.canvas;
-  ctx.clearRect(0, 0, width, height);
+  // Logical-space draw (main.js applies the integer scale transform); never read ctx.canvas size here.
+  ctx.fillStyle = '#0a0a0d';
+  ctx.fillRect(0, 0, camera.viewportWidth, camera.viewportHeight);
 
   const tileColors = paletteForChapter(chapter);
   const tileSize = room.world.tileGrid.tileSize;
@@ -139,12 +140,12 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.font = '12px sans-serif';
+    ctx.font = 'bold 9px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`${slot.displayPrice}c`, screen.x, screen.y - 18 * camera.zoom);
     if (slot.onSale) {
       ctx.fillStyle = '#ff5050';
-      ctx.font = 'bold 10px sans-serif';
+      ctx.font = 'bold 8px sans-serif';
       ctx.fillText('SALE', screen.x, screen.y - 30 * camera.zoom);
     }
   }
@@ -184,5 +185,5 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     ctx.globalAlpha = 1;
   }
 
-  if (playerHealth) drawHud(ctx, playerHealth, { x: 16, y: 16 });
+  if (playerHealth) drawHud(ctx, playerHealth, { x: 62, y: 8, size: 12, gap: 2 });
 }

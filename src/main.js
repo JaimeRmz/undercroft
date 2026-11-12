@@ -39,6 +39,8 @@ import { drawBossBar } from './ui/bossbar.js';
 import { createInputState, createKeyboardAdapter, pollGamepads, clearFrameEdges } from './engine/input.js';
 import { events } from './core/events.js';
 import { Camera } from './render/camera.js';
+import { computeViewport } from './render/viewport.js';
+import { VIEW_W, VIEW_H, ROOM_RECT } from './ui/layout.js';
 import { consumeHitstopFrame } from './render/hitstop.js';
 import { ParticlePool } from './render/particles.js';
 import { DecalLayer } from './render/decals.js';
@@ -189,7 +191,23 @@ async function boot() {
 
   const input = createInputState();
   createKeyboardAdapter(input, window);
-  const camera = new Camera({ viewportWidth: canvas.width, viewportHeight: canvas.height });
+  const camera = new Camera({ viewportWidth: VIEW_W, viewportHeight: VIEW_H });
+  // The camera is fixed on the room center: the whole 13x7 room is always on screen, centered (ROOM_RECT).
+  const ROOM_CENTER = { x: ROOM_RECT.w / 2, y: ROOM_RECT.h / 2 };
+  camera.centerOn(ROOM_CENTER.x, ROOM_CENTER.y);
+
+  // Integer-scaled, letterboxed canvas; recomputed on every window resize.
+  let viewport = computeViewport(window.innerWidth, window.innerHeight, VIEW_W, VIEW_H, window.devicePixelRatio || 1);
+  function applyViewport() {
+    const dpr = window.devicePixelRatio || 1;
+    viewport = computeViewport(window.innerWidth, window.innerHeight, VIEW_W, VIEW_H, dpr);
+    canvas.width = viewport.backingW;
+    canvas.height = viewport.backingH;
+    canvas.style.width = `${viewport.cssW}px`;
+    canvas.style.height = `${viewport.cssH}px`;
+  }
+  applyViewport();
+  window.addEventListener('resize', applyViewport);
 
   let gameState = 'menu'; // 'menu' | 'playing' | 'paused' | 'dead'
   let currentRun = null;
@@ -429,52 +447,55 @@ async function boot() {
     lastTime = now;
     loop.tick(dt);
 
+    ctx.setTransform(viewport.scale, 0, 0, viewport.scale, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+
     if (gameState === 'menu') {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawMenuScreen(ctx, { width: canvas.width, height: canvas.height });
+      ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+      drawMenuScreen(ctx, { width: VIEW_W, height: VIEW_H });
       requestAnimationFrame(frame);
       return;
     }
 
     const run = currentRun;
-    if (!run.transition.active && gameState === 'playing') camera.centerOn(run.player.x, run.player.y);
     camera.update(dt, run.vfxRng);
     run.particles.update(dt);
     updateBanner(run.banner, dt);
 
     const chapter = Math.ceil(run.stage / 2);
     renderRoom(ctx, { room: run.room, camera, playerHealth: run.playerHealth, particles: run.particles, decals: run.decals, dt, chapter });
-    lastPlayerScreen = camera.worldToScreen(run.player.x, run.player.y);
-    drawBanner(ctx, run.banner, { x: 0, y: 80, width: canvas.width });
-    drawTrinketSlot(ctx, run.trinketInventory, { x: 26, y: 50 });
-    drawConsumableSlot(ctx, run.consumableInventory, { getCardDef, getPillDef, pillIdentity: run.pillIdentity }, { x: 26, y: 76 });
+    const ps = camera.worldToScreen(run.player.x, run.player.y);
+    lastPlayerScreen = { x: ps.x * viewport.scale, y: ps.y * viewport.scale }; // canvas backing-store pixels (for the smoke pixel check)
+    drawBanner(ctx, run.banner, { x: ROOM_RECT.x, y: ROOM_RECT.y + 36, width: ROOM_RECT.w });
+    drawTrinketSlot(ctx, run.trinketInventory, { x: 590, y: 120 });
+    drawConsumableSlot(ctx, run.consumableInventory, { getCardDef, getPillDef, pillIdentity: run.pillIdentity }, { x: 590, y: 140 });
 
     const boss = run.room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
     if (boss) {
       const bossDef = getBossDef(boss.defId);
-      drawBossBar(ctx, boss, { x: (canvas.width - 300) / 2, y: canvas.height - 50, name: bossDef?.name ?? '' });
+      drawBossBar(ctx, boss, { x: (VIEW_W - 300) / 2, y: VIEW_H - 22, width: 300, height: 10, name: bossDef?.name ?? '' });
     }
 
     if (run.transition.active) {
       const delta = DOOR_DELTA[run.transition.direction];
       ctx.fillStyle = '#000';
       if (delta.x !== 0) {
-        const w = canvas.width * run.transition.progress;
-        ctx.fillRect(delta.x > 0 ? 0 : canvas.width - w, 0, w, canvas.height);
+        const w = ROOM_RECT.w * run.transition.progress;
+        ctx.fillRect(delta.x > 0 ? ROOM_RECT.x : ROOM_RECT.x + ROOM_RECT.w - w, ROOM_RECT.y, w, ROOM_RECT.h);
       } else {
-        const h = canvas.height * run.transition.progress;
-        ctx.fillRect(0, delta.y > 0 ? 0 : canvas.height - h, canvas.width, h);
+        const h = ROOM_RECT.h * run.transition.progress;
+        ctx.fillRect(ROOM_RECT.x, delta.y > 0 ? ROOM_RECT.y : ROOM_RECT.y + ROOM_RECT.h - h, ROOM_RECT.w, h);
       }
     }
 
     const icons = computeMinimapIcons(run.floor, { visited: run.floorRuntime.visited, currentKey: run.floorRuntime.currentKey });
-    drawMinimap(ctx, icons, { x: canvas.width - 150, y: 16 });
+    drawMinimap(ctx, icons, { x: VIEW_W - 56, y: 6, cellSize: 5, gap: 1 });
 
-    if (gameState === 'paused') drawPauseScreen(ctx, { width: canvas.width, height: canvas.height });
+    if (gameState === 'paused') drawPauseScreen(ctx, { width: VIEW_W, height: VIEW_H });
     if (gameState === 'dead') {
       drawDeathScreen(ctx, {
-        width: canvas.width,
-        height: canvas.height,
+        width: VIEW_W,
+        height: VIEW_H,
         stats: {
           floorsCleared: run.stats.floorsCleared,
           kills: run.stats.kills,

@@ -106,6 +106,20 @@ async function main() {
     expect(await playerPainted(), 'no player pixels in the start room');
     await shot('start-room');
 
+    // Resize handling: integer scale (canvas = 640*k x 360*k), letterboxed inside the window, still painting.
+    for (const [w, h, k] of [[1366, 768, 2], [2560, 1440, 4], [1920, 1080, 3]]) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.waitForTimeout(250);
+      const dims = await page.evaluate(() => {
+        const c = document.getElementById('game');
+        const r = c.getBoundingClientRect();
+        return { bw: c.width, bh: c.height, cw: Math.round(r.width), ch: Math.round(r.height) };
+      });
+      expect(dims.bw === 640 * k && dims.bh === 360 * k && dims.cw === 640 * k && dims.ch === 360 * k, `at ${w}x${h} expected a ${640 * k}x${360 * k} canvas, got ${JSON.stringify(dims)}`);
+      expect(await playerPainted(), `no player pixels after resizing to ${w}x${h}`);
+      if (w === 1366) await shot('resized-1366x768');
+    }
+
     console.log('[smoke] holding movement + shoot keys for 6s...');
     await page.keyboard.down('KeyW');
     await page.keyboard.down('KeyD');

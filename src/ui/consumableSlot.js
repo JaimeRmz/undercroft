@@ -9,7 +9,7 @@ export function computeConsumableSlotLabel(inventory, { getCardDef, getPillDef, 
   return pillDisplayName(held.pillColor, pillIdentity, getPillDef);
 }
 
-export function drawConsumableSlot(ctx, inventory, { getCardDef, getPillDef, pillIdentity }, { x, y, radius = 10 } = {}) {
+export function drawConsumableSlot(ctx, inventory, { getCardDef, getPillDef, pillIdentity }, { x, y, radius = 6 } = {}) {
   const label = computeConsumableSlotLabel(inventory, { getCardDef, getPillDef, pillIdentity });
   ctx.save();
   ctx.beginPath();
@@ -20,7 +20,7 @@ export function drawConsumableSlot(ctx, inventory, { getCardDef, getPillDef, pil
   ctx.strokeStyle = '#111';
   ctx.stroke();
   if (label) {
-    ctx.font = '12px sans-serif';
+    ctx.font = '8px sans-serif';
     ctx.fillStyle = '#d9e8f0';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
