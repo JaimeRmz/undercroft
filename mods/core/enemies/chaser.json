@@ -1,6 +1,7 @@
 {
   "id": "core:chaser",
   "name": "Chaser",
+  "chapter": 1,
   "hp": 5,
   "speed": 90,
   "radius": 14,

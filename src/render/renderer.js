@@ -3,24 +3,27 @@ import { computeSpriteDrawOps, executeDrawOps, SPRITES } from './sprites.js';
 import { drawHud } from '../ui/hud.js';
 import { isFlashing, updateHitFlash } from './vfx.js';
 
-const TILE_COLORS = {
-  floor: '#2b2b33',
-  wall: '#15151a',
-  rock: '#5a5248',
-  pit: '#0a0a0c',
-  door: '#443322',
+/** Per-chapter palette (CLAUDE.md §3: "each with its own palette"). [assumed] colors — chapter 1 is the original default tint. */
+const CHAPTER_PALETTES = {
+  1: { floor: '#2b2b33', wall: '#15151a', rock: '#5a5248', pit: '#0a0a0c', door: '#443322' },
+  2: { floor: '#243128', wall: '#111c16', rock: '#4d5a4f', pit: '#070c09', door: '#3a4322' },
 };
 
-export function renderRoom(ctx, { room, camera, playerHealth, particles, decals, dt }) {
+function paletteForChapter(chapter) {
+  return CHAPTER_PALETTES[chapter] ?? CHAPTER_PALETTES[1];
+}
+
+export function renderRoom(ctx, { room, camera, playerHealth, particles, decals, dt, chapter = 1 }) {
   const { width, height } = ctx.canvas;
   ctx.clearRect(0, 0, width, height);
 
+  const tileColors = paletteForChapter(chapter);
   const tileSize = room.world.tileGrid.tileSize;
   for (let ty = 0; ty < room.heightTiles; ty++) {
     for (let tx = 0; tx < room.widthTiles; tx++) {
       const type = room.getTileType(tx, ty);
       const screen = camera.worldToScreen(tx * tileSize, ty * tileSize);
-      ctx.fillStyle = TILE_COLORS[type] ?? '#222';
+      ctx.fillStyle = tileColors[type] ?? '#222';
       ctx.fillRect(screen.x, screen.y, tileSize * camera.zoom, tileSize * camera.zoom);
     }
   }

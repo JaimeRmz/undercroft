@@ -1,6 +1,7 @@
 {
   "id": "core:globule",
   "name": "Globule",
+  "chapter": 2,
   "hp": 6,
   "speed": 55,
   "radius": 15,

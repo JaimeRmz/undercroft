@@ -1,6 +1,7 @@
 {
   "id": "core:satellite",
   "name": "Satellite",
+  "chapter": 2,
   "hp": 5,
   "speed": 90,
   "radius": 12,

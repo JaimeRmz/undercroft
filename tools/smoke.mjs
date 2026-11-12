@@ -68,6 +68,10 @@ async function main() {
     await page.goto(URL, { waitUntil: 'load' });
     await page.waitForTimeout(500); // let main.js boot (mod loading is async)
 
+    console.log('[smoke] dismissing the main menu...');
+    await page.keyboard.press('Space'); // menu -> playing (CLAUDE.md §1.9's "useActive" confirm action)
+    await page.waitForTimeout(200);
+
     console.log('[smoke] holding movement + shoot keys for 10s...');
     await page.keyboard.down('KeyW');
     await page.keyboard.down('KeyD');

@@ -1,6 +1,7 @@
 {
   "id": "core:peeker",
   "name": "Peeker",
+  "chapter": 2,
   "hp": 5,
   "speed": 0,
   "radius": 13,

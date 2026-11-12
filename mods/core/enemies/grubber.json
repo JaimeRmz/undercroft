@@ -1,6 +1,7 @@
 {
   "id": "core:grubber",
   "name": "Grubber",
+  "chapter": 2,
   "hp": 6,
   "speed": 65,
   "radius": 13,

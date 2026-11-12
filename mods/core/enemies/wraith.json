@@ -1,6 +1,7 @@
 {
   "id": "core:wraith",
   "name": "Wraith",
+  "chapter": 1,
   "hp": 5,
   "speed": 65,
   "radius": 12,

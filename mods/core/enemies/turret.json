@@ -1,6 +1,7 @@
 {
   "id": "core:turret",
   "name": "Turret",
+  "chapter": 1,
   "hp": 6,
   "speed": 0,
   "radius": 14,

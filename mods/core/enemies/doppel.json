@@ -1,6 +1,7 @@
 {
   "id": "core:doppel",
   "name": "Doppel",
+  "chapter": 2,
   "hp": 6,
   "speed": 180,
   "radius": 14,

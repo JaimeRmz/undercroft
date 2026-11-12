@@ -1,6 +1,7 @@
 {
   "id": "core:erratic-flier",
   "name": "Erratic Flier",
+  "chapter": 1,
   "hp": 4,
   "speed": 70,
   "radius": 12,

@@ -1,6 +1,7 @@
 {
   "id": "core:rattler",
   "name": "Rattler",
+  "chapter": 1,
   "hp": 5,
   "speed": 110,
   "radius": 13,

@@ -1,6 +1,7 @@
 {
   "id": "core:shellback",
   "name": "Shellback",
+  "chapter": 2,
   "hp": 8,
   "speed": 55,
   "radius": 15,

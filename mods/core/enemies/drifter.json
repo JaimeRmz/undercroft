@@ -1,6 +1,7 @@
 {
   "id": "core:drifter",
   "name": "Drifter",
+  "chapter": 1,
   "hp": 4,
   "speed": 50,
   "radius": 13,

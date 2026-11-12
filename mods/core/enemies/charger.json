@@ -1,6 +1,7 @@
 {
   "id": "core:charger",
   "name": "Charger",
+  "chapter": 1,
   "hp": 7,
   "speed": 70,
   "radius": 14,

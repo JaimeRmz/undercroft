@@ -1,4 +1,4 @@
-/** Browser entry point: generates a floor, boots a FloorRuntime, and runs the render loop with room transitions. */
+/** Browser entry point: menu -> run (floor/room loop, pause) -> death screen -> restart. */
 import { FixedStepLoop } from './core/loop.js';
 import { CONFIG } from './core/config.js';
 import { FloorRuntime } from './systems/floor.js';
@@ -39,6 +39,7 @@ import { DecalLayer } from './render/decals.js';
 import { renderRoom } from './render/renderer.js';
 import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
+import { drawMenuScreen, drawPauseScreen, drawDeathScreen } from './ui/screens.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
 import { createHttpSource } from './modding/source-http.js';
@@ -54,35 +55,32 @@ async function boot() {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
 
-  const rngStreams = new RngStreams(`run-${Date.now()}`);
-  const floorRng = rngStreams.stream('floorgen');
-  const templateRng = rngStreams.stream('rooms');
-  const aiRng = rngStreams.stream('ai');
-  const vfxRng = rngStreams.stream('vfx');
-  const spawnRng = rngStreams.stream('spawns');
-
-  let stage = 1;
-  let floor = generateFloor(stage, floorRng);
   const templates = registries.of('room').all();
-  let floorRuntime = new FloorRuntime(floor, templates, templateRng);
   const itemPools = buildItemPools(registries.of('item').all());
   const getItemDef = (id) => registries.of('item').get(id);
+  const getBossDef = (id) => registries.of('boss').get(id);
   const getBossDefsForChapter = (chapter) => {
     const all = registries.of('boss').all();
     const matching = all.filter((b) => b.chapter === chapter);
     return matching.length > 0 ? matching : all;
   };
-  const getBossDef = (id) => registries.of('boss').get(id);
+  const getEnemyDefsForChapter = (chapter) => {
+    const all = registries.of('enemy').all();
+    const matching = all.filter((e) => e.chapter === chapter);
+    return matching.length > 0 ? matching : all;
+  };
+  const synergyRules = registries.of('synergy').all();
 
-  const stockedRooms = new Set();
-  function stockRoom(room, cell) {
+  /** Stocks a freshly-visited room's cell with whatever it should hold (item/shop/boss/enemies). */
+  function stockRoom(run, room, cell) {
     const key = `${cell.x},${cell.y}`;
-    if (stockedRooms.has(key)) return;
-    stockedRooms.add(key);
+    if (run.stockedRooms.has(key)) return;
+    run.stockedRooms.add(key);
+    const chapter = Math.ceil(run.stage / 2);
 
     if (cell.type === 'treasure') {
       const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
-      const itemId = itemPools.draw('treasure', spawnRng);
+      const itemId = itemPools.draw('treasure', run.spawnRng);
       if (itemId) spawnItemPedestal(room.world, itemId, { x: center.x, y: center.y });
       return;
     }
@@ -90,169 +88,227 @@ async function boot() {
     if (cell.type === 'shop') {
       const midY = Math.floor(room.heightTiles / 2);
       const positions = [0.33, 0.5, 0.67].map((frac) => room.world.tileGrid.tileCenter(Math.round(room.widthTiles * frac), midY));
-      stockShop(room.world, positions, { pools: itemPools, itemDefsById: getItemDef, rng: spawnRng, itemSlots: 2 });
+      stockShop(room.world, positions, { pools: itemPools, itemDefsById: getItemDef, rng: run.spawnRng, itemSlots: 2 });
       return;
     }
 
     if (cell.type === 'boss') {
-      const chapter = Math.ceil(stage / 2);
       const bossDefs = getBossDefsForChapter(chapter);
       if (bossDefs.length === 0) return;
-      const def = spawnRng.pick(bossDefs);
+      const def = run.spawnRng.pick(bossDefs);
       const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
-      spawnBoss(room.world, def, { x: center.x, y: center.y, stage });
+      spawnBoss(room.world, def, { x: center.x, y: center.y, stage: run.stage });
       return;
     }
 
     if (cell.type !== 'normal') return;
-    const enemyDefs = registries.of('enemy').all();
+    const enemyDefs = getEnemyDefsForChapter(chapter);
     if (enemyDefs.length === 0) return;
-    const count = spawnRng.int(1, 3);
+    const count = run.spawnRng.int(1, 3);
     for (let i = 0; i < count; i++) {
-      const def = spawnRng.pick(enemyDefs);
-      const tx = spawnRng.int(2, room.widthTiles - 3);
-      const ty = spawnRng.int(2, room.heightTiles - 3);
+      const def = run.spawnRng.pick(enemyDefs);
+      const tx = run.spawnRng.int(2, room.widthTiles - 3);
+      const ty = run.spawnRng.int(2, room.heightTiles - 3);
       const center = room.world.tileGrid.tileCenter(tx, ty);
-      spawnEnemy(room.world, def, { x: center.x, y: center.y });
+      spawnEnemy(room.world, def, { x: center.x, y: center.y, rng: run.spawnRng });
     }
   }
 
-  let room = floorRuntime.getCurrentRoom();
-  stockRoom(room, floorRuntime.getCurrentCell());
+  function advanceFloor(run) {
+    run.stage += 1;
+    run.stats.floorsCleared += 1;
+    run.floor = generateFloor(run.stage, run.floorRng);
+    run.floorRuntime = new FloorRuntime(run.floor, templates, run.templateRng);
+    run.stockedRooms.clear();
+    run.room = run.floorRuntime.getCurrentRoom();
+    stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
+    run.player.x = run.centerX;
+    run.player.y = run.centerY;
+    run.player.vx = 0;
+    run.player.vy = 0;
+    run.decals.clear();
+  }
 
-  const tileSize = room.world.tileGrid.tileSize;
-  const centerX = (room.widthTiles * tileSize) / 2;
-  const centerY = (room.heightTiles * tileSize) / 2;
-  const player = createPlayer(room.world, { x: centerX, y: centerY, stats: new Stats() });
-  const playerHealth = new Health({ redMax: 6 });
-  const currency = new Currency();
-  const inventory = new ItemInventory();
-  const synergyRules = registries.of('synergy').all();
-  const appliedSynergyIds = new Set();
-  const banner = createBannerState();
+  /** Builds a brand-new run (fresh seeds, floor 1, starting stats) — called on first start and on restart. */
+  function createRun() {
+    const rngStreams = new RngStreams(`run-${Date.now()}`);
+    const run = {
+      floorRng: rngStreams.stream('floorgen'),
+      templateRng: rngStreams.stream('rooms'),
+      aiRng: rngStreams.stream('ai'),
+      vfxRng: rngStreams.stream('vfx'),
+      spawnRng: rngStreams.stream('spawns'),
+      stage: 1,
+      stockedRooms: new Set(),
+      appliedSynergyIds: new Set(),
+      pendingEntrySide: null,
+      transition: createTransitionState(),
+      particles: new ParticlePool(),
+      decals: new DecalLayer(),
+      banner: createBannerState(),
+      currency: new Currency(),
+      inventory: new ItemInventory(),
+      playerHealth: new Health({ redMax: 6 }),
+      stats: { kills: 0, floorsCleared: 0, startTime: performance.now(), elapsedSeconds: 0 },
+    };
+    run.floor = generateFloor(run.stage, run.floorRng);
+    run.floorRuntime = new FloorRuntime(run.floor, templates, run.templateRng);
+    run.room = run.floorRuntime.getCurrentRoom();
+    stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
+    const tileSize = run.room.world.tileGrid.tileSize;
+    run.centerX = (run.room.widthTiles * tileSize) / 2;
+    run.centerY = (run.room.heightTiles * tileSize) / 2;
+    run.player = createPlayer(run.room.world, { x: run.centerX, y: run.centerY, stats: new Stats() });
+    return run;
+  }
 
   const input = createInputState();
   createKeyboardAdapter(input, window);
-
   const camera = new Camera({ viewportWidth: canvas.width, viewportHeight: canvas.height });
-  const particles = new ParticlePool();
-  const decals = new DecalLayer();
-  const transition = createTransitionState();
-  let pendingEntrySide = null;
 
-  function advanceFloor() {
-    stage += 1;
-    floor = generateFloor(stage, floorRng);
-    floorRuntime = new FloorRuntime(floor, templates, templateRng);
-    stockedRooms.clear();
-    room = floorRuntime.getCurrentRoom();
-    stockRoom(room, floorRuntime.getCurrentCell());
-    player.x = centerX;
-    player.y = centerY;
-    player.vx = 0;
-    player.vy = 0;
-    decals.clear();
-  }
+  let gameState = 'menu'; // 'menu' | 'playing' | 'paused' | 'dead'
+  let currentRun = null;
 
   events.on('enemy:death', ({ enemy }) => {
-    particles.burst(enemy.x, enemy.y, 12, { color: '#8a3a4a', rng: vfxRng });
-    decals.add({ x: enemy.x, y: enemy.y, color: '#5a1a1a', size: 10, alpha: 0.5 });
+    if (!currentRun) return;
+    currentRun.stats.kills += 1;
+    currentRun.particles.burst(enemy.x, enemy.y, 12, { color: '#8a3a4a', rng: currentRun.vfxRng });
+    currentRun.decals.add({ x: enemy.x, y: enemy.y, color: '#5a1a1a', size: 10, alpha: 0.5 });
     if (enemy.isBoss) {
-      const itemId = itemPools.draw('boss', spawnRng);
-      if (itemId) spawnItemPedestal(room.world, itemId, { x: enemy.x, y: enemy.y });
-      spawnTrapdoor(room.world, { x: centerX, y: centerY });
+      const itemId = itemPools.draw('boss', currentRun.spawnRng);
+      if (itemId) spawnItemPedestal(currentRun.room.world, itemId, { x: enemy.x, y: enemy.y });
+      spawnTrapdoor(currentRun.room.world, { x: currentRun.centerX, y: currentRun.centerY });
     }
   });
   events.on('health:damaged', () => camera.shake(4, 0.15));
   events.on('bomb:explode', ({ x, y, radius }) => {
-    particles.burst(x, y, 20, { color: '#e8a030', speed: 140, life: 0.4, rng: vfxRng });
+    if (!currentRun) return;
+    currentRun.particles.burst(x, y, 20, { color: '#e8a030', speed: 140, life: 0.4, rng: currentRun.vfxRng });
     camera.shake(8, 0.2);
-    floorRuntime.revealSecretWall(x, y);
+    currentRun.floorRuntime.revealSecretWall(x, y);
   });
-  events.on('item:pickup', ({ name, description }) => showBanner(banner, name, description));
+  events.on('item:pickup', ({ name, description }) => {
+    if (currentRun) showBanner(currentRun.banner, name, description);
+  });
 
   const loop = new FixedStepLoop({
     update: (dt) => {
       pollGamepads(input);
 
-      if (transition.active) {
-        if (updateTransition(transition, dt)) {
-          room = floorRuntime.getCurrentRoom();
-          stockRoom(room, floorRuntime.getCurrentCell());
-          const pos = entryPositionForSide(room, pendingEntrySide);
-          player.x = pos.x;
-          player.y = pos.y;
-          player.vx = 0;
-          player.vy = 0;
-          decals.clear();
+      if (gameState === 'menu' || gameState === 'dead') {
+        if (input.justPressed.has('useActive')) {
+          currentRun = createRun();
+          gameState = 'playing';
         }
         clearFrameEdges(input);
         return;
       }
 
-      updatePlayer(room.world, player, input, dt, { events });
-      updateEnemies(room.world, player, dt, { events, rng: aiRng });
-      updateProjectiles(room.world, dt, events);
-      updateBombs(room.world, dt, { player, playerHealth, room, events });
-      resolveCombat(room.world, { player, playerHealth, events });
-      resolveItemPedestals(room.world, player, {
-        inventory,
-        stats: player.stats,
-        playerHealth,
+      if (input.justPressed.has('pause')) {
+        gameState = gameState === 'paused' ? 'playing' : 'paused';
+        clearFrameEdges(input);
+        return;
+      }
+      if (gameState === 'paused') {
+        clearFrameEdges(input);
+        return;
+      }
+
+      const run = currentRun;
+
+      if (run.transition.active) {
+        if (updateTransition(run.transition, dt)) {
+          run.room = run.floorRuntime.getCurrentRoom();
+          stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
+          const pos = entryPositionForSide(run.room, run.pendingEntrySide);
+          run.player.x = pos.x;
+          run.player.y = pos.y;
+          run.player.vx = 0;
+          run.player.vy = 0;
+          run.decals.clear();
+        }
+        clearFrameEdges(input);
+        return;
+      }
+
+      updatePlayer(run.room.world, run.player, input, dt, { events });
+      updateEnemies(run.room.world, run.player, dt, { events, rng: run.aiRng });
+      updateProjectiles(run.room.world, dt, events);
+      updateBombs(run.room.world, dt, { player: run.player, playerHealth: run.playerHealth, room: run.room, events, rng: run.spawnRng });
+      resolveCombat(run.room.world, { player: run.player, playerHealth: run.playerHealth, events, rng: run.spawnRng });
+      resolveItemPedestals(run.room.world, run.player, {
+        inventory: run.inventory,
+        stats: run.player.stats,
+        playerHealth: run.playerHealth,
         events,
         pools: itemPools,
         getItemDef,
       });
-      resolveShopPurchases(room.world, player, {
-        inventory,
-        stats: player.stats,
-        playerHealth,
-        currency,
+      resolveShopPurchases(run.room.world, run.player, {
+        inventory: run.inventory,
+        stats: run.player.stats,
+        playerHealth: run.playerHealth,
+        currency: run.currency,
         pools: itemPools,
         getItemDef,
         events,
       });
-      resolveKeyLockedDoors(room, player, { currency, events });
-      resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng });
-      const firedSynergies = checkSynergies(inventory, player.stats, playerHealth, player, synergyRules, appliedSynergyIds);
+      resolveKeyLockedDoors(run.room, run.player, { currency: run.currency, events });
+      resolvePickups(run.room.world, run.player, { currency: run.currency, playerHealth: run.playerHealth, events, rng: run.spawnRng });
+      const firedSynergies = checkSynergies(run.inventory, run.player.stats, run.playerHealth, run.player, synergyRules, run.appliedSynergyIds);
       for (const ruleId of firedSynergies) {
         const rule = synergyRules.find((r) => r.id === ruleId);
         events.emit('item:pickup', { id: ruleId, name: 'Synergy!', description: rule?.description ?? '' });
       }
-      tickInvuln(playerHealth, dt);
-      room.world.reap();
+      tickInvuln(run.playerHealth, dt);
+      run.room.world.reap();
 
-      if (input.justPressed.has('bomb') && currency.bombs > 0) {
-        currency.bombs -= 1;
-        placeBomb(room.world, { x: player.x, y: player.y });
+      if (input.justPressed.has('bomb') && run.currency.bombs > 0) {
+        run.currency.bombs -= 1;
+        placeBomb(run.room.world, { x: run.player.x, y: run.player.y });
       }
-      if (input.justPressed.has('useActive') && inventory.actives.length > 0) {
-        const activeDef = getItemDef(inventory.actives[0].id);
-        if (activeDef) useActiveItem(inventory, 0, activeDef, { world: room.world, player, playerHealth, events, rng: spawnRng });
-      }
-
-      const justCleared = room.update();
-      if (justCleared) {
-        chargeActivesOnRoomClear(inventory);
-        // Boss rooms drop their own guaranteed item + trapdoor (CLAUDE.md §3); no extra room-clear roll.
-        if (floorRuntime.getCurrentCell().type !== 'boss') {
-          const reward = rollRoomClearReward(spawnRng, player.stats.luck);
-          if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng });
+      if (input.justPressed.has('useActive') && run.inventory.actives.length > 0) {
+        const activeDef = getItemDef(run.inventory.actives[0].id);
+        if (activeDef) {
+          useActiveItem(run.inventory, 0, activeDef, {
+            world: run.room.world,
+            player: run.player,
+            playerHealth: run.playerHealth,
+            events,
+            rng: run.spawnRng,
+          });
         }
       }
 
-      if (resolveTrapdoor(room.world, player)) {
-        advanceFloor();
+      const justCleared = run.room.update();
+      if (justCleared) {
+        chargeActivesOnRoomClear(run.inventory);
+        // Boss rooms drop their own guaranteed item + trapdoor (CLAUDE.md §3); no extra room-clear roll.
+        if (run.floorRuntime.getCurrentCell().type !== 'boss') {
+          const reward = rollRoomClearReward(run.spawnRng, run.player.stats.luck);
+          if (reward) spawnRewardPickup(run.room.world, reward, { x: run.centerX, y: run.centerY, rng: run.spawnRng });
+        }
+      }
+
+      if (!run.playerHealth.alive) {
+        run.stats.elapsedSeconds = (performance.now() - run.stats.startTime) / 1000;
+        gameState = 'dead';
         clearFrameEdges(input);
         return;
       }
 
-      const exitSide = detectDoorExit(room, player);
+      if (resolveTrapdoor(run.room.world, run.player)) {
+        advanceFloor(run);
+        clearFrameEdges(input);
+        return;
+      }
+
+      const exitSide = detectDoorExit(run.room, run.player);
       if (exitSide) {
-        const result = floorRuntime.move(exitSide);
+        const result = run.floorRuntime.move(exitSide);
         if (result) {
-          pendingEntrySide = result.enteredFrom;
-          startTransition(transition, exitSide);
+          run.pendingEntrySide = result.enteredFrom;
+          startTransition(run.transition, exitSide);
         }
       }
 
@@ -266,34 +322,58 @@ async function boot() {
     const dt = Math.min((now - lastTime) / 1000, CONFIG.MAX_FRAME_TIME);
     lastTime = now;
     loop.tick(dt);
-    if (!transition.active) camera.centerOn(player.x, player.y);
-    camera.update(dt, vfxRng);
-    particles.update(dt);
-    updateBanner(banner, dt);
 
-    renderRoom(ctx, { room, camera, playerHealth, particles, decals, dt });
-    drawBanner(ctx, banner, { x: 0, y: 80, width: canvas.width });
+    if (gameState === 'menu') {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawMenuScreen(ctx, { width: canvas.width, height: canvas.height });
+      requestAnimationFrame(frame);
+      return;
+    }
 
-    const boss = room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
+    const run = currentRun;
+    if (!run.transition.active && gameState === 'playing') camera.centerOn(run.player.x, run.player.y);
+    camera.update(dt, run.vfxRng);
+    run.particles.update(dt);
+    updateBanner(run.banner, dt);
+
+    const chapter = Math.ceil(run.stage / 2);
+    renderRoom(ctx, { room: run.room, camera, playerHealth: run.playerHealth, particles: run.particles, decals: run.decals, dt, chapter });
+    drawBanner(ctx, run.banner, { x: 0, y: 80, width: canvas.width });
+
+    const boss = run.room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
     if (boss) {
       const bossDef = getBossDef(boss.defId);
       drawBossBar(ctx, boss, { x: (canvas.width - 300) / 2, y: canvas.height - 50, name: bossDef?.name ?? '' });
     }
 
-    if (transition.active) {
-      const delta = DOOR_DELTA[transition.direction];
+    if (run.transition.active) {
+      const delta = DOOR_DELTA[run.transition.direction];
       ctx.fillStyle = '#000';
       if (delta.x !== 0) {
-        const w = canvas.width * transition.progress;
+        const w = canvas.width * run.transition.progress;
         ctx.fillRect(delta.x > 0 ? 0 : canvas.width - w, 0, w, canvas.height);
       } else {
-        const h = canvas.height * transition.progress;
+        const h = canvas.height * run.transition.progress;
         ctx.fillRect(0, delta.y > 0 ? 0 : canvas.height - h, canvas.width, h);
       }
     }
 
-    const icons = computeMinimapIcons(floor, { visited: floorRuntime.visited, currentKey: floorRuntime.currentKey });
+    const icons = computeMinimapIcons(run.floor, { visited: run.floorRuntime.visited, currentKey: run.floorRuntime.currentKey });
     drawMinimap(ctx, icons, { x: canvas.width - 150, y: 16 });
+
+    if (gameState === 'paused') drawPauseScreen(ctx, { width: canvas.width, height: canvas.height });
+    if (gameState === 'dead') {
+      drawDeathScreen(ctx, {
+        width: canvas.width,
+        height: canvas.height,
+        stats: {
+          floorsCleared: run.stats.floorsCleared,
+          kills: run.stats.kills,
+          coins: run.currency.coins,
+          elapsedSeconds: run.stats.elapsedSeconds,
+        },
+      });
+    }
 
     requestAnimationFrame(frame);
   }

@@ -1,6 +1,7 @@
 {
   "id": "core:broodmother",
   "name": "Broodmother",
+  "chapter": 2,
   "hp": 6,
   "speed": 55,
   "radius": 14,
