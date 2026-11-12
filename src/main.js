@@ -9,6 +9,7 @@ import {
   updateTransition,
   detectDoorExit,
   entryPositionForSide,
+  resolveKeyLockedDoors,
 } from './systems/transitions.js';
 import { createPlayer, updatePlayer } from './systems/player.js';
 import { spawnEnemy, updateEnemies } from './systems/enemies.js';
@@ -27,6 +28,7 @@ import {
   useActiveItem,
 } from './systems/items.js';
 import { checkSynergies } from './systems/synergies.js';
+import { stockShop, resolveShopPurchases } from './systems/shop.js';
 import { createInputState, createKeyboardAdapter, pollGamepads, clearFrameEdges } from './engine/input.js';
 import { events } from './core/events.js';
 import { Camera } from './render/camera.js';
@@ -70,10 +72,16 @@ async function boot() {
     stockedRooms.add(key);
 
     if (cell.type === 'treasure') {
-      const tileSize = room.world.tileGrid.tileSize;
       const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
       const itemId = itemPools.draw('treasure', spawnRng);
       if (itemId) spawnItemPedestal(room.world, itemId, { x: center.x, y: center.y });
+      return;
+    }
+
+    if (cell.type === 'shop') {
+      const midY = Math.floor(room.heightTiles / 2);
+      const positions = [0.33, 0.5, 0.67].map((frac) => room.world.tileGrid.tileCenter(Math.round(room.widthTiles * frac), midY));
+      stockShop(room.world, positions, { pools: itemPools, itemDefsById: getItemDef, rng: spawnRng, itemSlots: 2 });
       return;
     }
 
@@ -149,7 +157,6 @@ async function boot() {
       updateProjectiles(room.world, dt, events);
       updateBombs(room.world, dt, { player, playerHealth, room, events });
       resolveCombat(room.world, { player, playerHealth, events });
-      resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng });
       resolveItemPedestals(room.world, player, {
         inventory,
         stats: player.stats,
@@ -158,6 +165,17 @@ async function boot() {
         pools: itemPools,
         getItemDef,
       });
+      resolveShopPurchases(room.world, player, {
+        inventory,
+        stats: player.stats,
+        playerHealth,
+        currency,
+        pools: itemPools,
+        getItemDef,
+        events,
+      });
+      resolveKeyLockedDoors(room, player, { currency, events });
+      resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng });
       const firedSynergies = checkSynergies(inventory, player.stats, playerHealth, player, synergyRules, appliedSynergyIds);
       for (const ruleId of firedSynergies) {
         const rule = synergyRules.find((r) => r.id === ruleId);

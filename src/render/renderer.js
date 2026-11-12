@@ -88,6 +88,28 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     ctx.strokeRect(screen.x - 10 * camera.zoom, screen.y - 10 * camera.zoom, 20 * camera.zoom, 20 * camera.zoom);
   }
 
+  for (const slot of room.world.entities.byType('shopItem')) {
+    if (!slot.alive || slot.sold) continue;
+    const screen = camera.worldToScreen(slot.x, slot.y);
+    ctx.fillStyle = slot.kind === 'item' ? '#6a4aa0' : '#d4af37';
+    ctx.beginPath();
+    ctx.arc(screen.x, screen.y, 12 * camera.zoom, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = slot.onSale ? '#ff5050' : '#e0d0ff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${slot.displayPrice}c`, screen.x, screen.y - 18 * camera.zoom);
+    if (slot.onSale) {
+      ctx.fillStyle = '#ff5050';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText('SALE', screen.x, screen.y - 30 * camera.zoom);
+    }
+  }
+
   for (const bomb of room.world.entities.byType('bomb')) {
     if (!bomb.alive) continue;
     const screen = camera.worldToScreen(bomb.x, bomb.y);

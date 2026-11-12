@@ -16,10 +16,10 @@ test('room is 13x7 tiles with solid border walls', () => {
 
 test('doors are centered on each wall and open (passable) by default', () => {
   const room = new Room();
-  assert.deepEqual(room.doors.get('north'), { tx: 6, ty: 0, locked: false });
-  assert.deepEqual(room.doors.get('south'), { tx: 6, ty: 6, locked: false });
-  assert.deepEqual(room.doors.get('west'), { tx: 0, ty: 3, locked: false });
-  assert.deepEqual(room.doors.get('east'), { tx: 12, ty: 3, locked: false });
+  assert.deepEqual(room.doors.get('north'), { tx: 6, ty: 0, locked: false, keyLocked: false });
+  assert.deepEqual(room.doors.get('south'), { tx: 6, ty: 6, locked: false, keyLocked: false });
+  assert.deepEqual(room.doors.get('west'), { tx: 0, ty: 3, locked: false, keyLocked: false });
+  assert.deepEqual(room.doors.get('east'), { tx: 12, ty: 3, locked: false, keyLocked: false });
   assert.ok(!room.world.tileGrid.isSolid(6, 0), 'open door should be passable');
 });
 
@@ -60,7 +60,7 @@ test('addDoorToSide carves a passable door on a side that started without one', 
   const room = new Room({ doorSides: ['north'] }); // only one door to start
   assert.ok(!room.doors.has('south'));
   const door = room.addDoorToSide('south');
-  assert.deepEqual(door, { tx: 6, ty: 6, locked: false });
+  assert.deepEqual(door, { tx: 6, ty: 6, locked: false, keyLocked: false });
   assert.ok(!room.world.tileGrid.isSolid(6, 6));
   assert.equal(room.getTileType(6, 6), TILE.DOOR);
 });
@@ -71,6 +71,17 @@ test('addDoorToSide is a no-op if that side already has a door', () => {
   const second = room.addDoorToSide('north');
   assert.deepEqual(first, second);
   assert.equal(room.doors.size, 1);
+});
+
+test('setDoorKeyLocked makes the door tile solid independently of the enemy lock, and reversible', () => {
+  const room = new Room();
+  const door = room.doors.get('north');
+  room.setDoorKeyLocked('north', true);
+  assert.ok(room.world.tileGrid.isSolid(door.tx, door.ty), 'key-locked door should block movement');
+  assert.ok(!room._locked, 'key-locking one door should not trip the enemy-lock state');
+
+  room.setDoorKeyLocked('north', false);
+  assert.ok(!room.world.tileGrid.isSolid(door.tx, door.ty));
 });
 
 test('update() locks doors while an enemy is alive, and opens them once the last one dies', () => {

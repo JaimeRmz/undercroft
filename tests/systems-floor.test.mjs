@@ -147,3 +147,41 @@ test('revealSecretWall does nothing when the bomb lands far from any secret-adja
   const result = runtime.revealSecretWall(-99999, -99999);
   assert.equal(result, null);
 });
+
+test('floor 1 never key-locks treasure/shop doors', () => {
+  for (let i = 0; i < 50; i++) {
+    const floor = generateFloor(1, new Rng(`stage1-keylock-${i}`));
+    const runtime = new FloorRuntime(floor, TEMPLATES, new Rng(`stage1-keylock-templates-${i}`));
+    for (const cell of floor.cells.values()) {
+      if (cell.type === ROOM_TYPE.SECRET || cell.type === ROOM_TYPE.SUPER_SECRET) continue;
+      const room = runtime.getRoom(cellKey(cell.x, cell.y));
+      for (const door of room.doors.values()) assert.ok(!door.keyLocked, 'floor 1 should have no key-locked doors');
+    }
+  }
+});
+
+test('from floor 2 on, the door approaching a treasure/shop room is key-locked, but the treasure/shop room\'s own door back is not', () => {
+  for (let i = 0; i < 200; i++) {
+    const floor = generateFloor(2, new Rng(`stage2-keylock-${i}`));
+    const runtime = new FloorRuntime(floor, TEMPLATES, new Rng(`stage2-keylock-templates-${i}`));
+    const target = [...floor.cells.values()].find((cell) => cell.type === ROOM_TYPE.TREASURE || cell.type === ROOM_TYPE.SHOP);
+    if (!target) continue;
+
+    const approachDir = Object.entries(DELTAS).find(([, [dx, dy]]) => {
+      const neighborKey = cellKey(target.x + dx, target.y + dy);
+      return floor.cells.has(neighborKey) && !isSecret(floor, neighborKey);
+    });
+    if (!approachDir) continue;
+
+    // `side` is the direction from the target (treasure/shop) cell to its neighbor; the neighbor's
+    // door facing back toward the target (the one you'd walk through to enter) is the opposite side.
+    const [side, [dx, dy]] = approachDir;
+    const approachingCell = floor.cells.get(cellKey(target.x + dx, target.y + dy));
+    const approachingRoom = runtime.getRoom(cellKey(approachingCell.x, approachingCell.y));
+    assert.ok(approachingRoom.doors.get(OPPOSITE[side]).keyLocked, 'the door into the treasure/shop room should be key-locked');
+
+    const targetRoom = runtime.getRoom(cellKey(target.x, target.y));
+    assert.ok(!targetRoom.doors.get(side).keyLocked, "the treasure/shop room's own door back should not be key-locked");
+    return;
+  }
+});

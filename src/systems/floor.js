@@ -47,7 +47,21 @@ export class FloorRuntime {
     const room = new Room({ doorSides });
     const template = pickTemplate(this.templates, { type: cell.type, chapter: this.floor.stage, rng: this.rng });
     if (template) applyTemplateToRoom(room, template);
+    this._lockKeyDoors(room, cell, doorSides);
     return room;
+  }
+
+  /** Treasure/shop doors are key-locked from floor 2 on (CLAUDE.md §4), on the approaching room's side only. */
+  _lockKeyDoors(room, cell, doorSides) {
+    if (this.floor.stage < 2) return;
+    if (cell.type === ROOM_TYPE.TREASURE || cell.type === ROOM_TYPE.SHOP) return;
+    for (const { side, dx, dy } of SIDE_OF_DELTA) {
+      if (!doorSides.includes(side)) continue;
+      const neighbor = this.floor.cells.get(cellKey(cell.x + dx, cell.y + dy));
+      if (neighbor && (neighbor.type === ROOM_TYPE.TREASURE || neighbor.type === ROOM_TYPE.SHOP)) {
+        room.setDoorKeyLocked(side, true);
+      }
+    }
   }
 
   getRoom(key) {

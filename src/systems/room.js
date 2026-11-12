@@ -50,7 +50,7 @@ export class Room {
   setTileType(tx, ty, type) {
     this.tileTypes.set(this._key(tx, ty), type);
     const door = type === TILE.DOOR ? this._doorAt(tx, ty) : null;
-    const solid = type === TILE.WALL || type === TILE.ROCK || type === TILE.PIT || (door ? door.locked : false);
+    const solid = type === TILE.WALL || type === TILE.ROCK || type === TILE.PIT || (door ? door.locked || door.keyLocked : false);
     this.world.tileGrid.setSolid(tx, ty, solid);
   }
 
@@ -86,7 +86,7 @@ export class Room {
   _buildDoors(doorSides) {
     for (const side of doorSides) {
       const pos = this._doorPosition(side);
-      this.doors.set(side, { ...pos, locked: false });
+      this.doors.set(side, { ...pos, locked: false, keyLocked: false });
       this.setTileType(pos.tx, pos.ty, TILE.DOOR);
     }
   }
@@ -95,9 +95,17 @@ export class Room {
   addDoorToSide(side) {
     if (this.doors.has(side)) return this.doors.get(side);
     const pos = this._doorPosition(side);
-    this.doors.set(side, { ...pos, locked: false });
+    this.doors.set(side, { ...pos, locked: false, keyLocked: false });
     this.setTileType(pos.tx, pos.ty, TILE.DOOR);
     return this.doors.get(side);
+  }
+
+  /** Marks a door as requiring a key to pass (treasure/shop doors from floor 2 on). Re-applies tile solidity. */
+  setDoorKeyLocked(side, keyLocked) {
+    const door = this.doors.get(side);
+    if (!door) return;
+    door.keyLocked = keyLocked;
+    this.setTileType(door.tx, door.ty, TILE.DOOR);
   }
 
   placeRock(tx, ty) {

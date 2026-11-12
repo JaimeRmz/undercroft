@@ -8,9 +8,11 @@ import {
   entryPositionForSide,
   oppositeSide,
   transitionCameraOffsets,
+  resolveKeyLockedDoors,
   TRANSITION_DURATION,
 } from '../src/systems/transitions.js';
 import { Room } from '../src/systems/room.js';
+import { createEventBus } from '../src/core/events.js';
 
 test('oppositeSide maps each cardinal direction correctly', () => {
   assert.equal(oppositeSide('north'), 'south');
@@ -79,4 +81,39 @@ test('at progress=1, the new room has fully arrived at offset 0', () => {
   const { newRoomOffset } = transitionCameraOffsets('south', 1, 1000, 700);
   assert.equal(newRoomOffset.x, 0);
   assert.equal(newRoomOffset.y, 0);
+});
+
+test('resolveKeyLockedDoors spends one key to unlock a nearby key-locked door', () => {
+  const room = new Room();
+  room.setDoorKeyLocked('north', true);
+  const door = room.doors.get('north');
+  const center = room.world.tileGrid.tileCenter(door.tx, door.ty);
+  const player = { x: center.x, y: center.y + room.world.tileGrid.tileSize };
+  const currency = { keys: 2 };
+  const events = createEventBus();
+  let unlockedSide = null;
+  events.on('door:unlocked', ({ side }) => (unlockedSide = side));
+
+  const result = resolveKeyLockedDoors(room, player, { currency, events });
+
+  assert.equal(result, 'north');
+  assert.equal(unlockedSide, 'north');
+  assert.equal(currency.keys, 1, 'should spend exactly one key');
+  assert.ok(!door.keyLocked);
+  assert.ok(!room.world.tileGrid.isSolid(door.tx, door.ty));
+});
+
+test('resolveKeyLockedDoors does nothing without a key, or when no door is near/locked', () => {
+  const room = new Room();
+  room.setDoorKeyLocked('north', true);
+  const door = room.doors.get('north');
+  const center = room.world.tileGrid.tileCenter(door.tx, door.ty);
+  const nearPlayer = { x: center.x, y: center.y + room.world.tileGrid.tileSize };
+
+  assert.equal(resolveKeyLockedDoors(room, nearPlayer, { currency: { keys: 0 } }), null, 'no keys to spend');
+  assert.ok(door.keyLocked, 'should still be locked');
+
+  const farPlayer = { x: center.x, y: center.y + room.world.tileGrid.tileSize * 10 };
+  assert.equal(resolveKeyLockedDoors(room, farPlayer, { currency: { keys: 5 } }), null, 'too far from the door');
+  assert.ok(door.keyLocked);
 });

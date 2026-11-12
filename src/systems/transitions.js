@@ -31,6 +31,28 @@ export function detectDoorExit(room, player) {
   return null;
 }
 
+/**
+ * Spends one key to unlock a key-locked door (treasure/shop doors from floor
+ * 2 on) the moment the player gets near it. [assumed] "near" = within 1.5
+ * tiles of the door tile, since the door tile itself is solid while locked
+ * and the player's collision circle can't actually stand on it.
+ */
+export function resolveKeyLockedDoors(room, player, { currency, events } = {}) {
+  if (!currency || currency.keys <= 0) return null;
+  const tileSize = room.world.tileGrid.tileSize;
+  for (const [side, door] of room.doors) {
+    if (!door.keyLocked) continue;
+    const center = room.world.tileGrid.tileCenter(door.tx, door.ty);
+    if (Math.hypot(player.x - center.x, player.y - center.y) > tileSize * 1.5) continue;
+
+    currency.keys -= 1;
+    room.setDoorKeyLocked(side, false);
+    events?.emit('door:unlocked', { side });
+    return side;
+  }
+  return null;
+}
+
 /** World position just inside `side`'s door — where a player entering from that side should appear. */
 export function entryPositionForSide(room, side) {
   const door = room.doors.get(side);
