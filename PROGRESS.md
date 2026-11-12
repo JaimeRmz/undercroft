@@ -12,7 +12,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 ## P0 — Foundation + playable vertical slice (target: first ~2 hours)
 - [x] P0.1 `git init`, folder layout, package.json (start/test/smoke/simulate scripts), server.js (static files + `/api/mods` + `/api/mods/hash` + guarded `/api/save` for editors), index.html
 - [x] P0.2 Core: event bus, seeded RNG with named streams, math utils, fixed-timestep loop, config, logger, content registry. Unit tests.
-- [ ] P0.3 Engine: entities, world, tile grid collision (circle vs tiles), circle vs circle with spatial hash. Unit tests.
+- [x] P0.3 Engine: entities, world, tile grid collision (circle vs tiles), circle vs circle with spatial hash. Unit tests.
 - [ ] P0.4 Mod loader v1 (manifest, load order, JSON loading, schema validation with readable errors) + `mods/core/` skeleton. Core content loads only through the loader. Tests incl. a deliberately broken test mod.
 - [ ] P0.5 Input adapter (WASD move, arrow keys shoot, E bomb, Space active item, Q consumable, Ctrl drop trinket, Tab map, Esc pause, ` console) + gamepad support
 - [ ] P0.6 Player controller with movement feel per CLAUDE.md §3, 4-way shooting, shots with arc/range/splash, stats pipeline implementing the exact damage and tears formulas (tested against the numbers)
