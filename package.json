@@ -1,0 +1,19 @@
+{
+  "name": "undercroft",
+  "version": "0.1.0",
+  "description": "Twin-stick roguelike shooter. Plain JS ES modules + Canvas 2D.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "smoke": "node tools/smoke.mjs",
+    "simulate": "node tools/simulate.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
