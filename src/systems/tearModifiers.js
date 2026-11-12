@@ -2,13 +2,14 @@
  * Composable tear modifier components (CLAUDE.md §3): each attaches to a tear
  * independently via onSpawn/onUpdate/onHitEnemy/onHitWall/onExpire hooks, so
  * any combination can stack on one projectile (homing+splitting, piercing+
- * bouncing, etc). Status-effect modifiers (poison/burn/.../confuse) only stamp
- * a tag here — full duration/DOT simulation is P2.3's job; this just proves
- * the component plugs into the same pipeline as the movement modifiers.
+ * bouncing, etc). Status-effect modifiers (poison/burn/.../confuse) hand off
+ * to statusEffects.js on hit, which owns duration/DOT/movement-override
+ * simulation and boss immunity.
  */
 import { normalize } from '../core/math.js';
 import { circlesOverlap } from '../engine/collision.js';
 import { applyEnemyDamage } from './enemies.js';
+import { applyStatus } from './statusEffects.js';
 
 export const tearModifierRegistry = new Map();
 
@@ -240,13 +241,12 @@ registerTearModifier('chainLightning', {
   },
 });
 
-// --- Status-tag modifiers (full duration/DOT handling is P2.3) -----------
+// --- Status-tag modifiers (duration/DOT simulation lives in statusEffects.js) ---
 
 function statusModifier(name) {
   return {
     onHitEnemy(tear, enemy) {
-      enemy.status = enemy.status ?? {};
-      enemy.status[name] = { appliedAt: Date.now() };
+      applyStatus(enemy, name);
     },
   };
 }

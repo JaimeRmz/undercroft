@@ -27,12 +27,15 @@ export function applyPassiveItem(stats, playerHealth, def) {
   }
 }
 
-/** Records an item as taken and, for passives, applies its effects immediately. Active items just join the inventory at 0 charge. */
-export function pickUpItem(inventory, stats, playerHealth, def) {
+/** Records an item as taken and, for passives, applies its effects immediately (plus a permanent tear modifier, if `def.grantsTearModifier` names one). Active items just join the inventory at 0 charge. */
+export function pickUpItem(inventory, stats, playerHealth, def, player) {
   inventory.seenIds.add(def.id);
   if (def.type === 'passive') {
     inventory.passives.push(def.id);
     applyPassiveItem(stats, playerHealth, def);
+    if (def.grantsTearModifier && player) {
+      player.tearModifiers = [...(player.tearModifiers ?? []), def.grantsTearModifier];
+    }
   } else if (def.type === 'active') {
     inventory.actives.push({ id: def.id, charge: 0, maxCharges: def.maxCharges ?? 3 });
   }
@@ -146,7 +149,7 @@ export function resolveItemPedestals(world, player, { inventory, stats, playerHe
     const def = getItemDef(pedestal.itemId);
     if (!def) continue;
 
-    pickUpItem(inventory, stats, playerHealth, def);
+    pickUpItem(inventory, stats, playerHealth, def, player);
     pools?.removeFromAllPools(def.id);
     events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '' });
     pedestal.destroy();

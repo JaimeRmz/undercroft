@@ -120,4 +120,19 @@ export const CONFIG = {
   HIT_FLASH_SECONDS: 2 / 60, // enemies flash white for 2 frames on a heavy hit
   KNOCKBACK_DISTANCE_PX: 8, // [assumed] instant push-back applied to an enemy's position on a hit
   HITSTOP_FRAMES: 2, // [assumed] ~2-frame full-sim freeze on a killing blow
+
+  // Status effects on enemies (CLAUDE.md §3) — all [assumed], no canonical values given
+  POISON_DURATION_SECONDS: 5,
+  POISON_DPS: 2,
+  BURN_DURATION_SECONDS: 3,
+  BURN_DPS: 4,
+  SLOW_DURATION_SECONDS: 4,
+  SLOW_SPEED_MULT: 0.5,
+  FREEZE_DURATION_SECONDS: 2.5,
+  CHARM_DURATION_SECONDS: 6,
+  FEAR_DURATION_SECONDS: 3,
+  CONFUSE_DURATION_SECONDS: 4,
+  CONFUSE_REDIRECT_SECONDS: 0.5, // how often a confused enemy picks a new random direction
+  BOSS_STATUS_IMMUNITY_SECONDS: 8, // CLAUDE.md §3: "~8 seconds of status immunity after being afflicted"
+  CHARM_ATTACK_COOLDOWN_TICKS: 30, // [assumed] half a second at 60Hz between a charmed enemy's attacks on others
 };

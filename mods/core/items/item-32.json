@@ -1,0 +1,14 @@
+{
+  "id": "core:item-32",
+  "name": "Smoldering Brand",
+  "type": "passive",
+  "description": "Your tears sear whatever they touch.",
+  "effects": [],
+  "grantsTearModifier": "burn",
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

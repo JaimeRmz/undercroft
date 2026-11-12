@@ -7,7 +7,9 @@ import { spawnTear } from '../src/systems/projectiles.js';
 import { Stats } from '../src/systems/stats.js';
 import { Health } from '../src/systems/health.js';
 import { resolveCombat } from '../src/systems/combat.js';
+import { applyStatus } from '../src/systems/statusEffects.js';
 import { createEventBus } from '../src/core/events.js';
+import { CONFIG } from '../src/core/config.js';
 
 const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chase', contactDamageHalfHearts: 1 };
 
@@ -71,4 +73,33 @@ test('player i-frames prevent a second contact hit on the next resolve call', ()
   resolveCombat(world, { player, playerHealth, events });
   resolveCombat(world, { player, playerHealth, events }); // same frame-equivalent call, still invulnerable
   assert.equal(playerHealth.red, 5); // only hit once
+});
+
+test('a charmed enemy deals no contact damage to the player', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  const enemy = spawnEnemy(world, CHASER_DEF, { x: 405, y: 400 });
+  applyStatus(enemy, 'charm');
+  const playerHealth = new Health({ redMax: 6 });
+  resolveCombat(world, { player, playerHealth, events: createEventBus() });
+  assert.equal(playerHealth.red, 6, 'charmed enemy should not have hurt the player');
+});
+
+test('a charmed enemy damages another enemy it overlaps, on a cooldown rather than every tick', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 0, y: 0, stats: new Stats() }); // far away, not involved
+  const charmed = spawnEnemy(world, { ...CHASER_DEF, damage: 3 }, { x: 405, y: 400 });
+  applyStatus(charmed, 'charm');
+  const target = spawnEnemy(world, CHASER_DEF, { x: 405, y: 400 }); // overlapping
+  const playerHealth = new Health({ redMax: 6 });
+  const events = createEventBus();
+
+  resolveCombat(world, { player, playerHealth, events });
+  assert.equal(target.hp, target.maxHp - 3);
+
+  resolveCombat(world, { player, playerHealth, events }); // still on cooldown
+  assert.equal(target.hp, target.maxHp - 3, 'should not deal damage again before the cooldown elapses');
+
+  for (let i = 0; i < CONFIG.CHARM_ATTACK_COOLDOWN_TICKS; i++) resolveCombat(world, { player, playerHealth, events });
+  assert.equal(target.hp, target.maxHp - 6, 'cooldown elapsed, should attack again');
 });

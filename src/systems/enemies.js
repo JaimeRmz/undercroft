@@ -13,6 +13,7 @@ import { runAIOnSpawn, runAIOnUpdate, runAIOnDeath } from './ai/behaviors.js';
 import { spawnPickup, PICKUP_TYPE, rollCoinValue } from './pickups.js';
 import { triggerHitFlash } from '../render/vfx.js';
 import { triggerHitstop } from '../render/hitstop.js';
+import { tickEnemyStatus, applyStatusMovementOverride } from './statusEffects.js';
 
 const CHAMPION_SECONDARY_EFFECTS = ['faster', 'explodesOnDeath', 'splitsOnDeath', 'invulnerableUntilOthersDie', 'dropsCoinsOnHit'];
 const CHAMPION_COLORS = {
@@ -135,6 +136,18 @@ export function killEnemy(world, enemy, ctx = {}) {
 export function updateEnemies(world, player, dt, { events, rng } = {}) {
   for (const enemy of world.entities.byType('enemy')) {
     if (!enemy.alive) continue;
+
+    const { frozen, dotDamage } = tickEnemyStatus(enemy, dt);
+    if (dotDamage > 0) applyEnemyDamage(world, enemy, dotDamage, { events, rng });
+    if (!enemy.alive) continue;
+
+    if (frozen) {
+      enemy.vx = 0;
+      enemy.vy = 0;
+      continue;
+    }
+
     runAIOnUpdate(world, enemy, player, dt, { events, rng });
+    applyStatusMovementOverride(world, enemy, player, dt, rng);
   }
 }

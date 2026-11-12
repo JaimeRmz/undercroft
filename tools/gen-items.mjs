@@ -123,4 +123,34 @@ ACTIVE_ARCHETYPES.forEach((archetype, i) => {
   written++;
 });
 
+// One item per status-effect tear modifier (P2.3), so poison/burn/slow/freeze/
+// charm/fear/confuse are actually reachable in a real run, not just
+// exercisable by hand/tests. Named explicitly (not via nameFor's
+// adjective/noun cycle, which repeats past index 29) to guarantee uniqueness.
+const STATUS_ARCHETYPES = [
+  { name: 'Weeping Nettle', modifier: 'poison', flavor: 'Your tears leave a festering wound.' },
+  { name: 'Smoldering Brand', modifier: 'burn', flavor: 'Your tears sear whatever they touch.' },
+  { name: 'Frost-Veined Idol', modifier: 'slow', flavor: 'Your tears chill your foes\' steps.' },
+  { name: 'Glacial Husk', modifier: 'freeze', flavor: 'Your tears can freeze an enemy solid.' },
+  { name: 'Bewitched Mirror', modifier: 'charm', flavor: 'Your tears can turn a foe to your side.' },
+  { name: 'Dread Effigy', modifier: 'fear', flavor: 'Your tears strike terror into your foes.' },
+  { name: 'Addled Coil', modifier: 'confuse', flavor: 'Your tears scramble a foe\'s senses.' },
+];
+
+const STATUS_START_INDEX = PASSIVE_ARCHETYPES.length + ACTIVE_ARCHETYPES.length;
+STATUS_ARCHETYPES.forEach((archetype, i) => {
+  writeItem({
+    id: `core:item-${String(STATUS_START_INDEX + i + 1).padStart(2, '0')}`,
+    name: archetype.name,
+    type: 'passive',
+    description: archetype.flavor,
+    effects: [],
+    grantsTearModifier: archetype.modifier,
+    quality: 2,
+    weight: 1,
+    pools: ['treasure', 'shop'],
+  });
+  written++;
+});
+
 console.log(`Wrote ${written} items to ${OUT_DIR}`);

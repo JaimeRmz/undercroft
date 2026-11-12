@@ -5,7 +5,9 @@
  * hit destroys them (piercing/splitting/exploding keep going or replace
  * themselves). Each tear tracks which enemies it's already hit so a
  * piercing/orbiting tear can't melt one enemy by re-hitting it every tick
- * while overlapping.
+ * while overlapping. A charmed enemy (statusEffects.js) is the one exception
+ * to "enemies hurt the player on contact" — it deals no player contact
+ * damage and instead attacks other enemies on a cooldown.
  */
 import { circlesOverlap } from '../engine/collision.js';
 import { applyDamage } from './health.js';
@@ -27,9 +29,11 @@ function damageMultiplierFor(enemy, projectile) {
 }
 
 export function resolveCombat(world, { player, playerHealth, events, rng } = {}) {
+  const enemies = world.entities.byType('enemy');
+
   if (player && playerHealth?.alive) {
-    for (const enemy of world.entities.byType('enemy')) {
-      if (!enemy.alive) continue;
+    for (const enemy of enemies) {
+      if (!enemy.alive || enemy.status?.charm) continue; // charmed enemies no longer hurt the player (CLAUDE.md §3)
       if (circlesOverlap(player.x, player.y, player.radius, enemy.x, enemy.y, enemy.radius)) {
         const result = applyDamage(playerHealth, enemy.contactDamageHalfHearts, { events, source: enemy.defId });
         if (result.applied > 0) {
@@ -38,6 +42,25 @@ export function resolveCombat(world, { player, playerHealth, events, rng } = {})
             spawnPickup(world, PICKUP_TYPE.COIN, { x: enemy.x, y: enemy.y, value: CONFIG.CHAMPION_COINS_ON_HIT_VALUE });
           }
         }
+      }
+    }
+  }
+
+  // A charmed enemy fights for the player: it deals its own contact damage to
+  // any other enemy it touches, on a cooldown (otherwise it would deal full
+  // damage every single tick of overlap). resolveCombat runs once per fixed
+  // 60Hz tick everywhere it's called, so the cooldown is counted in ticks
+  // rather than needing a dt parameter threaded through every call site.
+  for (const charmed of enemies) {
+    if (!charmed.alive || !charmed.status?.charm) continue;
+    charmed.charmAttackCooldownTicks = Math.max(0, (charmed.charmAttackCooldownTicks ?? 0) - 1);
+    if (charmed.charmAttackCooldownTicks > 0) continue;
+    for (const other of enemies) {
+      if (other === charmed || !other.alive || isEnemyDamageBlocked(world, other)) continue;
+      if (circlesOverlap(charmed.x, charmed.y, charmed.radius, other.x, other.y, other.radius)) {
+        applyEnemyDamage(world, other, charmed.damage, { events, rng });
+        charmed.charmAttackCooldownTicks = CONFIG.CHARM_ATTACK_COOLDOWN_TICKS;
+        break;
       }
     }
   }

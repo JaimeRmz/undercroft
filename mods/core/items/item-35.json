@@ -1,0 +1,14 @@
+{
+  "id": "core:item-35",
+  "name": "Bewitched Mirror",
+  "type": "passive",
+  "description": "Your tears can turn a foe to your side.",
+  "effects": [],
+  "grantsTearModifier": "charm",
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

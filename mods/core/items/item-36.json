@@ -1,0 +1,14 @@
+{
+  "id": "core:item-36",
+  "name": "Dread Effigy",
+  "type": "passive",
+  "description": "Your tears strike terror into your foes.",
+  "effects": [],
+  "grantsTearModifier": "fear",
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

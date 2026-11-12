@@ -84,7 +84,7 @@ export function resolveShopPurchases(world, player, { inventory, stats, playerHe
     if (slot.kind === 'item') {
       const def = getItemDef(slot.itemId);
       if (def) {
-        pickUpItem(inventory, stats, playerHealth, def);
+        pickUpItem(inventory, stats, playerHealth, def, player);
         pools?.removeFromAllPools(def.id);
         events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '' });
       }
