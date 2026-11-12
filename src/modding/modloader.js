@@ -24,6 +24,7 @@ const FOLDER_TO_KIND = {
   trinkets: 'trinket',
   transformations: 'transformation',
   gamemodes: 'gamemode',
+  synergies: 'synergy',
 };
 
 export class ModLoader {

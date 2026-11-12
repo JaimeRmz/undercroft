@@ -7,6 +7,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 <!-- Each session appends one line: timestamp | tasks completed | gate status -->
 2026-11-11 23:44 | session start, repo was empty (no .git) despite CLAUDE.md assuming history | starting P0.1
 2026-11-12 06:12 | completed P0.1-P0.10 | GATE P0 PASSED: `npm test` 159/159 green, `npm run simulate` all 3 checks pass (3 enemies alone x1200f, kitchen-sink 3000f @ ~0.004ms/frame, bot clears 20/20 seeded rooms without softlock), `npm run smoke` zero console errors + screenshot reviewed (camera/room/HUD/player all render correctly)
+2026-11-12 | resumed session found an uncommitted, crashed P1.5 attempt (tearModifiers.js/weapons.js/synergies.js + a failing test); fixed the spectral-modifier bug, wired synergies into main.js (was implemented but never called), added the missing chargeShot weapon type, and added test coverage for weapons/synergies | completed P1.5; `npm test` 258/258 green, `npm run simulate` + `npm run smoke` both green, screenshot reviewed
 
 ---
 
@@ -27,7 +28,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 - [x] P1.2 Room templates (ASCII JSON) for normal/treasure/shop/boss/secret/start; 30+ normal layouts across 2 chapters; room transitions (slide)
 - [x] P1.3 Pickups: coins (1/5/10), bombs (placed bombs: fuse, blast radius, destroy rocks, open secret walls, damage everything incl. player), keys, hearts (half/full/soul/black), batteries, chests (normal/locked), room clear rewards per formula
 - [x] P1.4 Item system v1: passive + active items with charges, item pools with weights and removal, pedestals, pickup banner, 30 items
-- [ ] P1.5 Tear modifier system (all modifiers in §3 as composable components) + weapon types (normal, laser, charge shot, multishot) with priority + explicit synergy rules. Tests proving composition (homing+split, piercing+bounce, laser+homing, etc.)
+- [x] P1.5 Tear modifier system (all modifiers in §3 as composable components) + weapon types (normal, laser, charge shot, multishot, bombs-as-shots, melee) with priority + explicit synergy rules. Tests proving composition (homing+split, piercing+bounce, laser+homing, etc.)
 - [ ] P1.6 Shop (priced items/pickups, sale signs), locked treasure/shop doors from floor 2, secret rooms (bomb the wall)
 - [ ] P1.7 Enemy AI behavior library: all archetypes in §3, composable via JSON; 15 enemies; champions
 - [ ] P1.8 Boss framework: phases, attack pattern library with telegraphs, HP bar; 4 bosses (2 chapters); boss item + trapdoor to next floor

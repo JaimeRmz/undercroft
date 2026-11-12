@@ -99,6 +99,51 @@ test('fire cooldown gates shot frequency according to stats.fireCooldownSeconds'
   assert.ok(Math.abs(shots - expectedShots) <= 1, `expected ~${expectedShots} shots, got ${shots}`);
 });
 
+test('charge shot: releasing the aim key early fires a tear with partial, not full, charge', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  player.weaponType = 'chargeShot';
+  const input = createInputState();
+  press(input, 'shootRight');
+  clearFrameEdges(input);
+
+  const dt = 1 / 60;
+  const halfCharge = CONFIG.CHARGE_SHOT_MAX_SECONDS / 2;
+  for (let i = 0; i < halfCharge / dt; i++) updatePlayer(world, player, input, dt);
+  assert.equal(world.entities.byType('projectile').length, 0, 'should not fire while still charging');
+
+  release(input, 'shootRight');
+  updatePlayer(world, player, input, dt);
+  const tears = world.entities.byType('projectile');
+  assert.equal(tears.length, 1);
+  const baseDamage = player.stats.damage;
+  assert.ok(tears[0].damage > baseDamage, 'partial charge should still boost damage over a bare tear');
+  assert.ok(
+    tears[0].damage < baseDamage * CONFIG.CHARGE_SHOT_MAX_DAMAGE_MULT,
+    'partial charge should do less than a fully-charged shot'
+  );
+});
+
+test('charge shot: holding past CHARGE_SHOT_MAX_SECONDS auto-fires at full power without needing a release', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  player.weaponType = 'chargeShot';
+  const input = createInputState();
+  press(input, 'shootRight');
+  clearFrameEdges(input);
+
+  const dt = 1 / 60;
+  for (let i = 0; i < (CONFIG.CHARGE_SHOT_MAX_SECONDS + dt) / dt; i++) updatePlayer(world, player, input, dt);
+
+  const tears = world.entities.byType('projectile');
+  assert.equal(tears.length, 1, 'should auto-fire once fully charged, still holding the key');
+  const baseDamage = player.stats.damage;
+  assert.ok(
+    Math.abs(tears[0].damage - baseDamage * CONFIG.CHARGE_SHOT_MAX_DAMAGE_MULT) < 1e-6,
+    'full charge should apply the max damage multiplier'
+  );
+});
+
 test('player stays inside the room: resolveTileCollision pushes it off a solid tile', () => {
   const world = freshWorld();
   world.tileGrid.setSolid(10, 10, true);

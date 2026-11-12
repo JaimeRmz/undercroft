@@ -65,6 +65,10 @@ export const SCHEMAS = {
     id: { required: true, type: 'string' },
     name: { required: true, type: 'string' },
   },
+  synergy: {
+    id: { required: true, type: 'string' },
+    requires: { required: true, isArray: true },
+  },
 };
 
 /** Validates `def` against `schema`; returns an array of { field, problem } (empty = valid). */
@@ -77,6 +81,10 @@ export function validateDefinition(def, schema) {
     const value = def[field];
     if (value === undefined || value === null) {
       if (rule.required) errors.push({ field, problem: `missing required field "${field}"` });
+      continue;
+    }
+    if (rule.isArray && !Array.isArray(value)) {
+      errors.push({ field, problem: `expected an array, got ${typeof value}` });
       continue;
     }
     if (rule.type && typeof value !== rule.type) {

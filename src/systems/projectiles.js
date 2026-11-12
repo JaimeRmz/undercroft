@@ -1,17 +1,19 @@
 /**
  * Tear projectiles: straight-line travel with a parabolic visual arc (height)
- * over the shot's range, splashing (destroyed) at max range or on wall impact.
- * Enemy-impact splash is wired in by the combat system once it exists (P1).
+ * over the shot's range, splashing (destroyed) at max range or on wall impact
+ * — unless an attached tear modifier says otherwise (bouncing, spectral).
  */
 import { CONFIG } from '../core/config.js';
 import { clamp } from '../core/math.js';
+import { attachModifier, runModifiersOnUpdate, runModifiersOnHitWall, runModifiersOnExpire } from './tearModifiers.js';
 
-export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 }, team = 'player' }) {
+/** `modifiers` is an array of modifier ids (strings) or { id, config } objects. */
+export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 }, team = 'player', modifiers = [] }) {
   const speed = stats.shotSpeed * CONFIG.TEAR_BASE_SPEED_PX_PER_SEC;
   const inherit = CONFIG.SHOT_INHERITS_PLAYER_VELOCITY;
   const vx = dir.x * speed + ownerVelocity.x * inherit;
   const vy = dir.y * speed + ownerVelocity.y * inherit;
-  return world.spawn('projectile', {
+  const tear = world.spawn('projectile', {
     x,
     y,
     vx,
@@ -24,10 +26,23 @@ export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 
     team,
     tags: ['tear'],
   });
+  for (const entry of modifiers) {
+    const id = typeof entry === 'string' ? entry : entry.id;
+    const config = typeof entry === 'string' ? {} : entry.config ?? {};
+    attachModifier(tear, id, config);
+  }
+  return tear;
 }
 
-/** Advances every live projectile; emits 'projectile:splash' and destroys it at range end or on a solid tile. */
-export function updateProjectiles(world, dt, events) {
+/**
+ * Advances every live projectile. `ctx.owner` (the firing entity) is passed
+ * through to modifiers that need it (boomerang, orbit). Emits
+ * 'projectile:splash' and destroys the tear at range end or on a solid tile,
+ * unless an attached modifier's onHitWall keeps it alive.
+ */
+export function updateProjectiles(world, dt, events, ctx = {}) {
+  const modifierCtx = { world, events, owner: ctx.owner };
+
   for (const p of world.entities.byType('projectile')) {
     if (!p.alive) continue;
 
@@ -35,14 +50,24 @@ export function updateProjectiles(world, dt, events) {
     p.y += p.vy * dt;
     p.traveled += Math.hypot(p.vx * dt, p.vy * dt);
 
-    const t = clamp(p.traveled / p.rangePx, 0, 1);
+    runModifiersOnUpdate(p, dt, modifierCtx);
+
+    const t = clamp(p.rangePx > 0 ? p.traveled / p.rangePx : 1, 0, 1);
     p.height = Math.sin(Math.PI * t) * CONFIG.TEAR_ARC_HEIGHT;
 
     const { tx, ty } = world.tileGrid.worldToTile(p.x, p.y);
     const hitWall = world.tileGrid.isSolid(tx, ty);
 
-    if (t >= 1 || hitWall) {
-      events?.emit('projectile:splash', { entity: p, reason: hitWall ? 'wall' : 'range' });
+    if (hitWall && !runModifiersOnHitWall(p, modifierCtx)) {
+      events?.emit('projectile:splash', { entity: p, reason: 'wall' });
+      runModifiersOnExpire(p, modifierCtx);
+      p.destroy();
+      continue;
+    }
+
+    if (t >= 1) {
+      events?.emit('projectile:splash', { entity: p, reason: 'range' });
+      runModifiersOnExpire(p, modifierCtx);
       p.destroy();
     }
   }

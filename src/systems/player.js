@@ -6,7 +6,7 @@
  */
 import { CONFIG } from '../core/config.js';
 import { normalizeDiagonal, moveToward } from '../core/math.js';
-import { spawnTear } from './projectiles.js';
+import { fireWeapon, WEAPON_TYPES } from './weapons.js';
 
 const SHOOT_DIRS = {
   shootUp: { x: 0, y: -1 },
@@ -26,6 +26,10 @@ export function createPlayer(world, { x, y, stats }) {
     aimAction: null,
     speedBoostTimer: 0,
     speedBoostMult: 1,
+    weaponType: 'normal',
+    tearModifiers: [],
+    chargeAction: null,
+    chargeTime: 0,
     tags: ['player'],
   });
 }
@@ -64,15 +68,31 @@ export function updatePlayer(world, player, input, dt, { events } = {}) {
   player.aimAction = resolveShootAction(input, player.aimAction);
   player.fireCooldown = Math.max(0, player.fireCooldown - dt);
 
-  if (player.aimAction && player.fireCooldown <= 0) {
+  const weapon = WEAPON_TYPES[player.weaponType ?? 'normal'];
+  if (weapon.charges) {
+    // Hold-to-charge weapons (charge shot): accumulate charge while the aim
+    // direction stays held, firing an empowered shot on release or at max charge.
+    if (player.aimAction) {
+      if (player.chargeAction !== player.aimAction) {
+        player.chargeAction = player.aimAction;
+        player.chargeTime = 0;
+      }
+      player.chargeTime = Math.min(player.chargeTime + dt, CONFIG.CHARGE_SHOT_MAX_SECONDS);
+    }
+    const stillHeld = player.chargeAction && input.held.has(player.chargeAction);
+    const maxed = player.chargeTime >= CONFIG.CHARGE_SHOT_MAX_SECONDS;
+    if (player.chargeAction && (!stillHeld || maxed) && player.fireCooldown <= 0) {
+      const dir = SHOOT_DIRS[player.chargeAction];
+      const chargeFraction = player.chargeTime / CONFIG.CHARGE_SHOT_MAX_SECONDS;
+      fireWeapon(world, player, dir, { events, chargeFraction });
+      player.fireCooldown = player.stats.fireCooldownSeconds;
+      events?.emit('player:shoot', { player, dir });
+      player.chargeAction = null;
+      player.chargeTime = 0;
+    }
+  } else if (player.aimAction && player.fireCooldown <= 0) {
     const dir = SHOOT_DIRS[player.aimAction];
-    spawnTear(world, {
-      x: player.x,
-      y: player.y,
-      dir,
-      stats: player.stats,
-      ownerVelocity: { x: player.vx, y: player.vy },
-    });
+    fireWeapon(world, player, dir, { events });
     player.fireCooldown = player.stats.fireCooldownSeconds;
     events?.emit('player:shoot', { player, dir });
   }

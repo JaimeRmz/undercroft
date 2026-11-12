@@ -1,0 +1,11 @@
+{
+  "id": "core:synergy-overwhelming-force",
+  "requires": ["core:item-01", "core:item-20"],
+  "effect": {
+    "statBonus": [
+      { "stat": "flatDamage", "value": 2 },
+      { "stat": "luck", "value": 1 }
+    ]
+  },
+  "description": "Two cruel, damage-focused trinkets together hit harder than the sum of their parts."
+}

@@ -1,0 +1,9 @@
+{
+  "id": "core:synergy-piercing-gaze",
+  "requires": ["core:item-19", "core:item-26"],
+  "effect": {
+    "tearModifiers": ["piercing"],
+    "statBonus": [{ "stat": "shotSpeed", "value": 0.2 }]
+  },
+  "description": "Your tears begin punching clean through whatever they strike."
+}

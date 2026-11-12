@@ -26,6 +26,7 @@ test('the real mods/ directory (core + example-mod) loads cleanly with zero erro
   for (const id of ['core:chaser', 'core:erratic-flier', 'core:turret']) {
     assert.ok(registries.of('enemy').has(id), `expected enemy registry to contain ${id}`);
   }
+  assert.ok(registries.of('synergy').size >= 2, 'expected the core synergy rules to load');
 });
 
 test('mods/core ships 30+ normal room templates across 2 chapters, plus start/boss/treasure/shop/secret variants', async () => {

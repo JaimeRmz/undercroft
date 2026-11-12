@@ -42,6 +42,9 @@ export const CONFIG = {
   TEAR_RADIUS: 6, // px
   TEAR_BASE_SPEED_PX_PER_SEC: 300, // [assumed] px/s at shotSpeed stat = 1.0
   TEAR_ARC_HEIGHT: 20, // [assumed] px, visual arc amplitude over the shot's travel
+  CHARGE_SHOT_MAX_SECONDS: 1.2, // [assumed] holding the charge-shot weapon type this long auto-fires at max power
+  CHARGE_SHOT_MAX_DAMAGE_MULT: 3, // [assumed] damage multiplier at full charge (linear from 1x at 0 charge)
+  CHARGE_SHOT_MAX_RADIUS_MULT: 1.5, // [assumed] visual/hitbox growth at full charge
 
   // Room clear reward roll (§3)
   ROOM_REWARD_NOTHING_THRESHOLD: 0.22,

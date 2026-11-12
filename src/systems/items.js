@@ -1,9 +1,9 @@
 /**
  * Item system v1: passive items apply a fixed stat delta once on pickup;
  * active items charge up (one charge per room clear) and fire a simple,
- * immediate effect when used at full charge. Full composability (tear
- * modifiers, weapon types, synergies) is P1.5 — this is the v1 foundation:
- * pools, pedestals, pickup banner, inventory bookkeeping.
+ * immediate effect when used at full charge. Pools, pedestals, pickup banner,
+ * and inventory bookkeeping live here; tear modifiers, weapon types, and
+ * explicit item-combo synergies are handled by synergies.js/weapons.js.
  */
 import { addRedContainer, addSoulHeart, addBlackHeart, heal } from './health.js';
 import { circlesOverlap } from '../engine/collision.js';

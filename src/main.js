@@ -26,6 +26,7 @@ import {
   chargeActivesOnRoomClear,
   useActiveItem,
 } from './systems/items.js';
+import { checkSynergies } from './systems/synergies.js';
 import { createInputState, createKeyboardAdapter, pollGamepads, clearFrameEdges } from './engine/input.js';
 import { events } from './core/events.js';
 import { Camera } from './render/camera.js';
@@ -99,6 +100,8 @@ async function boot() {
   const playerHealth = new Health({ redMax: 6 });
   const currency = new Currency();
   const inventory = new ItemInventory();
+  const synergyRules = registries.of('synergy').all();
+  const appliedSynergyIds = new Set();
   const banner = createBannerState();
 
   const input = createInputState();
@@ -155,6 +158,11 @@ async function boot() {
         pools: itemPools,
         getItemDef,
       });
+      const firedSynergies = checkSynergies(inventory, player.stats, playerHealth, player, synergyRules, appliedSynergyIds);
+      for (const ruleId of firedSynergies) {
+        const rule = synergyRules.find((r) => r.id === ruleId);
+        events.emit('item:pickup', { id: ruleId, name: 'Synergy!', description: rule?.description ?? '' });
+      }
       tickInvuln(playerHealth, dt);
       room.world.reap();
 

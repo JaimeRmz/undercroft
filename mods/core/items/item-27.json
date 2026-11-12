@@ -1,6 +1,6 @@
 {
   "id": "core:item-27",
-  "name": "Searing Tooth",
+  "name": "Searing Talisman",
   "type": "active",
   "description": "Unleashes a ring of searing force.",
   "activeEffect": {

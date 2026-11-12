@@ -27,7 +27,11 @@ const NOUNS = [
 
 function nameFor(i) {
   const adj = ADJECTIVES[i % ADJECTIVES.length];
-  const noun = NOUNS[Math.floor(i / ADJECTIVES.length) % NOUNS.length];
+  // Stride of 7 is coprime with NOUNS.length (30), so as i sweeps 0..29 the noun
+  // index visits all 30 nouns exactly once instead of collapsing to a single one
+  // (that collapse — Math.floor(i/30) staying 0 for all i<30 — was a real bug:
+  // every generated item ended up named "... Tooth").
+  const noun = NOUNS[(i * 7 + 3) % NOUNS.length];
   return `${adj} ${noun}`;
 }
 
