@@ -1,0 +1,10 @@
+{
+  "id": "example-mod",
+  "name": "Example Mod",
+  "version": "0.1.0",
+  "author": "Undercroft Team",
+  "loadOrder": 100,
+  "dependencies": ["core"],
+  "enabled": true,
+  "scripts": ["script.js"]
+}

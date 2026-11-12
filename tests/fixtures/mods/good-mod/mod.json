@@ -1,0 +1,9 @@
+{
+  "id": "good-mod",
+  "name": "Good Mod",
+  "version": "1.0.0",
+  "author": "Test",
+  "loadOrder": 0,
+  "dependencies": [],
+  "enabled": true
+}

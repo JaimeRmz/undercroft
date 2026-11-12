@@ -1,0 +1,10 @@
+{
+  "id": "bad-script",
+  "name": "Bad Script Mod",
+  "version": "1.0.0",
+  "author": "Test",
+  "loadOrder": 0,
+  "dependencies": [],
+  "enabled": true,
+  "scripts": ["script.js"]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "disabled-mod",
+  "name": "Disabled Mod",
+  "version": "1.0.0",
+  "author": "Test",
+  "loadOrder": 0,
+  "dependencies": [],
+  "enabled": false
+}

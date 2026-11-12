@@ -1,0 +1,9 @@
+{
+  "id": "missing-dependency",
+  "name": "Missing Dependency Mod",
+  "version": "1.0.0",
+  "author": "Test",
+  "loadOrder": 0,
+  "dependencies": ["does-not-exist"],
+  "enabled": true
+}

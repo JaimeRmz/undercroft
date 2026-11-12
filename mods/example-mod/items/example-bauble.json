@@ -1,0 +1,6 @@
+{
+  "id": "example-mod:bauble",
+  "name": "Example Bauble",
+  "type": "passive",
+  "description": "A plain-JSON item demonstrating mod content with no script."
+}

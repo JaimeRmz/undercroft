@@ -112,6 +112,18 @@ async function readBody(req, limit = 2 * 1024 * 1024) {
   });
 }
 
+/** Lists files directly inside a mod's content subfolder (e.g. mods/core/items/). Browsers can't read directories themselves. */
+async function listModFolderFiles(modDir, folder) {
+  const target = safeResolve(MODS_DIR, `/${modDir}/${folder}`);
+  if (!target) return [];
+  try {
+    const entries = await fsp.readdir(target, { withFileTypes: true });
+    return entries.filter((e) => e.isFile()).map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
 /** Guarded save endpoint for editor.html: only writes under mods/, only .json or .js, no traversal. */
 async function handleSave(req, res) {
   let payload;
@@ -158,6 +170,11 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/mods/hash' && req.method === 'GET') {
       return sendJson(res, 200, { hash: await hashModsDir() });
     }
+    const listMatch = url.pathname.match(/^\/api\/mods\/([^/]+)\/list$/);
+    if (listMatch && req.method === 'GET') {
+      const folder = url.searchParams.get('folder') || '';
+      return sendJson(res, 200, { files: await listModFolderFiles(listMatch[1], folder) });
+    }
     if (url.pathname === '/api/save' && req.method === 'POST') {
       return await handleSave(req, res);
     }
@@ -202,4 +219,4 @@ if (isMain) {
   });
 }
 
-export { server, safeResolve, hashModsDir, listModManifests };
+export { server, safeResolve, hashModsDir, listModManifests, listModFolderFiles };
