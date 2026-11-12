@@ -1,0 +1,11 @@
+{
+  "id": "core:erratic-flier",
+  "name": "Erratic Flier",
+  "hp": 4,
+  "speed": 70,
+  "radius": 12,
+  "behavior": "erratic_flier",
+  "flies": true,
+  "contactDamageHalfHearts": 1,
+  "description": "Flies over pits and rocks, picking a new random direction every half-second to a second."
+}

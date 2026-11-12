@@ -1,0 +1,14 @@
+{
+  "id": "core:turret",
+  "name": "Turret",
+  "hp": 6,
+  "speed": 0,
+  "radius": 14,
+  "behavior": "turret",
+  "contactDamageHalfHearts": 1,
+  "fireCooldownSeconds": 1.2,
+  "shotSpeed": 1.0,
+  "damage": 2,
+  "range": 5,
+  "description": "Stationary; fires a tear at the player at a steady interval."
+}

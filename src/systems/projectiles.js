@@ -6,7 +6,7 @@
 import { CONFIG } from '../core/config.js';
 import { clamp } from '../core/math.js';
 
-export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 } }) {
+export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 }, team = 'player' }) {
   const speed = stats.shotSpeed * CONFIG.TEAR_BASE_SPEED_PX_PER_SEC;
   const inherit = CONFIG.SHOT_INHERITS_PLAYER_VELOCITY;
   const vx = dir.x * speed + ownerVelocity.x * inherit;
@@ -21,7 +21,7 @@ export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 
     rangePx: stats.range * CONFIG.TILE_SIZE,
     traveled: 0,
     height: 0,
-    team: 'player',
+    team,
     tags: ['tear'],
   });
 }

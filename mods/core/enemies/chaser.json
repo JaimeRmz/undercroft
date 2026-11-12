@@ -1,0 +1,10 @@
+{
+  "id": "core:chaser",
+  "name": "Chaser",
+  "hp": 5,
+  "speed": 90,
+  "radius": 14,
+  "behavior": "chaser",
+  "contactDamageHalfHearts": 1,
+  "description": "Walks straight at the player at a steady pace."
+}

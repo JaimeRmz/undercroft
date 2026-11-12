@@ -23,6 +23,9 @@ test('the real mods/ directory (core + example-mod) loads cleanly with zero erro
   assert.ok(mods.some((m) => m.id === 'example-mod'));
   assert.ok(registries.of('item').has('example-mod:bauble'));
   assert.ok(registries.of('item').has('example-mod:scripted-trinket'));
+  for (const id of ['core:chaser', 'core:erratic-flier', 'core:turret']) {
+    assert.ok(registries.of('enemy').has(id), `expected enemy registry to contain ${id}`);
+  }
 });
 
 test('core loads before example-mod per loadOrder/dependency', async () => {
