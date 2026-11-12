@@ -154,3 +154,36 @@ test('player stays inside the room: resolveTileCollision pushes it off a solid t
   const { tx, ty } = world.tileGrid.worldToTile(player.x, player.y);
   assert.ok(!world.tileGrid.isSolid(tx, ty));
 });
+
+test('facingDir (head) tracks the current aim direction and keeps the last one after releasing (CLAUDE.md §3)', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  const input = createInputState();
+  const dt = 1 / 60;
+
+  press(input, 'shootRight');
+  updatePlayer(world, player, input, dt);
+  assert.deepEqual(player.facingDir, { x: 1, y: 0 });
+
+  release(input, 'shootRight');
+  clearFrameEdges(input);
+  updatePlayer(world, player, input, dt);
+  assert.deepEqual(player.facingDir, { x: 1, y: 0 }, 'should keep facing the last aimed direction once no shoot key is held');
+});
+
+test('moveDir (body) tracks the current movement direction and keeps the last one once stopped (CLAUDE.md §3)', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  const input = createInputState();
+  const dt = 1 / 60;
+
+  input.moveX = 0;
+  input.moveY = 1;
+  updatePlayer(world, player, input, dt);
+  assert.deepEqual(player.moveDir, { x: 0, y: 1 });
+
+  input.moveX = 0;
+  input.moveY = 0;
+  updatePlayer(world, player, input, dt);
+  assert.deepEqual(player.moveDir, { x: 0, y: 1 }, 'should keep facing the last moved direction once stationary');
+});

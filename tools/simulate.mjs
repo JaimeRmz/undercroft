@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
  * Headless simulate harness (CLAUDE.md §5 (a)/(b)/(c)): every enemy and boss
- * alone, a kitchen-sink combat scenario, and a simple bot clearing seeded
- * single-room encounters. Still a single-room subset of the full gate —
- * "every item at once" and "20 seeded full floor runs" land once items are
- * woven into spawnable loadouts and multi-floor runs are easy to script here
- * — see KNOWN_ISSUES.md.
+ * alone, a kitchen-sink combat scenario, a bot clearing seeded single-room
+ * encounters, and a bot playing full seeded floors end-to-end (floorgen ->
+ * walk/fight through every room on the path -> boss defeated), mirroring
+ * main.js's run-building logic headlessly.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +22,11 @@ import { Rng } from '../src/core/rng.js';
 import { ModLoader } from '../src/modding/modloader.js';
 import { createFsSource } from '../src/modding/source-fs.js';
 import { ContentRegistries } from '../src/core/registry.js';
+import { generateFloor, cellKey, ROOM_TYPE } from '../src/systems/floorgen.js';
+import { FloorRuntime } from '../src/systems/floor.js';
+import { createTransitionState, startTransition, updateTransition, detectDoorExit, entryPositionForSide } from '../src/systems/transitions.js';
+import { buildItemPools, spawnItemPedestal, resolveItemPedestals, chargeActivesOnRoomClear, ItemInventory } from '../src/systems/items.js';
+import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from '../src/systems/pickups.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MODS_DIR = path.join(__dirname, '..', 'mods');
@@ -41,7 +45,59 @@ async function loadContentDefs() {
     console.error('[simulate] mod load errors:', errors);
     throw new Error(`mod loader reported ${errors.length} error(s) loading mods/`);
   }
-  return { enemyDefs: registries.of('enemy').all(), bossDefs: registries.of('boss').all() };
+  return {
+    enemyDefs: registries.of('enemy').all(),
+    bossDefs: registries.of('boss').all(),
+    itemDefs: registries.of('item').all(),
+    roomTemplates: registries.of('room').all(),
+  };
+}
+
+const SIDES = [
+  { side: 'north', dx: 0, dy: -1 },
+  { side: 'south', dx: 0, dy: 1 },
+  { side: 'east', dx: 1, dy: 0 },
+  { side: 'west', dx: -1, dy: 0 },
+];
+
+function isSecretType(type) {
+  return type === ROOM_TYPE.SECRET || type === ROOM_TYPE.SUPER_SECRET;
+}
+
+/** Shortest-path (by real doors) from the start cell to the boss cell, as an ordered list of exit sides to take. */
+function pathToBoss(floor) {
+  const startKey = cellKey(floor.startCell.x, floor.startCell.y);
+  const bossKey = cellKey(floor.boss.x, floor.boss.y);
+  const parent = new Map();
+  const visited = new Set([startKey]);
+  const queue = [startKey];
+
+  while (queue.length > 0) {
+    const key = queue.shift();
+    if (key === bossKey) break;
+    const [x, y] = key.split(',').map(Number);
+    for (const { side, dx, dy } of SIDES) {
+      const nk = cellKey(x + dx, y + dy);
+      const neighbor = floor.cells.get(nk);
+      if (!neighbor || isSecretType(neighbor.type) || visited.has(nk)) continue;
+      visited.add(nk);
+      parent.set(nk, { from: key, side });
+      queue.push(nk);
+    }
+  }
+
+  if (!parent.has(bossKey) && bossKey !== startKey) {
+    throw new Error(`pathToBoss: no door-reachable path from start to the boss room (${bossKey})`);
+  }
+  const steps = [];
+  let cur = bossKey;
+  while (cur !== startKey) {
+    const p = parent.get(cur);
+    steps.push({ to: cur, side: p.side });
+    cur = p.from;
+  }
+  steps.reverse();
+  return steps;
 }
 
 function dummyPlayerEntity() {
@@ -221,9 +277,254 @@ function testBotClearsRooms(enemyDefs, seedCount = 20) {
   }
 }
 
+/**
+ * Tile-grid BFS from the player's current tile to a goal tile, avoiding solid
+ * tiles (walls/rocks/pits) — room templates can place obstacles directly on
+ * the straight line toward a door, so a bot that only steers by raw dx/dy
+ * (fine in the obstacle-free single-room test above) can walk into a rock and
+ * sit there forever. Returns an ordered list of waypoint tiles (excluding the
+ * start), or null if the goal is genuinely unreachable.
+ */
+function bfsTilePath(tileGrid, startTx, startTy, goalTx, goalTy) {
+  const key = (x, y) => `${x},${y}`;
+  const startKey = key(startTx, startTy);
+  const goalKey = key(goalTx, goalTy);
+  if (startKey === goalKey) return [];
+
+  const visited = new Set([startKey]);
+  const parent = new Map();
+  const queue = [[startTx, startTy]];
+  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  while (queue.length > 0) {
+    const [x, y] = queue.shift();
+    if (key(x, y) === goalKey) break;
+    for (const [dx, dy] of dirs) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const nk = key(nx, ny);
+      if (visited.has(nk)) continue;
+      if (tileGrid.isSolid(nx, ny) && nk !== goalKey) continue; // allow the final step onto the goal tile itself
+      visited.add(nk);
+      parent.set(nk, key(x, y));
+      queue.push([nx, ny]);
+    }
+  }
+
+  if (!parent.has(goalKey)) return null;
+  const waypoints = [];
+  let cur = goalKey;
+  while (cur !== startKey) {
+    const [cx, cy] = cur.split(',').map(Number);
+    waypoints.push({ tx: cx, ty: cy });
+    cur = parent.get(cur);
+  }
+  waypoints.reverse();
+  return waypoints;
+}
+
+/**
+ * (d) A bot plays a full generated floor per seed: floorgen -> FloorRuntime,
+ * walking the shortest door-path to the boss room, fighting whatever's in
+ * each room along the way (and picking up treasure-room items/dropped
+ * pickups it happens to stand on), until the boss is defeated or the player
+ * dies. Mirrors main.js's run-building/update-loop logic headlessly.
+ */
+function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates, seedCount = 20) {
+  console.log(`\n[simulate] (d) bot plays ${seedCount} seeded floors (floorgen -> boss defeated)...`);
+  const itemPools = buildItemPools(itemDefs);
+  const getItemDef = (id) => itemDefs.find((d) => d.id === id);
+
+  for (let seed = 0; seed < seedCount; seed++) {
+    const floorRng = new Rng(`floor-${seed}`);
+    const templateRng = new Rng(`template-${seed}`);
+    const spawnRng = new Rng(`spawn-${seed}`);
+    const aiRng = new Rng(`ai-${seed}`);
+
+    const floor = generateFloor(1, floorRng);
+    const floorRuntime = new FloorRuntime(floor, roomTemplates, templateRng);
+    const path = pathToBoss(floor);
+    const bossKey = cellKey(floor.boss.x, floor.boss.y);
+
+    const stockedRooms = new Set();
+    const stockRoom = (room, cell) => {
+      const key = cellKey(cell.x, cell.y);
+      if (stockedRooms.has(key)) return;
+      stockedRooms.add(key);
+      const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
+
+      if (cell.type === ROOM_TYPE.BOSS) {
+        const def = spawnRng.pick(bossDefs);
+        spawnBoss(room.world, def, { x: center.x, y: center.y, stage: 1 });
+        return;
+      }
+      if (cell.type === ROOM_TYPE.TREASURE) {
+        const itemId = itemPools.draw('treasure', spawnRng);
+        if (itemId) spawnItemPedestal(room.world, itemId, { x: center.x, y: center.y });
+        return;
+      }
+      if (cell.type !== ROOM_TYPE.NORMAL) return;
+      const count = spawnRng.int(1, 3);
+      for (let i = 0; i < count; i++) {
+        const def = spawnRng.pick(enemyDefs);
+        const tx = spawnRng.int(2, room.widthTiles - 3);
+        const ty = spawnRng.int(2, room.heightTiles - 3);
+        const tileCenter = room.world.tileGrid.tileCenter(tx, ty);
+        spawnEnemy(room.world, def, { x: tileCenter.x, y: tileCenter.y, rng: spawnRng });
+      }
+    };
+
+    let room = floorRuntime.getCurrentRoom();
+    stockRoom(room, floorRuntime.getCurrentCell());
+
+    const tileSize = room.world.tileGrid.tileSize;
+    const centerX = (room.widthTiles * tileSize) / 2;
+    const centerY = (room.heightTiles * tileSize) / 2;
+    const player = createPlayer(room.world, { x: centerX, y: centerY, stats: new Stats({ damageUps: 3 }) });
+    const playerHealth = new Health({ redMax: 6 });
+    const currency = new Currency();
+    const inventory = new ItemInventory();
+    const transition = createTransitionState();
+    const input = createInputState();
+    const events = createEventBus();
+
+    let pathIndex = 0;
+    let pendingEntrySide = null;
+    let bossDefeated = false;
+    let waypoints = null; // tile path to the current room's exit door, recomputed whenever the room/target changes
+
+    const maxFrames = 1800 * (path.length + 3); // 30 sim-seconds per room on the path, plus slack for the boss fight
+    let frame = 0;
+    for (; frame < maxFrames; frame++) {
+      input.held.clear();
+      input.justPressed.clear();
+      input.moveX = 0;
+      input.moveY = 0;
+
+      if (transition.active) {
+        if (updateTransition(transition, DT)) {
+          room = floorRuntime.getCurrentRoom();
+          stockRoom(room, floorRuntime.getCurrentCell());
+          const pos = entryPositionForSide(room, pendingEntrySide);
+          player.x = pos.x;
+          player.y = pos.y;
+          player.vx = 0;
+          player.vy = 0;
+          waypoints = null;
+        }
+        continue;
+      }
+
+      const enemies = room.world.entities.byType('enemy').filter((e) => e.alive);
+      const atBossRoom = floorRuntime.currentKey === bossKey;
+
+      if (enemies.length > 0) {
+        let nearest = enemies[0];
+        let bestDist = Infinity;
+        for (const e of enemies) {
+          const d = Math.hypot(e.x - player.x, e.y - player.y);
+          if (d < bestDist) {
+            bestDist = d;
+            nearest = e;
+          }
+        }
+        const dx = nearest.x - player.x;
+        const dy = nearest.y - player.y;
+        if (Math.abs(dx) > Math.abs(dy)) input.held.add(dx > 0 ? 'shootRight' : 'shootLeft');
+        else input.held.add(dy > 0 ? 'shootDown' : 'shootUp');
+
+        // Room obstacles (rock/pit patterns) can sit directly between the player and the
+        // nearest enemy, so a raw dx/dy chase can wedge the bot against a wall forever
+        // (it has no line of sight to route around). Path around obstacles the same way
+        // the door-travel branch below does, falling back to the direct heading up close.
+        const tileGrid = room.world.tileGrid;
+        const here = tileGrid.worldToTile(player.x, player.y);
+        const goal = tileGrid.worldToTile(nearest.x, nearest.y);
+        const combatPath = bfsTilePath(tileGrid, here.tx, here.ty, goal.tx, goal.ty);
+        const ALIGN_TOLERANCE_PX = 12;
+        if (combatPath && combatPath.length > 0) {
+          const target = tileGrid.tileCenter(combatPath[0].tx, combatPath[0].ty);
+          const tdx = target.x - player.x;
+          const tdy = target.y - player.y;
+          input.moveX = Math.abs(tdx) > ALIGN_TOLERANCE_PX ? Math.sign(tdx) : 0;
+          input.moveY = Math.abs(tdy) > ALIGN_TOLERANCE_PX ? Math.sign(tdy) : 0;
+        } else {
+          input.moveX = Math.abs(dx) > ALIGN_TOLERANCE_PX ? Math.sign(dx) : 0;
+          input.moveY = Math.abs(dy) > ALIGN_TOLERANCE_PX ? Math.sign(dy) : 0;
+        }
+      } else if (!atBossRoom && pathIndex < path.length) {
+        const tileGrid = room.world.tileGrid;
+        const doorPos = room.doorPositionForSide(path[pathIndex].side);
+
+        if (waypoints === null) {
+          const here = tileGrid.worldToTile(player.x, player.y);
+          waypoints = bfsTilePath(tileGrid, here.tx, here.ty, doorPos.tx, doorPos.ty) ?? [{ tx: doorPos.tx, ty: doorPos.ty }];
+        }
+
+        const ARRIVE_PX = tileGrid.tileSize * 0.3;
+        while (waypoints.length > 1) {
+          const wp = tileGrid.tileCenter(waypoints[0].tx, waypoints[0].ty);
+          if (Math.hypot(wp.x - player.x, wp.y - player.y) > ARRIVE_PX) break;
+          waypoints.shift();
+        }
+
+        const next = waypoints[0] ?? { tx: doorPos.tx, ty: doorPos.ty };
+        const target = tileGrid.tileCenter(next.tx, next.ty);
+        const dx = target.x - player.x;
+        const dy = target.y - player.y;
+        const ALIGN_TOLERANCE_PX = 6;
+        input.moveX = Math.abs(dx) > ALIGN_TOLERANCE_PX ? Math.sign(dx) : 0;
+        input.moveY = Math.abs(dy) > ALIGN_TOLERANCE_PX ? Math.sign(dy) : 0;
+      }
+
+      updatePlayer(room.world, player, input, DT, { events });
+      updateEnemies(room.world, player, DT, { events, rng: aiRng });
+      updateProjectiles(room.world, DT, events);
+      resolveCombat(room.world, { player, playerHealth, events, rng: spawnRng });
+      resolveItemPedestals(room.world, player, { inventory, stats: player.stats, playerHealth, events, pools: itemPools, getItemDef });
+      resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng });
+      tickInvuln(playerHealth, DT);
+      room.world.reap();
+
+      const justCleared = room.update();
+      if (justCleared) {
+        chargeActivesOnRoomClear(inventory);
+        if (floorRuntime.getCurrentCell().type !== ROOM_TYPE.BOSS) {
+          const reward = rollRoomClearReward(spawnRng, player.stats.luck);
+          if (reward) spawnRewardPickup(room.world, reward, { x: centerX, y: centerY, rng: spawnRng });
+        }
+      }
+
+      if (!playerHealth.alive) break;
+
+      if (atBossRoom) {
+        if (!room.world.entities.byType('enemy').some((e) => e.alive && e.isBoss)) {
+          bossDefeated = true;
+          break;
+        }
+      } else if (pathIndex < path.length) {
+        const exitSide = detectDoorExit(room, player);
+        if (exitSide && exitSide === path[pathIndex].side) {
+          const result = floorRuntime.move(exitSide);
+          if (result) {
+            pendingEntrySide = result.enteredFrom;
+            startTransition(transition, exitSide);
+            pathIndex++;
+          }
+        }
+      }
+    }
+
+    if (!bossDefeated && playerHealth.alive) {
+      throw new Error(`floor seed ${seed}: did not reach/defeat the boss within ${maxFrames} frames (possible softlock), stuck at room ${floorRuntime.currentKey} (path step ${pathIndex}/${path.length})`);
+    }
+    console.log(`  seed ${seed}: ${bossDefeated ? `boss defeated (${frame} frames, ${path.length} rooms on the path)` : 'player died (not a softlock)'}`);
+  }
+}
+
 async function main() {
   console.log('=== Undercroft headless simulate harness ===');
-  const { enemyDefs, bossDefs } = await loadContentDefs();
+  const { enemyDefs, bossDefs, itemDefs, roomTemplates } = await loadContentDefs();
   if (enemyDefs.length === 0) throw new Error('no enemy definitions loaded from mods/core — check the mod loader');
   if (bossDefs.length === 0) throw new Error('no boss definitions loaded from mods/core — check the mod loader');
 
@@ -231,6 +532,7 @@ async function main() {
   testEachBossAlone(bossDefs);
   testKitchenSink(enemyDefs);
   testBotClearsRooms(enemyDefs);
+  testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, roomTemplates);
 
   console.log('\n=== simulate: ALL CHECKS PASSED ===');
 }

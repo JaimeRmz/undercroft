@@ -38,12 +38,12 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     ctx.globalAlpha = 1;
   }
 
-  const drawEntity = (entity, spriteKey) => {
+  const drawEntity = (entity, spriteKey, facing = {}) => {
     const spec = SPRITES[spriteKey];
     if (!spec) return;
     updateHitFlash(entity, dt);
     const screen = camera.worldToScreen(entity.x, entity.y - (entity.height ?? 0));
-    executeDrawOps(ctx, computeSpriteDrawOps(spec), {
+    executeDrawOps(ctx, computeSpriteDrawOps(spec, facing), {
       x: screen.x,
       y: screen.y,
       scale: camera.zoom,
@@ -58,7 +58,12 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
     if (projectile.alive) drawEntity(projectile, 'tear');
   }
   const player = room.world.entities.byType('player')[0];
-  if (player) drawEntity(player, 'player');
+  if (player) {
+    drawEntity(player, 'player', {
+      headAngle: Math.atan2(player.facingDir?.y ?? -1, player.facingDir?.x ?? 0),
+      bodyAngle: Math.atan2(player.moveDir?.y ?? 1, player.moveDir?.x ?? 0),
+    });
+  }
 
   const PICKUP_COLORS = {
     coin: '#d4af37',

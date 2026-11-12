@@ -10,8 +10,9 @@
 import { circlesOverlap } from '../engine/collision.js';
 import { applyDamage } from './health.js';
 import { triggerHitFlash } from '../render/vfx.js';
+import { normalize } from '../core/math.js';
 import { runModifiersOnHitEnemy } from './tearModifiers.js';
-import { isEnemyDamageBlocked, killEnemy } from './enemies.js';
+import { isEnemyDamageBlocked, applyEnemyDamage } from './enemies.js';
 import { spawnPickup, PICKUP_TYPE } from './pickups.js';
 import { CONFIG } from '../core/config.js';
 
@@ -54,12 +55,10 @@ export function resolveCombat(world, { player, playerHealth, events, rng } = {})
         if (projectile.hitEnemyIds.has(enemy.id)) continue;
         projectile.hitEnemyIds.add(enemy.id);
 
-        enemy.hp -= projectile.damage * damageMultiplierFor(enemy, projectile);
-        triggerHitFlash(enemy);
-        events?.emit('enemy:hit', { enemy, damage: projectile.damage });
-        if (enemy.hp <= 0) {
-          killEnemy(world, enemy, { player, playerHealth, events, rng });
-        }
+        applyEnemyDamage(world, enemy, projectile.damage * damageMultiplierFor(enemy, projectile), {
+          player, playerHealth, events, rng,
+          knockbackDir: normalize(projectile.vx, projectile.vy),
+        });
 
         const keepAlive = runModifiersOnHitEnemy(projectile, enemy, { world, events });
         events?.emit('projectile:splash', { entity: projectile, reason: 'hit' });

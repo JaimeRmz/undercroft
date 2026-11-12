@@ -82,6 +82,7 @@ const PATTERNS = {
   },
   splitPits: (rows) => {
     for (let y = IY[0]; y <= IY[1]; y++) {
+      if (y === CY) continue; // keep the door row passable (CLAUDE.md §2 room templates must stay traversable between doors)
       setChar(rows, CX - 3, y, 'P');
       setChar(rows, CX + 3, y, 'P');
     }

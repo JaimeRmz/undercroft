@@ -34,6 +34,7 @@ import { drawBossBar } from './ui/bossbar.js';
 import { createInputState, createKeyboardAdapter, pollGamepads, clearFrameEdges } from './engine/input.js';
 import { events } from './core/events.js';
 import { Camera } from './render/camera.js';
+import { consumeHitstopFrame } from './render/hitstop.js';
 import { ParticlePool } from './render/particles.js';
 import { DecalLayer } from './render/decals.js';
 import { renderRoom } from './render/renderer.js';
@@ -227,6 +228,11 @@ async function boot() {
           run.player.vy = 0;
           run.decals.clear();
         }
+        clearFrameEdges(input);
+        return;
+      }
+
+      if (consumeHitstopFrame()) {
         clearFrameEdges(input);
         return;
       }

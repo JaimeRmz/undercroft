@@ -30,6 +30,8 @@ export function createPlayer(world, { x, y, stats }) {
     tearModifiers: [],
     chargeAction: null,
     chargeTime: 0,
+    facingDir: { x: 0, y: -1 }, // head: last aimed direction (CLAUDE.md §3 "head turns toward the shooting direction")
+    moveDir: { x: 0, y: 1 }, // body: last moved direction ("body faces the movement direction")
     tags: ['player'],
   });
 }
@@ -56,6 +58,7 @@ export function updatePlayer(world, player, input, dt, { events } = {}) {
   const targetVx = inputDir.x * maxSpeed;
   const targetVy = inputDir.y * maxSpeed;
   const accelerating = inputDir.x !== 0 || inputDir.y !== 0;
+  if (accelerating) player.moveDir = inputDir;
   const frames = accelerating ? CONFIG.PLAYER_ACCEL_FRAMES : CONFIG.PLAYER_FRICTION_FRAMES;
   const maxDelta = (maxSpeed / frames) * (dt * CONFIG.TICK_RATE);
 
@@ -66,6 +69,7 @@ export function updatePlayer(world, player, input, dt, { events } = {}) {
   world.resolveTileCollision(player);
 
   player.aimAction = resolveShootAction(input, player.aimAction);
+  if (player.aimAction) player.facingDir = SHOOT_DIRS[player.aimAction];
   player.fireCooldown = Math.max(0, player.fireCooldown - dt);
 
   const weapon = WEAPON_TYPES[player.weaponType ?? 'normal'];

@@ -8,9 +8,11 @@
  * (ai/behaviors.js) — this file just builds the entity and calls into it.
  */
 import { CONFIG } from '../core/config.js';
+import { normalize } from '../core/math.js';
 import { runAIOnSpawn, runAIOnUpdate, runAIOnDeath } from './ai/behaviors.js';
 import { spawnPickup, PICKUP_TYPE, rollCoinValue } from './pickups.js';
 import { triggerHitFlash } from '../render/vfx.js';
+import { triggerHitstop } from '../render/hitstop.js';
 
 const CHAMPION_SECONDARY_EFFECTS = ['faster', 'explodesOnDeath', 'splitsOnDeath', 'invulnerableUntilOthersDie', 'dropsCoinsOnHit'];
 const CHAMPION_COLORS = {
@@ -91,6 +93,16 @@ export function isEnemyDamageBlocked(world, enemy) {
   return false;
 }
 
+/** Instant positional push-back (CLAUDE.md §3 "knockback") — not a velocity impulse, since most AI behaviors overwrite vx/vy every tick anyway. */
+export function applyKnockback(world, enemy, ctx = {}) {
+  let dir = ctx.knockbackDir;
+  if (!dir && ctx.knockbackFrom) dir = normalize(enemy.x - ctx.knockbackFrom.x, enemy.y - ctx.knockbackFrom.y);
+  if (!dir || (dir.x === 0 && dir.y === 0)) return;
+  enemy.x += dir.x * CONFIG.KNOCKBACK_DISTANCE_PX;
+  enemy.y += dir.y * CONFIG.KNOCKBACK_DISTANCE_PX;
+  if (!enemy.flies) world.resolveTileCollision(enemy);
+}
+
 /**
  * Applies flat damage to an enemy (bombs/melee/explosions/chain lightning —
  * anything without a directional tear to check front-armor against), killing
@@ -101,6 +113,7 @@ export function applyEnemyDamage(world, enemy, amount, ctx = {}) {
   if (isEnemyDamageBlocked(world, enemy)) return 0;
   enemy.hp -= amount;
   triggerHitFlash(enemy);
+  applyKnockback(world, enemy, ctx);
   ctx.events?.emit('enemy:hit', { enemy, damage: amount });
   if (enemy.hp <= 0) killEnemy(world, enemy, ctx);
   return amount;
@@ -109,6 +122,7 @@ export function applyEnemyDamage(world, enemy, amount, ctx = {}) {
 /** Destroys the enemy, runs its behaviors' onDeath hooks (exploder/splitter), drops a champion pickup if applicable, and emits enemy:death. */
 export function killEnemy(world, enemy, ctx = {}) {
   enemy.destroy();
+  triggerHitstop(CONFIG.HITSTOP_FRAMES); // CLAUDE.md §3 "~2-frame hitstop on heavy hits" — a kill is the clearest "heavy hit" signal
   runAIOnDeath(world, enemy, ctx);
   if (enemy.isChampion && CHAMPION_COLOR_DROP[enemy.championColor]) {
     const pickupType = CHAMPION_COLOR_DROP[enemy.championColor];

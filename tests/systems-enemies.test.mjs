@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../src/engine/world.js';
-import { spawnEnemy, updateEnemies, rollChampion, isEnemyDamageBlocked, applyEnemyDamage, killEnemy, CHAMPION_COLOR_DROP } from '../src/systems/enemies.js';
+import { spawnEnemy, updateEnemies, rollChampion, isEnemyDamageBlocked, applyEnemyDamage, applyKnockback, killEnemy, CHAMPION_COLOR_DROP } from '../src/systems/enemies.js';
 import { createPlayer } from '../src/systems/player.js';
 import { Stats } from '../src/systems/stats.js';
 import { Rng } from '../src/core/rng.js';
@@ -135,6 +135,33 @@ test('applyEnemyDamage is a no-op against a blocked enemy, and kills + fires onD
   assert.ok(!victim.alive);
   assert.ok(exploded, 'exploder onDeath hook should have fired');
   assert.ok(died);
+});
+
+test('applyKnockback pushes the enemy directly away from ctx.knockbackFrom by CONFIG.KNOCKBACK_DISTANCE_PX', () => {
+  const world = freshWorld();
+  const enemy = spawnEnemy(world, { id: 'a', hp: 5, behavior: 'chase' }, { x: 500, y: 500 });
+  applyKnockback(world, enemy, { knockbackFrom: { x: 400, y: 500 } });
+  assert.ok(Math.abs(enemy.x - (500 + CONFIG.KNOCKBACK_DISTANCE_PX)) < 1e-6, 'pushed away from the hit source, to the right');
+  assert.ok(Math.abs(enemy.y - 500) < 1e-6);
+});
+
+test('applyKnockback is a no-op without a direction and respects an explicit knockbackDir', () => {
+  const world = freshWorld();
+  const noDir = spawnEnemy(world, { id: 'a', hp: 5, behavior: 'chase' }, { x: 500, y: 500 });
+  applyKnockback(world, noDir, {});
+  assert.equal(noDir.x, 500);
+  assert.equal(noDir.y, 500);
+
+  const explicit = spawnEnemy(world, { id: 'b', hp: 5, behavior: 'chase' }, { x: 500, y: 500 });
+  applyKnockback(world, explicit, { knockbackDir: { x: 0, y: -1 } });
+  assert.ok(Math.abs(explicit.y - (500 - CONFIG.KNOCKBACK_DISTANCE_PX)) < 1e-6);
+});
+
+test('applyEnemyDamage applies knockback away from ctx.knockbackFrom on a hit', () => {
+  const world = freshWorld();
+  const enemy = spawnEnemy(world, { id: 'a', hp: 5, behavior: 'chase' }, { x: 500, y: 500 });
+  applyEnemyDamage(world, enemy, 1, { knockbackFrom: { x: 500, y: 400 } });
+  assert.ok(Math.abs(enemy.y - (500 + CONFIG.KNOCKBACK_DISTANCE_PX)) < 1e-6, 'pushed away from the hit source, downward');
 });
 
 test('killEnemy drops the champion\'s color-matched pickup', () => {

@@ -118,4 +118,6 @@ export const CONFIG = {
 
   // Game feel / VFX
   HIT_FLASH_SECONDS: 2 / 60, // enemies flash white for 2 frames on a heavy hit
+  KNOCKBACK_DISTANCE_PX: 8, // [assumed] instant push-back applied to an enemy's position on a hit
+  HITSTOP_FRAMES: 2, // [assumed] ~2-frame full-sim freeze on a killing blow
 };

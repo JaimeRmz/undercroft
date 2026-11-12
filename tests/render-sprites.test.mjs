@@ -33,3 +33,31 @@ test('every built-in sprite spec resolves to at least one draw op', () => {
     assert.ok(ops.length > 0, `expected ${id} to produce draw ops`);
   }
 });
+
+test('headAngle rotates the eyes away from the spec\'s baked eyeDefaultAngle (CLAUDE.md §3 head-turns-to-aim)', () => {
+  const spec = {
+    shape: 'circle',
+    radius: 10,
+    eyeDefaultAngle: -Math.PI / 2, // baked eyes assume "facing up"
+    eyes: [{ dx: 0, dy: -5, r: 1 }],
+  };
+  const facingUp = computeSpriteDrawOps(spec, { headAngle: -Math.PI / 2 });
+  assert.ok(Math.abs(facingUp[1].x - 0) < 1e-9 && Math.abs(facingUp[1].y - -5) < 1e-9, 'no rotation when aiming the baked default direction');
+
+  const facingRight = computeSpriteDrawOps(spec, { headAngle: 0 });
+  assert.ok(Math.abs(facingRight[1].x - 5) < 1e-9 && Math.abs(facingRight[1].y - 0) < 1e-9, 'rotated a quarter turn to face right');
+});
+
+test('bodyAngle places the belly patch toward the current movement direction', () => {
+  const spec = { shape: 'circle', radius: 10, belly: { distanceFraction: 0.5, radius: 3, fill: '#fff' } };
+  const ops = computeSpriteDrawOps(spec, { bodyAngle: 0 });
+  const belly = ops.find((op) => op.radius === 3);
+  assert.ok(belly, 'expected a belly draw op');
+  assert.ok(Math.abs(belly.x - 5) < 1e-9 && Math.abs(belly.y - 0) < 1e-9);
+});
+
+test('no belly op is added when bodyAngle is not supplied (backward compatible with enemies that have no belly)', () => {
+  const spec = { shape: 'circle', radius: 10, belly: { distanceFraction: 0.5, radius: 3, fill: '#fff' } };
+  const ops = computeSpriteDrawOps(spec);
+  assert.equal(ops.length, 1);
+});

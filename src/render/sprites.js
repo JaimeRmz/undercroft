@@ -13,10 +13,16 @@ export const SPRITES = {
     fill: '#e8d9b0',
     outline: '#4a3a2a',
     outlineWidth: 2,
+    // Baked eye offsets assume the head faces "up" (0,-1) by default; computeSpriteDrawOps
+    // rotates them to the actual aim direction when a headAngle is supplied.
+    eyeDefaultAngle: -Math.PI / 2,
     eyes: [
       { dx: -4, dy: -3, r: 2.2 },
       { dx: 4, dy: -3, r: 2.2 },
     ],
+    // A subtle lighter patch toward whichever way the body is currently moving
+    // (CLAUDE.md §3: "the body faces the movement direction").
+    belly: { distanceFraction: 0.45, radius: 5, fill: '#f5ecd2' },
   },
   'core:chaser': {
     shape: 'circle',
@@ -58,8 +64,18 @@ export const SPRITES = {
   },
 };
 
-/** Converts a sprite spec into a list of draw ops centered on the entity's local origin. Pure. */
-export function computeSpriteDrawOps(spec) {
+function rotateVec(x, y, angle) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: x * cos - y * sin, y: x * sin + y * cos };
+}
+
+/**
+ * Converts a sprite spec into a list of draw ops centered on the entity's local origin. Pure.
+ * `headAngle` rotates the eyes away from the spec's baked `eyeDefaultAngle` (head aim direction);
+ * `bodyAngle` places the optional `belly` patch toward the current movement direction.
+ */
+export function computeSpriteDrawOps(spec, { headAngle, bodyAngle } = {}) {
   const ops = [];
   if (spec.shape === 'circle') {
     ops.push({ op: 'circle', x: 0, y: 0, radius: spec.radius, fill: spec.fill, outline: spec.outline, outlineWidth: spec.outlineWidth });
@@ -75,8 +91,22 @@ export function computeSpriteDrawOps(spec) {
       outlineWidth: spec.outlineWidth,
     });
   }
+
+  if (spec.belly && bodyAngle !== undefined) {
+    const dist = spec.radius * (spec.belly.distanceFraction ?? 0.4);
+    ops.push({
+      op: 'circle',
+      x: Math.cos(bodyAngle) * dist,
+      y: Math.sin(bodyAngle) * dist,
+      radius: spec.belly.radius,
+      fill: spec.belly.fill,
+    });
+  }
+
+  const eyeRotation = headAngle !== undefined && spec.eyeDefaultAngle !== undefined ? headAngle - spec.eyeDefaultAngle : 0;
   for (const eye of spec.eyes ?? []) {
-    ops.push({ op: 'circle', x: eye.dx, y: eye.dy, radius: eye.r, fill: eye.fill ?? '#1a1a1a' });
+    const pos = eyeRotation ? rotateVec(eye.dx, eye.dy, eyeRotation) : { x: eye.dx, y: eye.dy };
+    ops.push({ op: 'circle', x: pos.x, y: pos.y, radius: eye.r, fill: eye.fill ?? '#1a1a1a' });
   }
   return ops;
 }
