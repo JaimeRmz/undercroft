@@ -7,6 +7,8 @@ import { clamp } from '../core/math.js';
 import { circlesOverlap } from '../engine/collision.js';
 import { heal, addSoulHeart, addBlackHeart } from './health.js';
 import { spawnTrinketPickup } from './trinkets.js';
+import { spawnCardPickup, spawnPillPickup } from './consumables.js';
+import { PILL_COLORS } from './pills.js';
 
 export const PICKUP_TYPE = {
   COIN: 'coin',
@@ -102,7 +104,7 @@ function applyNonChestPickup(pickup, { currency, playerHealth, events }) {
 }
 
 /** Touch resolution for every pickup type, including chest open/lock logic. Call once per tick. */
-export function resolvePickups(world, player, { currency, playerHealth, events, rng, trinketPools } = {}) {
+export function resolvePickups(world, player, { currency, playerHealth, events, rng, trinketPools, cardPools } = {}) {
   for (const pickup of world.entities.byType('pickup')) {
     if (!pickup.alive) continue;
     if (!circlesOverlap(pickup.x, pickup.y, pickup.radius, player.x, player.y, player.radius)) continue;
@@ -116,7 +118,7 @@ export function resolvePickups(world, player, { currency, playerHealth, events, 
       pickup.opened = true;
       const reward = rollChestReward(rng);
       events?.emit('chest:opened', { chest: pickup, reward });
-      spawnRewardPickup(world, reward, { x: pickup.x, y: pickup.y, rng, trinketPools });
+      spawnRewardPickup(world, reward, { x: pickup.x, y: pickup.y, rng, trinketPools, cardPools });
       pickup.destroy();
       continue;
     }
@@ -127,8 +129,8 @@ export function resolvePickups(world, player, { currency, playerHealth, events, 
   }
 }
 
-/** Spawns the concrete pickup for a reward category string ('coin'/'heart'/'key'/'bomb'/'chest'/'trinket'/...). No-op for types without an entity yet (card/pill — P2.2) or when a required dependency (trinketPools) isn't passed. */
-export function spawnRewardPickup(world, category, { x, y, rng, trinketPools } = {}) {
+/** Spawns the concrete pickup for a reward category string ('coin'/'heart'/'key'/'bomb'/'chest'/'trinket'/'card'/'pill'). No-op when a required dependency (trinketPools/cardPools) isn't passed. */
+export function spawnRewardPickup(world, category, { x, y, rng, trinketPools, cardPools } = {}) {
   switch (category) {
     case 'coin':
       return spawnPickup(world, PICKUP_TYPE.COIN, { x, y, value: rollCoinValue(rng) });
@@ -145,7 +147,14 @@ export function spawnRewardPickup(world, category, { x, y, rng, trinketPools } =
       const id = trinketPools.draw('treasure', rng);
       return id ? spawnTrinketPickup(world, id, { x, y }) : null;
     }
+    case 'card': {
+      if (!cardPools) return null;
+      const id = cardPools.draw('treasure', rng);
+      return id ? spawnCardPickup(world, id, { x, y }) : null;
+    }
+    case 'pill':
+      return spawnPillPickup(world, rng.pick(PILL_COLORS), { x, y });
     default:
-      return null; // card/pill: no entity yet, deferred to P2.2
+      return null;
   }
 }

@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-09",
+  "name": "Luck Up",
+  "description": "Permanently bends luck your way.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "luck",
+      "value": 2
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "core:pill-13",
+  "name": "Haste",
+  "description": "A long burst of speed.",
+  "effects": [
+    {
+      "type": "statTemporary",
+      "stat": "speed",
+      "value": 0.5,
+      "duration": 15
+    }
+  ]
+}

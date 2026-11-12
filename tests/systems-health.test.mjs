@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Health, addRedContainer, addSoulHeart, addBlackHeart, heal, applyDamage, tickInvuln } from '../src/systems/health.js';
+import { Health, addRedContainer, addSoulHeart, addBlackHeart, removeRedContainer, heal, applyDamage, tickInvuln } from '../src/systems/health.js';
 import { createEventBus } from '../src/core/events.js';
 import { CONFIG } from '../src/core/config.js';
 
@@ -88,6 +88,18 @@ test('addRedContainer/addSoulHeart/addBlackHeart never exceed the 24-half (12 he
   assert.equal(granted, 4);
   assert.equal(health.totalContainerHalves, 24);
   assert.equal(addSoulHeart(health, 5), 0); // already at cap
+});
+
+test('removeRedContainer shrinks redMax and caps current red to it, flooring at 0', () => {
+  const health = new Health({ redMax: 6 });
+  health.red = 3; // already damaged
+  assert.equal(removeRedContainer(health, 2), 2);
+  assert.equal(health.redMax, 4);
+  assert.equal(health.red, 3, 'current red below the new max is untouched');
+
+  assert.equal(removeRedContainer(health, 10), 4, 'clamps to what remains');
+  assert.equal(health.redMax, 0);
+  assert.equal(health.red, 0);
 });
 
 test('zero or negative damage is a no-op', () => {

@@ -1,0 +1,12 @@
+{
+  "id": "core:card-05",
+  "name": "Rune of Haste",
+  "description": "Permanently quickens your tears.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "tears",
+      "value": 0.8
+    }
+  ]
+}

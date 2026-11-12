@@ -1,0 +1,11 @@
+{
+  "id": "core:card-11",
+  "name": "Rune of Passage",
+  "description": "Conjures a ring of keys.",
+  "effects": [
+    {
+      "type": "keys",
+      "value": 3
+    }
+  ]
+}

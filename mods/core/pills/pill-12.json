@@ -1,0 +1,11 @@
+{
+  "id": "core:pill-12",
+  "name": "Wealth",
+  "description": "Conjures a handful of coins.",
+  "effects": [
+    {
+      "type": "coins",
+      "value": 10
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "core:card-04",
+  "name": "Rune of Wrath",
+  "description": "Permanently strengthens your tears.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "damageUps",
+      "value": 1
+    }
+  ]
+}

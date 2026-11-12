@@ -1,0 +1,13 @@
+{
+  "id": "core:pill-14",
+  "name": "Weakness",
+  "description": "A long spell of weaker tears.",
+  "effects": [
+    {
+      "type": "statTemporary",
+      "stat": "damageUps",
+      "value": -1,
+      "duration": 15
+    }
+  ]
+}

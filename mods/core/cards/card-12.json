@@ -1,0 +1,10 @@
+{
+  "id": "core:card-12",
+  "name": "Rune of Sight",
+  "description": "Reveals the floor's map.",
+  "effects": [
+    {
+      "type": "mapReveal"
+    }
+  ]
+}

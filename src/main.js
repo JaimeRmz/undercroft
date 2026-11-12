@@ -28,6 +28,9 @@ import {
   useActiveItem,
 } from './systems/items.js';
 import { TrinketInventory, resolveTrinketPickups, dropTrinket } from './systems/trinkets.js';
+import { ConsumableInventory, resolveConsumablePickups, useConsumableSlot } from './systems/consumables.js';
+import { PillIdentity } from './systems/pills.js';
+import { updateTempStatBoosts } from './systems/effects.js';
 import { checkSynergies } from './systems/synergies.js';
 import { stockShop, resolveShopPurchases } from './systems/shop.js';
 import { spawnBoss, spawnTrapdoor, resolveTrapdoor } from './systems/bosses.js';
@@ -42,6 +45,7 @@ import { renderRoom } from './render/renderer.js';
 import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
 import { drawTrinketSlot } from './ui/trinketSlot.js';
+import { drawConsumableSlot } from './ui/consumableSlot.js';
 import { drawMenuScreen, drawPauseScreen, drawDeathScreen } from './ui/screens.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
@@ -63,6 +67,10 @@ async function boot() {
   const getItemDef = (id) => registries.of('item').get(id);
   const trinketPools = buildItemPools(registries.of('trinket').all());
   const getTrinketDef = (id) => registries.of('trinket').get(id);
+  const cardPools = buildItemPools(registries.of('card').all());
+  const getCardDef = (id) => registries.of('card').get(id);
+  const pillDefs = registries.of('pill').all();
+  const getPillDef = (id) => registries.of('pill').get(id);
   const getBossDef = (id) => registries.of('boss').get(id);
   const getBossDefsForChapter = (chapter) => {
     const all = registries.of('boss').all();
@@ -154,6 +162,8 @@ async function boot() {
       currency: new Currency(),
       inventory: new ItemInventory(),
       trinketInventory: new TrinketInventory(),
+      consumableInventory: new ConsumableInventory(),
+      pillIdentity: new PillIdentity(pillDefs.map((d) => d.id), rngStreams.stream('pills')),
       playerHealth: new Health({ redMax: 6 }),
       stats: { kills: 0, floorsCleared: 0, startTime: performance.now(), elapsedSeconds: 0 },
     };
@@ -265,7 +275,7 @@ async function boot() {
         events,
       });
       resolveKeyLockedDoors(run.room, run.player, { currency: run.currency, events });
-      resolvePickups(run.room.world, run.player, { currency: run.currency, playerHealth: run.playerHealth, events, rng: run.spawnRng, trinketPools });
+      resolvePickups(run.room.world, run.player, { currency: run.currency, playerHealth: run.playerHealth, events, rng: run.spawnRng, trinketPools, cardPools });
       resolveTrinketPickups(run.room.world, run.player, {
         inventory: run.trinketInventory,
         stats: run.player.stats,
@@ -273,6 +283,14 @@ async function boot() {
         pools: trinketPools,
         getTrinketDef,
       });
+      resolveConsumablePickups(run.room.world, run.player, {
+        inventory: run.consumableInventory,
+        events,
+        getCardDef,
+        getPillDef,
+        pillIdentity: run.pillIdentity,
+      });
+      updateTempStatBoosts(run.player, dt);
       const firedSynergies = checkSynergies(run.inventory, run.player.stats, run.playerHealth, run.player, synergyRules, run.appliedSynergyIds);
       for (const ruleId of firedSynergies) {
         const rule = synergyRules.find((r) => r.id === ruleId);
@@ -287,6 +305,23 @@ async function boot() {
       }
       if (input.justPressed.has('dropTrinket')) {
         dropTrinket(run.room.world, run.trinketInventory, run.player.stats, { x: run.player.x, y: run.player.y });
+      }
+      if (input.justPressed.has('useConsumable')) {
+        useConsumableSlot(
+          run.consumableInventory,
+          {
+            world: run.room.world,
+            player: run.player,
+            playerHealth: run.playerHealth,
+            stats: run.player.stats,
+            events,
+            rng: run.spawnRng,
+            floor: run.floor,
+            floorRuntime: run.floorRuntime,
+            currency: run.currency,
+          },
+          { getCardDef, getPillDef, pillIdentity: run.pillIdentity }
+        );
       }
       if (input.justPressed.has('useActive') && run.inventory.actives.length > 0) {
         const activeDef = getItemDef(run.inventory.actives[0].id);
@@ -307,7 +342,7 @@ async function boot() {
         // Boss rooms drop their own guaranteed item + trapdoor (CLAUDE.md §3); no extra room-clear roll.
         if (run.floorRuntime.getCurrentCell().type !== 'boss') {
           const reward = rollRoomClearReward(run.spawnRng, run.player.stats.luck);
-          if (reward) spawnRewardPickup(run.room.world, reward, { x: run.centerX, y: run.centerY, rng: run.spawnRng, trinketPools });
+          if (reward) spawnRewardPickup(run.room.world, reward, { x: run.centerX, y: run.centerY, rng: run.spawnRng, trinketPools, cardPools });
         }
       }
 
@@ -361,6 +396,7 @@ async function boot() {
     renderRoom(ctx, { room: run.room, camera, playerHealth: run.playerHealth, particles: run.particles, decals: run.decals, dt, chapter });
     drawBanner(ctx, run.banner, { x: 0, y: 80, width: canvas.width });
     drawTrinketSlot(ctx, run.trinketInventory, { x: 26, y: 50 });
+    drawConsumableSlot(ctx, run.consumableInventory, { getCardDef, getPillDef, pillIdentity: run.pillIdentity }, { x: 26, y: 76 });
 
     const boss = run.room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
     if (boss) {

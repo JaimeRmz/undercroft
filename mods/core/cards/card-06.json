@@ -1,0 +1,12 @@
+{
+  "id": "core:card-06",
+  "name": "Rune of Fortune",
+  "description": "Permanently bends luck your way.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "luck",
+      "value": 2
+    }
+  ]
+}

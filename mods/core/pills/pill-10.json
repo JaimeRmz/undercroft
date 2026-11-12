@@ -1,0 +1,10 @@
+{
+  "id": "core:pill-10",
+  "name": "Full Health",
+  "description": "Heals you to full red hearts.",
+  "effects": [
+    {
+      "type": "healFull"
+    }
+  ]
+}

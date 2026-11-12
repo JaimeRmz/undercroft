@@ -7,16 +7,7 @@
  * STAT_FIELD_APPLIERS, just reversible).
  */
 import { circlesOverlap } from '../engine/collision.js';
-
-const STAT_FIELD_APPLIERS = {
-  damageUps: (stats, v) => (stats.damageUps += v),
-  flatDamage: (stats, v) => (stats.flatDamage += v),
-  tears: (stats, v) => (stats.tears += v),
-  range: (stats, v) => (stats.range += v),
-  shotSpeed: (stats, v) => (stats.shotSpeed += v),
-  speed: (stats, v) => (stats.speed += v),
-  luck: (stats, v) => (stats.luck += v),
-};
+import { applyStatEffects } from './statEffects.js';
 
 export class TrinketInventory {
   constructor() {
@@ -24,17 +15,11 @@ export class TrinketInventory {
   }
 }
 
-function applyTrinketStats(stats, def, sign) {
-  for (const effect of def.effects ?? []) {
-    STAT_FIELD_APPLIERS[effect.stat]?.(stats, effect.value * sign);
-  }
-}
-
 /** Equips `def` into the slot, first un-applying whatever was previously held. Returns the previously-held def (or null). */
 export function equipTrinket(inventory, stats, def) {
   const previous = inventory.current;
-  if (previous) applyTrinketStats(stats, previous, -1);
-  applyTrinketStats(stats, def, 1);
+  if (previous) applyStatEffects(stats, previous.effects, -1);
+  applyStatEffects(stats, def.effects, 1);
   inventory.current = def;
   return previous;
 }
@@ -42,7 +27,7 @@ export function equipTrinket(inventory, stats, def) {
 /** Clears the slot without replacing it (the drop-trinket input action). Returns the dropped def (or null). */
 export function unequipTrinket(inventory, stats) {
   if (!inventory.current) return null;
-  applyTrinketStats(stats, inventory.current, -1);
+  applyStatEffects(stats, inventory.current.effects, -1);
   const dropped = inventory.current;
   inventory.current = null;
   return dropped;

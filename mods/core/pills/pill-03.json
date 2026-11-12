@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-03",
+  "name": "Tears Up",
+  "description": "Permanently quickens your tears.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "tears",
+      "value": 0.6
+    }
+  ]
+}

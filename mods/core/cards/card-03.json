@@ -1,0 +1,11 @@
+{
+  "id": "core:card-03",
+  "name": "Rune of Shadow",
+  "description": "Grants a black heart.",
+  "effects": [
+    {
+      "type": "blackHeart",
+      "value": 2
+    }
+  ]
+}

@@ -55,6 +55,14 @@ export function addBlackHeart(health, halves) {
   return grant;
 }
 
+/** Shrinks max red hearts (current red is capped to the new max), used by devil deals / health-for-power trades. Floors at 0. */
+export function removeRedContainer(health, halves) {
+  const remove = Math.min(halves, health.redMax);
+  health.redMax -= remove;
+  health.red = Math.min(health.red, health.redMax);
+  return remove;
+}
+
 /** Heals red hearts up to redMax; if the build has no red containers, heals soul hearts instead. */
 export function heal(health, halves) {
   if (health.redMax > 0) {

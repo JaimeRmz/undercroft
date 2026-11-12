@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-02",
+  "name": "Speed Down",
+  "description": "Permanently slows your step.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "speed",
+      "value": -0.3
+    }
+  ]
+}

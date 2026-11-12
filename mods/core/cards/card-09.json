@@ -1,0 +1,11 @@
+{
+  "id": "core:card-09",
+  "name": "Rune of Greed",
+  "description": "Conjures a handful of coins.",
+  "effects": [
+    {
+      "type": "coins",
+      "value": 10
+    }
+  ]
+}

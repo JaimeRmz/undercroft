@@ -1,0 +1,13 @@
+{
+  "id": "core:card-07",
+  "name": "Rune of Fury",
+  "description": "A brief, furious surge of damage.",
+  "effects": [
+    {
+      "type": "statTemporary",
+      "stat": "damageUps",
+      "value": 1.5,
+      "duration": 10
+    }
+  ]
+}

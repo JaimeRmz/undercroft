@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-05",
+  "name": "Damage Up",
+  "description": "Permanently strengthens your tears.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "damageUps",
+      "value": 1
+    }
+  ]
+}

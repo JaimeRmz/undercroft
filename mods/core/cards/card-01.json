@@ -1,0 +1,10 @@
+{
+  "id": "core:card-01",
+  "name": "Rune of Mending",
+  "description": "Heals you to full red hearts.",
+  "effects": [
+    {
+      "type": "healFull"
+    }
+  ]
+}

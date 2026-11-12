@@ -1,0 +1,11 @@
+{
+  "id": "core:card-10",
+  "name": "Rune of Ruin",
+  "description": "Conjures a satchel of bombs.",
+  "effects": [
+    {
+      "type": "bombs",
+      "value": 3
+    }
+  ]
+}

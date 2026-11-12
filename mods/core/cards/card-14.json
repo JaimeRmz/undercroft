@@ -1,0 +1,12 @@
+{
+  "id": "core:card-14",
+  "name": "Rune of the Storm",
+  "description": "Unleashes a ring of force around you.",
+  "effects": [
+    {
+      "type": "nova",
+      "radius": 150,
+      "damage": 25
+    }
+  ]
+}

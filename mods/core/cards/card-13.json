@@ -1,0 +1,10 @@
+{
+  "id": "core:card-13",
+  "name": "Rune of Distance",
+  "description": "Tears a hole through space.",
+  "effects": [
+    {
+      "type": "teleport"
+    }
+  ]
+}

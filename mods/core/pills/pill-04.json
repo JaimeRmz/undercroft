@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-04",
+  "name": "Tears Down",
+  "description": "Permanently slows your tears.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "tears",
+      "value": -0.6
+    }
+  ]
+}

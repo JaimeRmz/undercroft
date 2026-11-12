@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-01",
+  "name": "Speed Up",
+  "description": "Permanently quickens your step.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "speed",
+      "value": 0.3
+    }
+  ]
+}

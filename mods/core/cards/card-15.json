@@ -1,0 +1,13 @@
+{
+  "id": "core:card-15",
+  "name": "Rune of Sacrifice",
+  "description": "Costs a heart container; grants lasting power.",
+  "effects": [
+    {
+      "type": "devilTrade",
+      "heartsCost": 2,
+      "stat": "damageUps",
+      "value": 2
+    }
+  ]
+}

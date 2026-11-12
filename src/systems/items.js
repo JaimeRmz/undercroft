@@ -8,16 +8,7 @@
 import { addRedContainer, addSoulHeart, addBlackHeart, heal } from './health.js';
 import { circlesOverlap } from '../engine/collision.js';
 import { applyEnemyDamage } from './enemies.js';
-
-const STAT_FIELD_APPLIERS = {
-  damageUps: (stats, v) => (stats.damageUps += v),
-  flatDamage: (stats, v) => (stats.flatDamage += v),
-  tears: (stats, v) => (stats.tears += v),
-  range: (stats, v) => (stats.range += v),
-  shotSpeed: (stats, v) => (stats.shotSpeed += v),
-  speed: (stats, v) => (stats.speed += v),
-  luck: (stats, v) => (stats.luck += v),
-};
+import { STAT_FIELD_APPLIERS } from './statEffects.js';
 
 export class ItemInventory {
   constructor() {

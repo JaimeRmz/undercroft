@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-07",
+  "name": "Range Up",
+  "description": "Permanently extends your reach.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "range",
+      "value": 1.5
+    }
+  ]
+}

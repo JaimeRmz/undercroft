@@ -1,0 +1,13 @@
+{
+  "id": "core:card-08",
+  "name": "Rune of Swiftness",
+  "description": "A brief burst of speed.",
+  "effects": [
+    {
+      "type": "statTemporary",
+      "stat": "speed",
+      "value": 0.4,
+      "duration": 8
+    }
+  ]
+}

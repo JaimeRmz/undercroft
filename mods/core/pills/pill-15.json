@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-15",
+  "name": "Lucky Foot",
+  "description": "Permanently bends luck strongly your way.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "luck",
+      "value": 4
+    }
+  ]
+}

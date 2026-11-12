@@ -1,0 +1,12 @@
+{
+  "id": "core:pill-06",
+  "name": "Damage Down",
+  "description": "Permanently weakens your tears.",
+  "effects": [
+    {
+      "type": "statPermanent",
+      "stat": "damageUps",
+      "value": -1
+    }
+  ]
+}

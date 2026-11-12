@@ -1,0 +1,11 @@
+{
+  "id": "core:pill-11",
+  "name": "Health Down",
+  "description": "Costs you a heart.",
+  "effects": [
+    {
+      "type": "damage",
+      "value": 2
+    }
+  ]
+}

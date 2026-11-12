@@ -1,0 +1,11 @@
+{
+  "id": "core:card-02",
+  "name": "Rune of Mourning",
+  "description": "Grants a soul heart.",
+  "effects": [
+    {
+      "type": "soulHeart",
+      "value": 2
+    }
+  ]
+}
