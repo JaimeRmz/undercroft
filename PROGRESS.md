@@ -23,7 +23,7 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 - [x] P0.10 Headless simulate harness + Playwright smoke test working. **GATE P0: test + simulate + smoke all green, screenshot reviewed.** ✅ PASSED 2026-11-12
 
 ## P1 — Core roguelike loop (a full run is possible)
-- [ ] P1.1 Floor generation exactly per §3 + 1000-seed tests + minimap (visited/adjacent/special icons)
+- [x] P1.1 Floor generation exactly per §3 + 1000-seed tests + minimap (visited/adjacent/special icons)
 - [ ] P1.2 Room templates (ASCII JSON) for normal/treasure/shop/boss/secret/start; 30+ normal layouts across 2 chapters; room transitions (slide)
 - [ ] P1.3 Pickups: coins (1/5/10), bombs (placed bombs: fuse, blast radius, destroy rocks, open secret walls, damage everything incl. player), keys, hearts (half/full/soul/black), batteries, chests (normal/locked), room clear rewards per formula
 - [ ] P1.4 Item system v1: passive + active items with charges, item pools with weights and removal, pedestals, pickup banner, 30 items
