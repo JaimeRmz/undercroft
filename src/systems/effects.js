@@ -8,6 +8,12 @@ import { heal, addSoulHeart, addBlackHeart, removeRedContainer } from './health.
 import { applyStatEffects } from './statEffects.js';
 import { applyEnemyDamage } from './enemies.js';
 
+/** Mod API hook (CLAUDE.md §4 `registerEffectAction`): adds a new effect `type` custom cards/pills/actives can use. `fn(effect, ctx)`, same ctx shape as every built-in case below. Checked only when `effect.type` matches none of the built-ins. */
+const EFFECT_ACTIONS = new Map();
+export function registerEffectAction(type, fn) {
+  EFFECT_ACTIONS.set(type, fn);
+}
+
 /** ctx: { world, player, playerHealth, stats, events, rng, floor, floorRuntime, currency }. */
 export function applyEffect(effect, ctx) {
   const { world, player, playerHealth, stats, events, rng, floor, floorRuntime, currency } = ctx;

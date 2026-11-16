@@ -122,6 +122,11 @@ export const WEAPON_TYPES = {
   laser: { priority: 3, fire: fireLaser },
 };
 
+/** Mod API hook (CLAUDE.md §4 `registerWeapon`): adds or overrides a weapon type by id. */
+export function registerWeaponType(id, weapon) {
+  WEAPON_TYPES[id] = weapon;
+}
+
 export function setWeaponType(player, type) {
   const next = WEAPON_TYPES[type];
   if (!next) return false;
