@@ -26,6 +26,7 @@ const FOLDER_TO_KIND = {
   transformations: 'transformation',
   gamemodes: 'gamemode',
   synergies: 'synergy',
+  unlocks: 'unlock',
 };
 
 export class ModLoader {

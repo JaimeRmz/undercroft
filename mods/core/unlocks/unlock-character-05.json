@@ -1,0 +1,12 @@
+{
+  "id": "core:unlock-character-05",
+  "name": "Not Alone",
+  "description": "Defeat the final boss.",
+  "condition": {
+    "type": "defeatFinalBoss"
+  },
+  "reward": {
+    "type": "character",
+    "id": "core:character-05"
+  }
+}

@@ -1,11 +1,13 @@
 /**
- * Save system (P2.9): a pure data transform between a live `run` (the plain
- * object main.js builds in createRun — real class instances, Maps, Sets)
- * and a JSON-safe plain object, plus a tiny storage-adapter interface
+ * Save system (P2.9/P2.10): a pure data transform between a live `run` (the
+ * plain object main.js builds in createRun — real class instances, Maps,
+ * Sets) and a JSON-safe plain object, plus a tiny storage-adapter interface
  * (getItem/setItem/removeItem) so the actual persistence medium
  * (window.localStorage in the browser, an in-memory map in tests) stays
  * behind an interface, per CLAUDE.md's "rendering, audio and input are
- * adapters behind interfaces" rule applied to storage.
+ * adapters behind interfaces" rule applied to storage. Also holds settings,
+ * persistent unlocks, and lifetime (cross-run) meta-stats — all three are
+ * independent of any single run's save and are never cleared on death/victory.
  *
  * Save granularity is "room entry": the save always restores the player to
  * the start of whatever room they were in, freshly re-stocked (same as any
@@ -17,6 +19,24 @@
 const RUN_KEY = 'undercroft:save:run';
 const SETTINGS_KEY = 'undercroft:save:settings';
 const UNLOCKS_KEY = 'undercroft:save:unlocks';
+const META_STATS_KEY = 'undercroft:save:metaStats';
+
+/** Lifetime (cross-run) stats (P2.10), independent of any single run's save — never cleared on death/victory. */
+const DEFAULT_META_STATS = { totalRuns: 0, totalKills: 0, totalFloorsCleared: 0, deepestStage: 0, victories: 0 };
+
+export function loadMetaStats(storage) {
+  const raw = storage.getItem(META_STATS_KEY);
+  if (!raw) return { ...DEFAULT_META_STATS };
+  try {
+    return { ...DEFAULT_META_STATS, ...JSON.parse(raw) };
+  } catch {
+    return { ...DEFAULT_META_STATS };
+  }
+}
+
+export function saveMetaStats(storage, metaStats) {
+  storage.setItem(META_STATS_KEY, JSON.stringify(metaStats));
+}
 
 /** In-memory storage adapter for headless tests and non-browser callers. */
 export function createMemoryStorage() {

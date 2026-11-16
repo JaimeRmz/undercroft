@@ -20,16 +20,38 @@ export function drawMenuScreen(ctx, { width, height, canContinue = false }) {
   if (canContinue) {
     centeredText(ctx, 'Press Q to continue your last run', width / 2, height / 2 + 28, { font: '10px sans-serif', color: '#d4af37' });
   }
+  centeredText(ctx, 'Press Ctrl for lifetime stats', width / 2, height / 2 + (canContinue ? 44 : 28), { font: '9px sans-serif', color: '#888' });
   ctx.restore();
 }
 
-/** `character`: the currently-highlighted character def (or null if no characters loaded). */
-export function drawCharacterSelectScreen(ctx, { width, height, character, index, count }) {
+/** `metaStats`: { totalRuns, totalKills, totalFloorsCleared, deepestStage, victories } (lifetime, cross-run; P2.10). */
+export function drawStatsScreen(ctx, { width, height, metaStats, unlockedCount, totalUnlockable }) {
+  overlay(ctx, width, height, 0.9);
+  centeredText(ctx, 'LIFETIME STATS', width / 2, height / 2 - 70, { font: 'bold 18px sans-serif' });
+  const lines = [
+    `Runs completed: ${metaStats.totalRuns}`,
+    `Victories: ${metaStats.victories}`,
+    `Enemies defeated: ${metaStats.totalKills}`,
+    `Floors cleared: ${metaStats.totalFloorsCleared}`,
+    `Deepest floor reached: ${metaStats.deepestStage}`,
+    `Unlocks: ${unlockedCount} / ${totalUnlockable}`,
+  ];
+  lines.forEach((line, i) => centeredText(ctx, line, width / 2, height / 2 - 30 + i * 16, { font: '11px sans-serif' }));
+  centeredText(ctx, 'Press Space to return', width / 2, height / 2 + 80, { font: 'bold 10px sans-serif', color: '#d4af37' });
+  ctx.restore();
+}
+
+/** `character`: the currently-highlighted character def (or null if no characters loaded). `unlocked`/`unlockHint` (P2.10): a locked character shows "???" plus how to unlock it, instead of its real name/description. */
+export function drawCharacterSelectScreen(ctx, { width, height, character, index, count, unlocked = true, unlockHint = null }) {
   overlay(ctx, width, height, 0.9);
   centeredText(ctx, 'CHOOSE YOUR CHARACTER', width / 2, height / 2 - 70, { font: 'bold 18px sans-serif' });
-  if (character) {
+  if (character && unlocked) {
     centeredText(ctx, `< ${character.name} >`, width / 2, height / 2 - 34, { font: 'bold 16px sans-serif', color: '#d4af37' });
     centeredText(ctx, character.description ?? '', width / 2, height / 2 - 14, { font: '10px sans-serif' });
+    centeredText(ctx, `${index + 1} / ${count}`, width / 2, height / 2 + 6, { font: '9px sans-serif', color: '#999' });
+  } else if (character) {
+    centeredText(ctx, '< ??? >', width / 2, height / 2 - 34, { font: 'bold 16px sans-serif', color: '#777' });
+    centeredText(ctx, `Locked - ${unlockHint ?? 'unlock condition unknown'}`, width / 2, height / 2 - 14, { font: '10px sans-serif', color: '#c0283c' });
     centeredText(ctx, `${index + 1} / ${count}`, width / 2, height / 2 + 6, { font: '9px sans-serif', color: '#999' });
   } else {
     centeredText(ctx, 'No characters loaded', width / 2, height / 2 - 14, { font: '12px sans-serif' });
@@ -45,8 +67,16 @@ export function drawPauseScreen(ctx, { width, height }) {
   ctx.restore();
 }
 
-/** `stats`: { floorsCleared, kills, coins, elapsedSeconds, killedBy }. */
-export function drawDeathScreen(ctx, { width, height, stats }) {
+function drawUnlockLines(ctx, width, baseY, newlyUnlocked) {
+  if (!newlyUnlocked || newlyUnlocked.length === 0) return baseY;
+  newlyUnlocked.forEach((name, i) => {
+    centeredText(ctx, `Unlocked: ${name}!`, width / 2, baseY + i * 15, { font: 'bold 10px sans-serif', color: '#4ad8ff' });
+  });
+  return baseY + newlyUnlocked.length * 15;
+}
+
+/** `stats`: { floorsCleared, kills, coins, elapsedSeconds, killedBy }. `newlyUnlocked` (P2.10): names of any unlock reward this run's end just qualified for. */
+export function drawDeathScreen(ctx, { width, height, stats, newlyUnlocked = [] }) {
   overlay(ctx, width, height, 0.9);
   centeredText(ctx, 'YOU DIED', width / 2, height / 2 - 50, { font: 'bold 26px sans-serif', color: '#c0283c' });
   centeredText(ctx, `Killed by ${stats.killedBy ?? 'Unknown causes'}`, width / 2, height / 2 - 34, { font: 'bold 12px sans-serif', color: '#ffb060' });
@@ -57,12 +87,13 @@ export function drawDeathScreen(ctx, { width, height, stats }) {
     `Time survived: ${stats.elapsedSeconds.toFixed(1)}s`,
   ];
   lines.forEach((line, i) => centeredText(ctx, line, width / 2, height / 2 - 20 + i * 15, { font: '10px sans-serif' }));
-  centeredText(ctx, 'Press Space to restart', width / 2, height / 2 + 62, { font: 'bold 11px sans-serif', color: '#d4af37' });
+  drawUnlockLines(ctx, width, height / 2 + 42, newlyUnlocked);
+  centeredText(ctx, 'Press Space to restart', width / 2, height / 2 + 62 + newlyUnlocked.length * 15, { font: 'bold 11px sans-serif', color: '#d4af37' });
   ctx.restore();
 }
 
-/** `stats`: { floorsCleared, kills, coins, elapsedSeconds }. Shown once the final boss's trapdoor is taken. */
-export function drawVictoryScreen(ctx, { width, height, stats }) {
+/** `stats`: { floorsCleared, kills, coins, elapsedSeconds }. Shown once the final boss's trapdoor is taken. `newlyUnlocked` (P2.10): names of any unlock reward this run's end just qualified for. */
+export function drawVictoryScreen(ctx, { width, height, stats, newlyUnlocked = [] }) {
   overlay(ctx, width, height, 0.9);
   centeredText(ctx, 'THE DEPTHS ARE QUIET', width / 2, height / 2 - 50, { font: 'bold 22px sans-serif', color: '#d4af37' });
   const lines = [
@@ -72,6 +103,7 @@ export function drawVictoryScreen(ctx, { width, height, stats }) {
     `Time survived: ${stats.elapsedSeconds.toFixed(1)}s`,
   ];
   lines.forEach((line, i) => centeredText(ctx, line, width / 2, height / 2 - 20 + i * 15, { font: '10px sans-serif' }));
-  centeredText(ctx, 'Press Space to play again', width / 2, height / 2 + 62, { font: 'bold 11px sans-serif', color: '#d4af37' });
+  drawUnlockLines(ctx, width, height / 2 + 42, newlyUnlocked);
+  centeredText(ctx, 'Press Space to play again', width / 2, height / 2 + 62 + newlyUnlocked.length * 15, { font: 'bold 11px sans-serif', color: '#d4af37' });
   ctx.restore();
 }

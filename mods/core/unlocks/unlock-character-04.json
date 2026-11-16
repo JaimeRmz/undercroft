@@ -1,0 +1,13 @@
+{
+  "id": "core:unlock-character-04",
+  "name": "A Familiar Face",
+  "description": "Finish 3 runs (win or lose).",
+  "condition": {
+    "type": "totalRunsCompleted",
+    "value": 3
+  },
+  "reward": {
+    "type": "character",
+    "id": "core:character-04"
+  }
+}

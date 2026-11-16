@@ -136,6 +136,27 @@ test('mods/core ships chapters 3-5 (P2.8): 5 more floors, 25 more enemies, 8 mor
   assert.ok(items.length >= 80, `expected 80+ items, got ${items.length}`);
 });
 
+test('mods/core ships 6 unlocks (P2.10), each gating a real character or item id, with core:character-01 never gated', async () => {
+  const registries = new ContentRegistries();
+  const loader = new ModLoader({
+    source: createFsSource(MODS_DIR),
+    registries,
+    events: createEventBus(),
+    log: createLogger('real-mods-test', 'error'),
+  });
+  await loader.loadAll();
+
+  const unlocks = registries.of('unlock').all();
+  assert.equal(unlocks.length, 6);
+  for (const def of unlocks) {
+    assert.ok(def.condition?.type, `${def.id} is missing a condition.type`);
+    assert.ok(def.reward?.type && def.reward?.id, `${def.id} is missing a reward`);
+    const rewardRegistry = registries.of(def.reward.type);
+    assert.ok(rewardRegistry.has(def.reward.id), `${def.id}'s reward ${def.reward.id} is not a real registered ${def.reward.type}`);
+  }
+  assert.ok(!unlocks.some((u) => u.reward.id === 'core:character-01'), 'the default starter character must never be gated behind an unlock');
+});
+
 test('core loads before example-mod per loadOrder/dependency', async () => {
   const registries = new ContentRegistries();
   const loader = new ModLoader({

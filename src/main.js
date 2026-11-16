@@ -53,7 +53,17 @@ import { updateTempStatBoosts } from './systems/effects.js';
 import { checkSynergies } from './systems/synergies.js';
 import { checkTransformations } from './systems/transformations.js';
 import { createCharacterHealth, applyCharacterStartingLoadout } from './systems/characters.js';
-import { saveRunToStorage, loadRunFromStorage, hasSavedRun, clearSavedRun } from './systems/save.js';
+import {
+  saveRunToStorage,
+  loadRunFromStorage,
+  hasSavedRun,
+  clearSavedRun,
+  loadUnlocks,
+  saveUnlocks,
+  loadMetaStats,
+  saveMetaStats,
+} from './systems/save.js';
+import { checkUnlocks, isRewardUnlocked, gatedRewardIds } from './systems/unlocks.js';
 import { stockShop, resolveShopPurchases } from './systems/shop.js';
 import { spawnBoss, spawnTrapdoor, resolveTrapdoor } from './systems/bosses.js';
 import { drawBossBar } from './ui/bossbar.js';
@@ -70,7 +80,7 @@ import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
 import { computeHudModel } from './ui/hudModel.js';
 import { drawHudPanels, drawFloorBanner } from './ui/hudPanels.js';
-import { drawMenuScreen, drawCharacterSelectScreen, drawPauseScreen, drawDeathScreen, drawVictoryScreen } from './ui/screens.js';
+import { drawMenuScreen, drawCharacterSelectScreen, drawPauseScreen, drawDeathScreen, drawVictoryScreen, drawStatsScreen } from './ui/screens.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
 import { createHttpSource } from './modding/source-http.js';
@@ -86,9 +96,12 @@ async function boot() {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const storage = window.localStorage;
+  const unlockDefs = registries.of('unlock').all();
+  let unlockedIds = loadUnlocks(storage);
+  let metaStats = loadMetaStats(storage);
 
   const templates = registries.of('room').all();
-  const itemPools = buildItemPools(registries.of('item').all());
+  const itemPools = buildItemPools(registries.of('item').all().filter((d) => isRewardUnlocked(d.id, unlockDefs, unlockedIds)));
   const getItemDef = (id) => registries.of('item').get(id);
   const trinketPools = buildItemPools(registries.of('trinket').all());
   const getTrinketDef = (id) => registries.of('trinket').get(id);
@@ -111,6 +124,7 @@ async function boot() {
   const synergyRules = registries.of('synergy').all();
   const transformationDefs = registries.of('transformation').all();
   const characterDefs = registries.of('character').all();
+  const isCharacterUnlocked = (def) => isRewardUnlocked(def.id, unlockDefs, unlockedIds);
 
   /** Stocks a freshly-visited room's cell with whatever it should hold (item/shop/boss/enemies). */
   function stockRoom(run, room, cell) {
@@ -398,6 +412,23 @@ async function boot() {
     saveRunToStorage(storage, run);
   }
 
+  /** Called once, the instant a run ends (death or victory): rolls lifetime meta-stats forward, persists them, and checks every P2.10 unlock condition against this run + the new lifetime totals. Returns the newly-unlocked defs (empty if none) so the death/victory screen can announce them. */
+  function finishRun(run, won) {
+    const summary = { kills: run.stats.kills, floorsCleared: run.stats.floorsCleared, stage: run.stage, won };
+    metaStats = {
+      totalRuns: metaStats.totalRuns + 1,
+      totalKills: metaStats.totalKills + summary.kills,
+      totalFloorsCleared: metaStats.totalFloorsCleared + summary.floorsCleared,
+      deepestStage: Math.max(metaStats.deepestStage, summary.stage),
+      victories: metaStats.victories + (won ? 1 : 0),
+    };
+    saveMetaStats(storage, metaStats);
+    const newlyUnlocked = checkUnlocks(unlockDefs, summary, metaStats, unlockedIds);
+    for (const def of newlyUnlocked) unlockedIds.add(def.reward.id);
+    if (newlyUnlocked.length > 0) saveUnlocks(storage, unlockedIds);
+    return newlyUnlocked;
+  }
+
   const input = createInputState();
   createKeyboardAdapter(input, window);
   const camera = new Camera({ viewportWidth: VIEW_W, viewportHeight: VIEW_H });
@@ -505,9 +536,22 @@ async function boot() {
             return;
           }
         }
+        if (gameState === 'menu' && input.justPressed.has('dropTrinket')) {
+          gameState = 'stats';
+          clearFrameEdges(input);
+          return;
+        }
         if (input.justPressed.has('useActive')) {
           selectedCharacterIndex = 0;
           gameState = 'characterSelect';
+        }
+        clearFrameEdges(input);
+        return;
+      }
+
+      if (gameState === 'stats') {
+        if (input.justPressed.has('useActive') || input.justPressed.has('pause')) {
+          gameState = 'menu';
         }
         clearFrameEdges(input);
         return;
@@ -521,7 +565,7 @@ async function boot() {
         if (count > 0 && input.justPressed.has('moveRight')) {
           selectedCharacterIndex = (selectedCharacterIndex + 1) % count;
         }
-        if (input.justPressed.has('useActive')) {
+        if (input.justPressed.has('useActive') && isCharacterUnlocked(characterDefs[selectedCharacterIndex])) {
           currentRun = createRun(characterDefs[selectedCharacterIndex]);
           gameState = 'playing';
         }
@@ -674,6 +718,7 @@ async function boot() {
 
       if (!run.playerHealth.alive) {
         run.stats.elapsedSeconds = (performance.now() - run.stats.startTime) / 1000;
+        run.newlyUnlocked = finishRun(run, false);
         gameState = 'dead';
         clearSavedRun(storage); // a finished run (win or lose) is never "continue"-able
         clearFrameEdges(input);
@@ -683,6 +728,7 @@ async function boot() {
       if (resolveTrapdoor(run.room.world, run.player)) {
         if (run.finalBossDefeated) {
           run.stats.elapsedSeconds = (performance.now() - run.stats.startTime) / 1000;
+          run.newlyUnlocked = finishRun(run, true);
           gameState = 'victory';
           clearSavedRun(storage);
         } else {
@@ -891,7 +937,18 @@ async function boot() {
 
     if (gameState === 'characterSelect') {
       ctx.clearRect(0, 0, VIEW_W, VIEW_H);
-      drawCharacterSelectScreen(ctx, { width: VIEW_W, height: VIEW_H, character: characterDefs[selectedCharacterIndex] ?? null, index: selectedCharacterIndex, count: characterDefs.length });
+      const selectedCharacter = characterDefs[selectedCharacterIndex] ?? null;
+      const unlocked = selectedCharacter ? isCharacterUnlocked(selectedCharacter) : true;
+      const unlockHint = !unlocked ? unlockDefs.find((u) => u.reward.type === 'character' && u.reward.id === selectedCharacter.id)?.description : null;
+      drawCharacterSelectScreen(ctx, { width: VIEW_W, height: VIEW_H, character: selectedCharacter, index: selectedCharacterIndex, count: characterDefs.length, unlocked, unlockHint });
+      requestAnimationFrame(frame);
+      return;
+    }
+
+    if (gameState === 'stats') {
+      ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+      const unlockedCount = unlockDefs.filter((u) => unlockedIds.has(u.reward.id)).length;
+      drawStatsScreen(ctx, { width: VIEW_W, height: VIEW_H, metaStats, unlockedCount, totalUnlockable: unlockDefs.length });
       requestAnimationFrame(frame);
       return;
     }
@@ -974,6 +1031,7 @@ async function boot() {
           elapsedSeconds: run.stats.elapsedSeconds,
           killedBy: run.stats.killedBy,
         },
+        newlyUnlocked: (run.newlyUnlocked ?? []).map((u) => u.name),
       });
     }
     if (gameState === 'victory') {
@@ -986,6 +1044,7 @@ async function boot() {
           coins: run.currency.coins,
           elapsedSeconds: run.stats.elapsedSeconds,
         },
+        newlyUnlocked: (run.newlyUnlocked ?? []).map((u) => u.name),
       });
     }
 

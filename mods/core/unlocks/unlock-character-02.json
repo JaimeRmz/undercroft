@@ -1,0 +1,13 @@
+{
+  "id": "core:unlock-character-02",
+  "name": "A Quieter Light",
+  "description": "Clear 2 floors in a single run.",
+  "condition": {
+    "type": "floorsClearedInRun",
+    "value": 2
+  },
+  "reward": {
+    "type": "character",
+    "id": "core:character-02"
+  }
+}

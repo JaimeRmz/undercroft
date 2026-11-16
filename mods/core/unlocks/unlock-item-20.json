@@ -1,0 +1,13 @@
+{
+  "id": "core:unlock-item-20",
+  "name": "Deeper Still",
+  "description": "Clear 4 floors in a single run.",
+  "condition": {
+    "type": "floorsClearedInRun",
+    "value": 4
+  },
+  "reward": {
+    "type": "item",
+    "id": "core:item-20"
+  }
+}

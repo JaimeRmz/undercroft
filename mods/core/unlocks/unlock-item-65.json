@@ -1,0 +1,13 @@
+{
+  "id": "core:unlock-item-65",
+  "name": "A Long Career",
+  "description": "Defeat 50 enemies over your lifetime.",
+  "condition": {
+    "type": "totalKillsLifetime",
+    "value": 50
+  },
+  "reward": {
+    "type": "item",
+    "id": "core:item-65"
+  }
+}

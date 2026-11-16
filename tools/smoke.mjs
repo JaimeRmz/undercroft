@@ -100,11 +100,36 @@ async function main() {
     await page.waitForTimeout(300);
 
     await shot('menu');
+
+    // --- P2.10: lifetime stats screen, reachable from the menu -----------------------------
+    {
+      await page.keyboard.press('ControlLeft');
+      await page.waitForTimeout(100);
+      expect((await snap()).state === 'stats', 'Ctrl at the menu did not open the lifetime stats screen');
+      await shot('stats-screen');
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(100);
+      expect((await snap()).state === 'menu', 'Space on the stats screen did not return to the menu');
+    }
+
     console.log('[smoke] dismissing the main menu...');
     await page.keyboard.press('Space');
     await page.waitForTimeout(150);
     expect((await snap()).state === 'characterSelect', 'did not reach character select after dismissing the menu');
     await shot('character-select');
+
+    // --- P2.10: a locked character shows "???" and can't be confirmed into a run -----------
+    {
+      await page.keyboard.press('KeyD'); // moveRight: cycle off character-01 (always unlocked) onto a locked one
+      await page.waitForTimeout(100);
+      await shot('character-select-locked');
+      await page.keyboard.press('Space'); // must be a no-op while locked
+      await page.waitForTimeout(100);
+      expect((await snap()).state === 'characterSelect', 'confirming a locked character started a run anyway');
+      await page.keyboard.press('KeyA'); // moveLeft: back to character-01 for the rest of the script
+      await page.waitForTimeout(100);
+    }
+
     console.log('[smoke] confirming a character...');
     await page.keyboard.press('Space');
     await page.waitForTimeout(900); // enemy grace period + first frames

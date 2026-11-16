@@ -1,0 +1,13 @@
+{
+  "id": "core:unlock-character-03",
+  "name": "Steady Aim",
+  "description": "Defeat 15 enemies in a single run.",
+  "condition": {
+    "type": "killsInRun",
+    "value": 15
+  },
+  "reward": {
+    "type": "character",
+    "id": "core:character-03"
+  }
+}

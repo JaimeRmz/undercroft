@@ -77,6 +77,12 @@ export const SCHEMAS = {
     id: { required: true, type: 'string' },
     requires: { required: true, isArray: true },
   },
+  unlock: {
+    id: { required: true, type: 'string' },
+    name: { required: true, type: 'string' },
+    condition: { required: true, type: 'object' },
+    reward: { required: true, type: 'object' },
+  },
 };
 
 /** Validates `def` against `schema`; returns an array of { field, problem } (empty = valid). */
