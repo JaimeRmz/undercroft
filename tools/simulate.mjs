@@ -190,7 +190,7 @@ function testKitchenSink(enemyDefs) {
     resolveCombat(room.world, { player, playerHealth, events });
     tickInvuln(playerHealth, DT);
     room.world.reap();
-    room.update();
+    room.update(DT);
     for (const e of room.world.entities.all()) {
       if (!isFinitePos(e)) throw new Error(`kitchen sink: entity ${e.type}#${e.id} has a non-finite position at frame ${frame}`);
     }
@@ -268,7 +268,7 @@ function testBotClearsRooms(enemyDefs, seedCount = 20) {
       resolveCombat(room.world, { player, playerHealth, events });
       tickInvuln(playerHealth, DT);
       room.world.reap();
-      cleared = room.update();
+      cleared = room.update(DT);
       if (!playerHealth.alive) break; // a loss is fine; only a stuck-forever room is a bug
     }
 
@@ -492,7 +492,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
       tickInvuln(playerHealth, DT);
       room.world.reap();
 
-      const justCleared = room.update();
+      const justCleared = room.update(DT);
       if (justCleared) {
         chargeActivesOnRoomClear(inventory);
         if (floorRuntime.getCurrentCell().type !== ROOM_TYPE.BOSS) {

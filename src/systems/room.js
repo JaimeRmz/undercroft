@@ -6,6 +6,7 @@
  */
 import { CONFIG } from '../core/config.js';
 import { World } from '../engine/world.js';
+import { log } from '../core/log.js';
 
 export const TILE = {
   FLOOR: 'floor',
@@ -31,6 +32,9 @@ export class Room {
     this.doors = new Map(); // side -> { tx, ty, locked }
     this.cleared = false;
     this._locked = false;
+    this._lockedSeconds = 0;
+    this._softlockEscaped = false;
+    this.templateId = null; // set by FloorRuntime after applying a template, for softlock-failsafe logging
 
     this._buildWalls();
     this._buildDoors(doorSides);
@@ -50,8 +54,13 @@ export class Room {
   setTileType(tx, ty, type) {
     this.tileTypes.set(this._key(tx, ty), type);
     const door = type === TILE.DOOR ? this._doorAt(tx, ty) : null;
-    const solid = type === TILE.WALL || type === TILE.ROCK || type === TILE.PIT || (door ? door.locked || door.keyLocked : false);
+    const doorLocked = door ? door.locked || door.keyLocked : false;
+    // Pits block ground-entity movement only. Rocks/walls/locked doors block both
+    // movement and projectiles. A flier can sit over a pit and still be shot.
+    const solid = type === TILE.WALL || type === TILE.ROCK || type === TILE.PIT || doorLocked;
+    const blocksProjectile = type === TILE.WALL || type === TILE.ROCK || doorLocked;
     this.world.tileGrid.setSolid(tx, ty, solid);
+    this.world.tileGrid.setBlocksProjectile(tx, ty, blocksProjectile);
   }
 
   getTileType(tx, ty) {
@@ -129,6 +138,7 @@ export class Room {
       this.setTileType(door.tx, door.ty, TILE.DOOR);
     }
     this._locked = true;
+    this._lockedSeconds = 0;
   }
 
   openDoors() {
@@ -139,12 +149,30 @@ export class Room {
     this._locked = false;
   }
 
-  /** Call once per tick. Locks doors while enemies live; opens them and marks cleared once they're all dead. Returns true the tick it clears. */
-  update() {
+  /**
+   * Call once per tick with the frame's dt. Locks doors while enemies live; opens
+   * them and marks cleared once they're all dead. Returns true the tick it clears.
+   *
+   * Failsafe: if a room stays locked for CONFIG.ROOM_SOFTLOCK_TIMEOUT_SECONDS
+   * straight (a template/AI bug left every enemy unreachable or unhittable), log
+   * the template id and force the doors open so the player is never truly stuck.
+   * The room never falsely reports "cleared" in this case — surviving enemies stay
+   * alive — it just stops re-locking the exits.
+   */
+  update(dt = 0) {
     if (this.cleared) return false;
+    if (this._softlockEscaped) return false;
     const enemiesAlive = this.world.entities.byType('enemy').some((e) => e.alive);
     if (enemiesAlive) {
       if (!this._locked) this.lockDoors();
+      this._lockedSeconds += dt;
+      if (this._lockedSeconds >= CONFIG.ROOM_SOFTLOCK_TIMEOUT_SECONDS) {
+        this._softlockEscaped = true;
+        log.warn(
+          `room locked ${CONFIG.ROOM_SOFTLOCK_TIMEOUT_SECONDS}s+ with enemies still alive — forcing doors open (template=${this.templateId ?? 'unknown'})`
+        );
+        this.openDoors();
+      }
       return false;
     }
     this.cleared = true;

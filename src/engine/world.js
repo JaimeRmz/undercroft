@@ -14,7 +14,13 @@ export class TileGrid {
     this.width = width;
     this.height = height;
     this.tileSize = tileSize;
+    // Two independent bitsets: `solid` blocks ground-entity movement (walls, rocks,
+    // locked doors, AND pits — a pit is a hole a walking entity can't cross);
+    // `blocksProjectile` blocks tears/shots (walls, rocks, locked doors — but NOT
+    // pits, since a tear flies over a pit same as a flying enemy does). Keeping
+    // these separate is what lets a flier sitting over a pit still be shot.
     this.solid = new Uint8Array(width * height);
+    this.blocksProjectile = new Uint8Array(width * height);
   }
 
   index(tx, ty) {
@@ -34,6 +40,17 @@ export class TileGrid {
   setSolid(tx, ty, value) {
     if (!this.inBounds(tx, ty)) return;
     this.solid[this.index(tx, ty)] = value ? 1 : 0;
+  }
+
+  /** Out-of-bounds tiles block projectiles too, so a tear can't fly off the edge of a room. */
+  isBlockingProjectile(tx, ty) {
+    if (!this.inBounds(tx, ty)) return true;
+    return this.blocksProjectile[this.index(tx, ty)] === 1;
+  }
+
+  setBlocksProjectile(tx, ty, value) {
+    if (!this.inBounds(tx, ty)) return;
+    this.blocksProjectile[this.index(tx, ty)] = value ? 1 : 0;
   }
 
   worldToTile(x, y) {

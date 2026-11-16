@@ -2,6 +2,7 @@
 import { FixedStepLoop } from './core/loop.js';
 import { CONFIG } from './core/config.js';
 import { FloorRuntime } from './systems/floor.js';
+import { TILE } from './systems/room.js';
 import { generateFloor } from './systems/floorgen.js';
 import {
   createTransitionState,
@@ -15,6 +16,7 @@ import { createPlayer, updatePlayer } from './systems/player.js';
 import { placePlayerInRoom } from './systems/roomEntry.js';
 import { describeDeathCause } from './systems/deathCause.js';
 import { spawnEnemy, updateEnemies } from './systems/enemies.js';
+import { findGroundSpawnTile } from './systems/spawnPlacement.js';
 import { updateProjectiles } from './systems/projectiles.js';
 import { resolveCombat } from './systems/combat.js';
 import { Health, tickInvuln } from './systems/health.js';
@@ -125,9 +127,7 @@ async function boot() {
     const count = run.spawnRng.int(1, 3);
     for (let i = 0; i < count; i++) {
       const def = run.spawnRng.pick(enemyDefs);
-      const tx = run.spawnRng.int(2, room.widthTiles - 3);
-      const ty = run.spawnRng.int(2, room.heightTiles - 3);
-      const center = room.world.tileGrid.tileCenter(tx, ty);
+      const center = findGroundSpawnTile(room, run.spawnRng, { flies: def.flies ?? false });
       spawnEnemy(room.world, def, { x: center.x, y: center.y, rng: run.spawnRng });
     }
   }
@@ -377,7 +377,7 @@ async function boot() {
         }
       }
 
-      const justCleared = run.room.update();
+      const justCleared = run.room.update(dt);
       if (justCleared) {
         chargeActivesOnRoomClear(run.inventory);
         // Boss rooms drop their own guaranteed item + trapdoor (CLAUDE.md §3); no extra room-clear roll.
@@ -484,6 +484,14 @@ async function boot() {
       return spawnEnemy(run.room.world, registries.of('enemy').get(defId), { x, y, rng: run.spawnRng });
     },
     enemyIds: () => registries.of('enemy').all().map((d) => d.id),
+    /** Paints a pit into the current room's tile grid (dev/test only, for P1.G1's pit-vs-tear verification). */
+    placePit(tx, ty) {
+      currentRun.room.placePit(tx, ty);
+    },
+    /** Clears a tile back to plain floor regardless of what a template put there (dev/test only). */
+    setFloor(tx, ty) {
+      currentRun.room.setTileType(tx, ty, TILE.FLOOR);
+    },
   };
 
   let lastTime = performance.now();

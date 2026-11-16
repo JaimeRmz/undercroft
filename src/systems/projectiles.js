@@ -57,7 +57,7 @@ export function updateProjectiles(world, dt, events, ctx = {}) {
     p.height = Math.sin(Math.PI * t) * CONFIG.TEAR_ARC_HEIGHT;
 
     const { tx, ty } = world.tileGrid.worldToTile(p.x, p.y);
-    const hitWall = world.tileGrid.isSolid(tx, ty);
+    const hitWall = world.tileGrid.isBlockingProjectile(tx, ty);
 
     if (hitWall && !runModifiersOnHitWall(p, modifierCtx)) {
       events?.emit('projectile:splash', { entity: p, reason: 'wall' });

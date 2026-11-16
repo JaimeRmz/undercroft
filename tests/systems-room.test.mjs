@@ -51,6 +51,20 @@ test('placeRock/placePit make a tile solid; destroyRock clears a rock back to fl
   assert.ok(room.world.tileGrid.isSolid(4, 3)); // impassable for grounded entities
 });
 
+test('a pit blocks ground movement but not projectiles; a rock blocks both', () => {
+  const room = new Room();
+  room.placePit(4, 3);
+  assert.ok(room.world.tileGrid.isSolid(4, 3));
+  assert.ok(!room.world.tileGrid.isBlockingProjectile(4, 3), 'a tear should fly over a pit');
+
+  room.placeRock(6, 2);
+  assert.ok(room.world.tileGrid.isSolid(6, 2));
+  assert.ok(room.world.tileGrid.isBlockingProjectile(6, 2), 'a rock should stop a tear like a wall');
+
+  room.destroyRock(6, 2);
+  assert.ok(!room.world.tileGrid.isBlockingProjectile(6, 2));
+});
+
 test('destroyRock on a non-rock tile is a no-op and returns false', () => {
   const room = new Room();
   assert.equal(room.destroyRock(6, 3), false); // plain floor
@@ -115,4 +129,36 @@ test('once cleared, update() stays idempotent (doors remain open, no re-locking)
   room.update(); // clears immediately, no enemies
   assert.equal(room.update(), false);
   assert.ok(!room.world.tileGrid.isSolid(room.doors.get('south').tx, room.doors.get('south').ty));
+});
+
+test('softlock failsafe: a room locked 20s+ with an enemy still alive forces its doors open', () => {
+  const room = new Room();
+  room.templateId = 'core:test-template';
+  const center = room.world.tileGrid.tileCenter(6, 3);
+  spawnEnemy(room.world, CHASER_DEF, { x: center.x, y: center.y });
+
+  // Under the timeout: still locked, not cleared.
+  room.update(10);
+  for (const door of room.doors.values()) assert.ok(room.world.tileGrid.isSolid(door.tx, door.ty));
+  assert.ok(!room.cleared);
+
+  // Crossing CONFIG.ROOM_SOFTLOCK_TIMEOUT_SECONDS (20) total: doors forced open, even though the enemy is still alive.
+  room.update(11);
+  for (const door of room.doors.values()) assert.ok(!room.world.tileGrid.isSolid(door.tx, door.ty));
+  assert.ok(!room.cleared, 'the room never falsely claims to be cleared just because the failsafe fired');
+
+  // Doors must stay open on later ticks too, instead of immediately re-locking since the enemy is still alive.
+  room.update(1);
+  for (const door of room.doors.values()) assert.ok(!room.world.tileGrid.isSolid(door.tx, door.ty));
+});
+
+test('softlock failsafe never fires while the room keeps getting cleared/re-locked normally', () => {
+  const room = new Room();
+  const center = room.world.tileGrid.tileCenter(6, 3);
+  const enemy = spawnEnemy(room.world, CHASER_DEF, { x: center.x, y: center.y });
+  room.update(5); // locked for 5s, well under the 20s timeout
+  enemy.destroy();
+  const clearedNow = room.update(0.016);
+  assert.ok(clearedNow);
+  for (const door of room.doors.values()) assert.ok(!room.world.tileGrid.isSolid(door.tx, door.ty));
 });

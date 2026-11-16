@@ -36,6 +36,7 @@ test('updateProjectiles moves the tear and arcs its height up then back to 0 acr
 test('updateProjectiles destroys the tear early and emits projectile:splash on hitting a solid tile', () => {
   const world = new World({ widthTiles: 10, heightTiles: 10, tileSize: 40 });
   world.tileGrid.setSolid(5, 2, true); // wall tile directly in the tear's path
+  world.tileGrid.setBlocksProjectile(5, 2, true);
   const stats = new Stats({ range: 100 }); // long range; wall should stop it first
   const tear = spawnTear(world, { x: 40, y: 100, dir: { x: 1, y: 0 }, stats });
   const events = createEventBus();
@@ -48,4 +49,21 @@ test('updateProjectiles destroys the tear early and emits projectile:splash on h
   assert.ok(!tear.alive);
   assert.ok(splash);
   assert.equal(splash.reason, 'wall');
+});
+
+test('updateProjectiles flies straight over a pit tile (ground-only solid) without splashing', () => {
+  const world = new World({ widthTiles: 20, heightTiles: 10, tileSize: 40 }); // wide open room, well past the pit tile
+  world.tileGrid.setSolid(5, 2, true); // a pit is solid for ground movement...
+  // ...but NOT in the blocksProjectile bitset, so a tear should sail right over it, into the open floor beyond.
+  const stats = new Stats({ range: 10 }); // expires inside the room, well before the far wall
+  const tear = spawnTear(world, { x: 40, y: 100, dir: { x: 1, y: 0 }, stats });
+  const events = createEventBus();
+  let splash;
+  events.on('projectile:splash', (p) => (splash = p));
+
+  for (let i = 0; i < 500 && tear.alive; i++) {
+    updateProjectiles(world, 1 / 60, events);
+  }
+  assert.ok(!tear.alive, 'tear should still expire eventually, at max range');
+  assert.equal(splash.reason, 'range');
 });

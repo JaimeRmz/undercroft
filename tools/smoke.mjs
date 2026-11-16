@@ -226,6 +226,39 @@ async function main() {
       await page.evaluate(() => window.__undercroft.killAllEnemies());
     }
 
+    // --- P1.G1: a tear flies over a pit and kills an enemy on the far side -------------------------
+    {
+      const s0 = await snap();
+      const normal = s0.floorCells.find((c) => c.type === 'normal');
+      await page.evaluate((key) => {
+        window.__undercroft.gotoCell(key);
+        window.__undercroft.killAllEnemies();
+        window.__undercroft.setHealth(6);
+        // Clear the whole row first (the template's own obstacles may already occupy it),
+        // then paint a clean 3-tile-wide pit directly between the player and the turret.
+        for (let tx = 1; tx <= 11; tx++) window.__undercroft.setFloor(tx, 3);
+        window.__undercroft.placePit(5, 3);
+        window.__undercroft.placePit(6, 3);
+        window.__undercroft.placePit(7, 3);
+        window.__undercroft.setPlayer(100, 140); // tile (2,3) — left of the pit
+        window.__undercroft.spawnEnemyAt('core:turret', 340, 140); // tile (8,3) — right of the pit, within shot range (6.5 tiles)
+      }, normal.key);
+      await page.waitForTimeout(250); // let the fresh spawn clear the entry-grace window
+      await page.keyboard.down('ArrowRight');
+      let killed = false;
+      for (let i = 0; i < 40; i++) {
+        await page.waitForTimeout(100);
+        await page.evaluate(() => window.__undercroft.setHealth(6));
+        if ((await snap()).enemies === 0) {
+          killed = true;
+          break;
+        }
+        if (i === 2) await shot('tears-over-pit'); // grab the shot mid-fight, tear(s) visibly crossing the pit
+      }
+      await page.keyboard.up('ArrowRight');
+      expect(killed, 'a tear aimed straight across a 3-tile pit never killed the turret on the far side');
+    }
+
     // --- full HUD + boss fight --------------------------------------------------------------------
     {
       await page.evaluate(() => window.__undercroft.giveLoadout());

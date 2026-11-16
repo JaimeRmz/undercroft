@@ -17,6 +17,23 @@ test('setSolid/isSolid round-trip within bounds', () => {
   assert.ok(!grid.isSolid(3, 3));
 });
 
+test('solid and blocksProjectile are independent bitsets (a pit can block one but not the other)', () => {
+  const grid = new TileGrid(13, 7, 40);
+  grid.setSolid(3, 3, true); // pit: blocks ground movement...
+  assert.ok(grid.isSolid(3, 3));
+  assert.ok(!grid.isBlockingProjectile(3, 3), '...but not projectiles, by default');
+  grid.setBlocksProjectile(3, 3, true); // rock/wall: blocks both
+  assert.ok(grid.isBlockingProjectile(3, 3));
+  assert.ok(grid.isSolid(3, 3));
+});
+
+test('TileGrid treats out-of-bounds as blocking projectiles too', () => {
+  const grid = new TileGrid(13, 7, 40);
+  assert.ok(grid.isBlockingProjectile(-1, 0));
+  assert.ok(grid.isBlockingProjectile(13, 0));
+  assert.ok(!grid.isBlockingProjectile(0, 0));
+});
+
 test('resolveCircleVsTileGrid pushes a circle out of a single solid tile', () => {
   const grid = new TileGrid(13, 7, 40);
   grid.setSolid(1, 0, true); // tile spans x:[40,80), y:[0,40)

@@ -47,6 +47,7 @@ export class FloorRuntime {
     const room = new Room({ doorSides });
     const template = pickTemplate(this.templates, { type: cell.type, chapter: this.floor.stage, rng: this.rng });
     if (template) applyTemplateToRoom(room, template);
+    room.templateId = template?.id ?? null;
     this._lockKeyDoors(room, cell, doorSides);
     return room;
   }
