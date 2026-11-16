@@ -65,17 +65,15 @@ test('a key-locked door renders a distinct gold color plus a keyhole, not the de
   assert.ok(ctx.calls.length > 1, 'expected a keyhole overlay beyond the base fill');
 });
 
-test('doors leading to treasure, shop and boss rooms each get their own distinct tint', () => {
+test('doors leading to treasure, shop, boss, and every P2.6 special room type each get their own distinct tint', () => {
   const colorFor = (leadsToType) => {
     const ctx = createMockCtx(64, 64);
     drawDoorTile(ctx, 0, 0, 40, '#443322', { locked: false, keyLocked: false, leadsToType });
     return ctx.calls[0].fillStyle;
   };
-  const treasure = colorFor('treasure');
-  const shop = colorFor('shop');
-  const boss = colorFor('boss');
-  const normal = colorFor('normal');
-  assert.equal(new Set([treasure, shop, boss, normal]).size, 4, 'expected 4 distinct colors');
+  const types = ['treasure', 'shop', 'boss', 'normal', 'challenge', 'curse', 'sacrifice', 'arcade', 'devil', 'angel'];
+  const colors = types.map(colorFor);
+  assert.equal(new Set(colors).size, types.length, `expected ${types.length} distinct colors, got ${JSON.stringify(colors)}`);
 });
 
 test('an enemy-locked door that also leads to a boss room still reads as locked (lock state takes priority over destination tint)', () => {

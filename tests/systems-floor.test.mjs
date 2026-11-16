@@ -199,3 +199,47 @@ test('from floor 2 on, the door approaching a treasure/shop room is key-locked, 
     return;
   }
 });
+
+test('P2.6: attachBonusRoom carves a brand-new cell + a real door both ways off the current room', () => {
+  for (let i = 0; i < 50; i++) {
+    const floor = generateFloor(2, new Rng(`attach-bonus-${i}`));
+    const runtime = new FloorRuntime(floor, TEMPLATES, new Rng(`attach-bonus-templates-${i}`));
+    runtime.currentKey = cellKey(floor.boss.x, floor.boss.y);
+    const bossRoom = runtime.getCurrentRoom(); // builds it, carving its real doors first
+    const doorsBefore = bossRoom.doors.size;
+
+    const key = runtime.attachBonusRoom('devil');
+    if (!key) continue; // this boss room happened to have no free wall; try another seed
+
+    assert.equal(bossRoom.doors.size, doorsBefore + 1, 'the boss room should have gained exactly one new door');
+    const newCell = floor.cells.get(key);
+    assert.equal(newCell.type, 'devil');
+
+    const newRoom = runtime.getRoom(key);
+    assert.equal(newRoom.doors.size, 1, 'the new room should have exactly one door, leading back to the boss room');
+    return;
+  }
+  assert.fail('no seed in range produced a boss room with a free wall to attach a bonus room to');
+});
+
+test('P2.6: attachBonusRoom returns null and changes nothing once every side of the current room is taken', () => {
+  const floor = generateFloor(1, new Rng('attach-bonus-no-room'));
+  const runtime = new FloorRuntime(floor, TEMPLATES, new Rng('attach-bonus-no-room-templates'));
+  let attached = 0;
+  while (runtime.attachBonusRoom(`filler-${attached}`)) attached++; // box the current room in on every side
+  const cellCountBefore = floor.cells.size;
+  const result = runtime.attachBonusRoom('devil');
+  assert.equal(result, null);
+  assert.equal(floor.cells.size, cellCountBefore);
+});
+
+test('P2.6: peekNeighborCell looks at a neighbor without moving the current room', () => {
+  const floor = generateFloor(1, new Rng('peek-check'));
+  const runtime = new FloorRuntime(floor, TEMPLATES, new Rng('peek-check-templates'));
+  const dir = findDoorableDirection(floor, floor.startCell);
+  const peeked = runtime.peekNeighborCell(dir);
+  const [dx, dy] = DELTAS[dir];
+  const expected = floor.cells.get(cellKey(floor.startCell.x + dx, floor.startCell.y + dy));
+  assert.equal(peeked, expected);
+  assert.equal(runtime.currentKey, cellKey(floor.startCell.x, floor.startCell.y), 'peeking must not move the runtime');
+});

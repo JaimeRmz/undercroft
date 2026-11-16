@@ -6,6 +6,7 @@
  * Pure data (no rendering) — this only produces the room-type graph; P1.2 maps
  * each cell onto an actual room template.
  */
+import { CONFIG } from '../core/config.js';
 
 export const FLOOR_GRID_WIDTH = 9; // column 0 kept empty, so usable columns are 1..8
 export const FLOOR_GRID_HEIGHT = 8;
@@ -19,6 +20,12 @@ export const ROOM_TYPE = {
   SHOP: 'shop',
   SECRET: 'secret',
   SUPER_SECRET: 'supersecret',
+  CHALLENGE: 'challenge',
+  CURSE: 'curse',
+  SACRIFICE: 'sacrifice',
+  ARCADE: 'arcade',
+  DEVIL: 'devil',
+  ANGEL: 'angel',
 };
 
 export function cellKey(x, y) {
@@ -139,12 +146,22 @@ function findSuperSecretCandidate(cells, rng) {
   return candidates.length > 0 ? rng.pick(candidates) : null;
 }
 
+/** Rolls `chance`; if it hits and the pool has a spare dead end, pulls one out and types it. Mutates `pool`. */
+function maybeAssignSpecialType(pool, rng, chance, type) {
+  if (pool.length === 0 || !rng.chance(chance)) return null;
+  const idx = rng.int(0, pool.length - 1);
+  const [cell] = pool.splice(idx, 1);
+  cell.type = type;
+  return cell;
+}
+
 /**
  * Generates one floor's room graph. Rejects and regenerates (per CLAUDE.md §3)
  * when the room count is wrong, the boss room touches the start room, or
- * there aren't enough dead ends left for treasure + shop.
+ * there aren't enough dead ends left for treasure + shop. `isPlayerFullHealth`
+ * picks the sacrifice room's higher at-full-health chance (§3).
  */
-export function generateFloor(stage, rng, { maxAttempts = 5000 } = {}) {
+export function generateFloor(stage, rng, { maxAttempts = 5000, isPlayerFullHealth = true } = {}) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const { cells, filled, target, deadEnds, startCell } = buildGraph(rng, stage);
     if (filled !== target) continue;
@@ -164,6 +181,15 @@ export function generateFloor(stage, rng, { maxAttempts = 5000 } = {}) {
     treasure.type = ROOM_TYPE.TREASURE;
     const shop = remaining[1];
     shop.type = ROOM_TYPE.SHOP;
+
+    // Remaining dead ends not already claimed by treasure/shop: independent chance rolls
+    // for each optional special room type (§2/§3), each consuming at most one dead end.
+    const specialPool = remaining.slice(2);
+    const sacrificeChance = isPlayerFullHealth ? CONFIG.SACRIFICE_ROOM_CHANCE_FULL_HEALTH : CONFIG.SACRIFICE_ROOM_CHANCE;
+    const sacrifice = maybeAssignSpecialType(specialPool, rng, sacrificeChance, ROOM_TYPE.SACRIFICE);
+    const challenge = stage > 1 ? maybeAssignSpecialType(specialPool, rng, CONFIG.CHALLENGE_ROOM_CHANCE_FLOOR2, ROOM_TYPE.CHALLENGE) : null;
+    const curse = maybeAssignSpecialType(specialPool, rng, CONFIG.CURSE_ROOM_CHANCE, ROOM_TYPE.CURSE);
+    const arcade = maybeAssignSpecialType(specialPool, rng, CONFIG.ARCADE_ROOM_CHANCE, ROOM_TYPE.ARCADE);
 
     const secretThreshold = attempt < 300 ? 3 : attempt < 600 ? 2 : 1;
     const secretPos = findSecretRoomCandidate(cells, deadEnds, rng, secretThreshold);
@@ -189,6 +215,10 @@ export function generateFloor(stage, rng, { maxAttempts = 5000 } = {}) {
       shop,
       secret,
       superSecret,
+      sacrifice,
+      challenge,
+      curse,
+      arcade,
       target,
       roomCount: filled,
       attempts: attempt + 1,

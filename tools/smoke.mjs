@@ -335,6 +335,23 @@ async function main() {
       await shot('transformation');
     }
 
+    // --- P2.6: special room art (sacrifice spike, arcade machines, devil item) ------------------
+    {
+      const s0 = await snap();
+      const normal = s0.floorCells.find((c) => c.type === 'normal');
+      await page.evaluate((key) => {
+        window.__undercroft.gotoCell(key);
+        window.__undercroft.killAllEnemies();
+        window.__undercroft.setHealth(6);
+        window.__undercroft.giveCoins(30);
+        window.__undercroft.debugStockSpecial('sacrifice');
+        window.__undercroft.debugStockSpecial('arcade');
+        window.__undercroft.debugStockSpecial('devil');
+      }, normal.key);
+      await page.waitForTimeout(200);
+      await shot('special-rooms');
+    }
+
     // --- P1.G7: door open-flash pulse, right as a cleared room's doors swing open --------------
     {
       const s0 = await snap();

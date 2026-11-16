@@ -157,6 +157,15 @@ const specials = [
   { id: 'core:secret-01', type: 'secret', weight: 1, rows: blankRows() },
   { id: 'core:secret-02', type: 'secret', weight: 1, rows: (() => { const r = blankRows(); PATTERNS.bigCenterRock(r); return r; })() },
   { id: 'core:supersecret-01', type: 'supersecret', weight: 1, rows: blankRows() },
+  // P2.6 special rooms — plain layouts; these room types are about a mechanic
+  // (waves/spikes/a spiked door/machines/a heart-cost or free deal), not an
+  // obstacle course, so one or two simple variants each is enough.
+  { id: 'core:challenge-01', type: 'challenge', weight: 1, rows: blankRows() },
+  { id: 'core:curse-01', type: 'curse', weight: 1, rows: (() => { const r = blankRows(); PATTERNS.sparseRocks(r); return r; })() },
+  { id: 'core:sacrifice-01', type: 'sacrifice', weight: 1, rows: blankRows() },
+  { id: 'core:arcade-01', type: 'arcade', weight: 1, rows: blankRows() },
+  { id: 'core:devil-01', type: 'devil', weight: 1, rows: blankRows() },
+  { id: 'core:angel-01', type: 'angel', weight: 1, rows: blankRows() },
 ];
 specials.forEach(writeTemplate);
 

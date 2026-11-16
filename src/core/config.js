@@ -59,7 +59,9 @@ export const CONFIG = {
   SECRET_ROOM_LOOSEN_ATTEMPTS_2: 600,
   SACRIFICE_ROOM_CHANCE: 1 / 7,
   SACRIFICE_ROOM_CHANCE_FULL_HEALTH: 1 / 3,
-  CHALLENGE_ROOM_CHANCE_FLOOR2: 0.5,
+  CHALLENGE_ROOM_CHANCE_FLOOR2: 0.5, // [assumed] also used for every floor from 2 on, since CLAUDE.md only gives floor 2's rate
+  CURSE_ROOM_CHANCE: 1 / 6, // [assumed] no canonical rate given
+  ARCADE_ROOM_CHANCE: 1 / 8, // [assumed] no canonical rate given
 
   // Champions (CLAUDE.md §3: base ~5% chance, x2.6 HP always, one random secondary effect)
   CHAMPION_CHANCE: 0.05,
@@ -139,6 +141,21 @@ export const CONFIG = {
   CONFUSE_REDIRECT_SECONDS: 0.5, // how often a confused enemy picks a new random direction
   BOSS_STATUS_IMMUNITY_SECONDS: 8, // CLAUDE.md §3: "~8 seconds of status immunity after being afflicted"
   CHARM_ATTACK_COOLDOWN_TICKS: 30, // [assumed] half a second at 60Hz between a charmed enemy's attacks on others
+
+  // Devil/angel deal rooms (§3: "chance builds from +35% for no red-heart damage during
+  // the boss fight and +99% for none on the whole floor, drops after seeing one recently
+  // (x0.25). Never on floor 1.") — base rate and the "recently" window are [assumed],
+  // since CLAUDE.md doesn't give them; the two bonuses are given and used as written.
+  DEAL_ROOM_BASE_CHANCE: 0.1,
+  DEAL_ROOM_NO_BOSS_DAMAGE_BONUS: 0.35,
+  DEAL_ROOM_NO_FLOOR_DAMAGE_CHANCE: 0.99,
+  DEAL_ROOM_RECENT_MULT: 0.25,
+  DEAL_ROOM_RECENT_FLOORS: 1, // "recently" = the immediately preceding floor
+  SACRIFICE_PAYOUT_HITS: 3, // [assumed] spike touches needed per reward
+  SACRIFICE_MAX_PAYOUTS: 3, // [assumed] caps farming a single sacrifice room visit
+  CURSE_DOOR_DAMAGE_HALF_HEARTS: 1, // [assumed] "spiked door" damage, both entering and leaving
+  CHALLENGE_WAVE_INTERVAL_SECONDS: 0.5, // [assumed] pause between a wave clearing and the next one spawning
+  ARCADE_SLOT_COST: 5, // [assumed] coins per pull
 
   // Familiars (§3: orbitals, followers that shoot, blue-fly style helpers) — all [assumed], no canonical values
   FAMILIAR_FOLLOW_EASE: 6, // per-second ease-toward-target rate for 'follow'/'hover' behaviors

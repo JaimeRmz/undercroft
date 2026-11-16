@@ -3,7 +3,19 @@ import { FixedStepLoop } from './core/loop.js';
 import { CONFIG } from './core/config.js';
 import { FloorRuntime } from './systems/floor.js';
 import { TILE } from './systems/room.js';
-import { generateFloor } from './systems/floorgen.js';
+import { generateFloor, ROOM_TYPE } from './systems/floorgen.js';
+import {
+  applyCurseDoorDamage,
+  spawnSacrificeSpike,
+  resolveSacrificeSpikes,
+  isAtFullRedHealth,
+  setChallengeWaves,
+  updateChallengeRoom,
+  spawnSlotMachine,
+  spawnFortuneMachine,
+  resolveArcadeMachines,
+} from './systems/specialRooms.js';
+import { dealRoomChance, rollDealRoomType, spawnDevilItem, resolveDevilDealPurchases } from './systems/deals.js';
 import {
   createTransitionState,
   startTransition,
@@ -23,7 +35,7 @@ import { resolveCombat } from './systems/combat.js';
 import { Health, tickInvuln } from './systems/health.js';
 import { Stats } from './systems/stats.js';
 import { placeBomb, updateBombs } from './systems/bombs.js';
-import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from './systems/pickups.js';
+import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup, spawnPickup, PICKUP_TYPE, rollCoinValue } from './systems/pickups.js';
 import {
   ItemInventory,
   pickUpItem,
@@ -126,7 +138,68 @@ async function boot() {
       return;
     }
 
-    if (cell.type !== 'normal') return;
+    if (cell.type === 'sacrifice') {
+      const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
+      spawnSacrificeSpike(room.world, { x: center.x, y: center.y });
+      return;
+    }
+
+    if (cell.type === 'arcade') {
+      const midY = Math.floor(room.heightTiles / 2);
+      spawnSlotMachine(room.world, room.world.tileGrid.tileCenter(Math.round(room.widthTiles * 0.35), midY));
+      spawnFortuneMachine(room.world, room.world.tileGrid.tileCenter(Math.round(room.widthTiles * 0.65), midY));
+      return;
+    }
+
+    if (cell.type === 'devil' || cell.type === 'angel') {
+      const midY = Math.floor(room.heightTiles / 2);
+      const positions = [0.4, 0.6].map((frac) => room.world.tileGrid.tileCenter(Math.round(room.widthTiles * frac), midY));
+      for (const pos of positions) {
+        const itemId = itemPools.draw(cell.type, run.spawnRng);
+        if (!itemId) continue;
+        if (cell.type === 'devil') spawnDevilItem(room.world, itemId, pos);
+        else spawnItemPedestal(room.world, itemId, pos);
+      }
+      return;
+    }
+
+    if (cell.type === 'secret') {
+      const enemyDefs = getEnemyDefsForChapter(chapter);
+      for (let i = 0; i < run.spawnRng.int(1, 2) && enemyDefs.length > 0; i++) {
+        const def = run.spawnRng.pick(enemyDefs);
+        const center = findGroundSpawnTile(room, run.spawnRng, { flies: def.flies ?? false });
+        spawnEnemy(room.world, def, { x: center.x, y: center.y, rng: run.spawnRng });
+      }
+      const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
+      spawnPickup(room.world, PICKUP_TYPE.COIN, { x: center.x, y: center.y, value: rollCoinValue(run.spawnRng) });
+      return;
+    }
+
+    if (cell.type === 'supersecret') {
+      const center = room.world.tileGrid.tileCenter(Math.floor(room.widthTiles / 2), Math.floor(room.heightTiles / 2));
+      spawnPickup(room.world, PICKUP_TYPE.CHEST, { x: center.x, y: center.y });
+      return;
+    }
+
+    if (cell.type === 'challenge') {
+      const enemyDefs = getEnemyDefsForChapter(chapter);
+      if (enemyDefs.length === 0) return;
+      const waves = [];
+      for (let w = 0; w < 3; w++) {
+        // [assumed] 3 waves of 2-4 enemies each
+        const wave = [];
+        for (let i = 0; i < run.spawnRng.int(2, 4); i++) wave.push(run.spawnRng.pick(enemyDefs));
+        waves.push(wave);
+      }
+      setChallengeWaves(room, waves);
+      for (const def of waves[0]) {
+        const center = findGroundSpawnTile(room, run.spawnRng, { flies: def.flies ?? false });
+        spawnEnemy(room.world, def, { x: center.x, y: center.y, rng: run.spawnRng });
+      }
+      return;
+    }
+
+    if (cell.type !== 'normal' && cell.type !== 'curse') return; // curse rooms stock exactly like a normal room; only their door differs
     const enemyDefs = getEnemyDefsForChapter(chapter);
     if (enemyDefs.length === 0) return;
     const count = run.spawnRng.int(1, 3);
@@ -150,9 +223,11 @@ async function boot() {
   function advanceFloor(run) {
     run.stage += 1;
     run.stats.floorsCleared += 1;
-    run.floor = generateFloor(run.stage, run.floorRng);
+    run.floor = generateFloor(run.stage, run.floorRng, { isPlayerFullHealth: isAtFullRedHealth(run.playerHealth) });
     run.floorRuntime = new FloorRuntime(run.floor, templates, run.templateRng);
     run.stockedRooms.clear();
+    run.floorRedDamageTaken = false; // a fresh floor starts "clean" for the devil/angel deal chance formula
+    run.bossFightRedDamageTaken = false;
     const previousWorld = run.room.world;
     run.room = run.floorRuntime.getCurrentRoom();
     stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
@@ -165,10 +240,13 @@ async function boot() {
   function enterCurrentRoom(run, entrySide) {
     const previousWorld = run.room.world;
     run.room = run.floorRuntime.getCurrentRoom();
-    stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
+    const cell = run.floorRuntime.getCurrentCell();
+    stockRoom(run, run.room, cell);
     const pos = entrySide ? entryPositionForSide(run.room, entrySide) : { x: run.centerX, y: run.centerY };
     placePlayerInRoom(run.player, previousWorld, run.room, pos);
     placeFamiliarsInRoom(previousWorld, run.room.world, run.player);
+    applyCurseDoorDamage(run.playerHealth, { leavingType: run.pendingLeavingType, enteringType: cell.type }, { events });
+    run.pendingLeavingType = null;
     run.decals.clear();
     announceFloor(run);
   }
@@ -187,6 +265,10 @@ async function boot() {
       appliedSynergyIds: new Set(),
       activeTransformationIds: new Set(),
       pendingEntrySide: null,
+      pendingLeavingType: null,
+      floorRedDamageTaken: false,
+      bossFightRedDamageTaken: false,
+      lastDealRoomStage: -Infinity,
       transition: createTransitionState(),
       floorTransition: createFloorTransitionState(),
       particles: new ParticlePool(),
@@ -246,9 +328,29 @@ async function boot() {
       const itemId = itemPools.draw('boss', currentRun.spawnRng);
       if (itemId) spawnItemPedestal(currentRun.room.world, itemId, { x: enemy.x, y: enemy.y });
       spawnTrapdoor(currentRun.room.world, { x: currentRun.centerX, y: currentRun.centerY });
+
+      // Devil/angel deal room (CLAUDE.md §3): a chance, built from this floor's damage-free streak, to
+      // attach a bonus room to the boss room the instant it's cleared.
+      const chance = dealRoomChance({
+        stage: currentRun.stage,
+        noBossDamage: !currentRun.bossFightRedDamageTaken,
+        noFloorDamage: !currentRun.floorRedDamageTaken,
+        recentlySeen: currentRun.stage - currentRun.lastDealRoomStage <= CONFIG.DEAL_ROOM_RECENT_FLOORS,
+      });
+      if (currentRun.spawnRng.chance(chance)) {
+        const dealType = rollDealRoomType(!currentRun.floorRedDamageTaken);
+        const key = currentRun.floorRuntime.attachBonusRoom(dealType);
+        if (key) currentRun.lastDealRoomStage = currentRun.stage;
+      }
     }
   });
-  events.on('health:damaged', () => camera.shake(4, 0.15));
+  events.on('health:damaged', ({ redLost }) => {
+    camera.shake(4, 0.15);
+    if (!currentRun || !(redLost > 0)) return;
+    currentRun.floorRedDamageTaken = true;
+    const bossAlive = currentRun.room.world.entities.byType('enemy').some((e) => e.alive && e.isBoss);
+    if (bossAlive) currentRun.bossFightRedDamageTaken = true;
+  });
   events.on('health:death', ({ source }) => {
     if (!currentRun || currentRun.stats.killedBy) return;
     currentRun.stats.killedBy = describeDeathCause(source, {
@@ -351,6 +453,16 @@ async function boot() {
         getFamiliarDef,
         events,
       });
+      resolveDevilDealPurchases(run.room.world, run.player, {
+        inventory: run.inventory,
+        stats: run.player.stats,
+        playerHealth: run.playerHealth,
+        pools: itemPools,
+        getItemDef,
+        events,
+      });
+      resolveSacrificeSpikes(run.room.world, run.player, { playerHealth: run.playerHealth, events, rng: run.spawnRng, trinketPools, cardPools });
+      resolveArcadeMachines(run.room.world, run.player, { currency: run.currency, events, rng: run.spawnRng, itemPools, cardPools });
       resolveKeyLockedDoors(run.room, run.player, { currency: run.currency, events });
       resolvePickups(run.room.world, run.player, { currency: run.currency, playerHealth: run.playerHealth, events, rng: run.spawnRng, trinketPools, cardPools });
       resolveTrinketPickups(run.room.world, run.player, {
@@ -418,6 +530,7 @@ async function boot() {
         }
       }
 
+      updateChallengeRoom(run.room, dt, { rng: run.spawnRng });
       const justCleared = run.room.update(dt);
       if (justCleared) {
         chargeActivesOnRoomClear(run.inventory);
@@ -443,10 +556,17 @@ async function boot() {
 
       const exitSide = detectDoorExit(run.room, run.player);
       if (exitSide) {
-        const result = run.floorRuntime.move(exitSide);
-        if (result) {
-          run.pendingEntrySide = result.enteredFrom;
-          startTransition(run.transition, exitSide);
+        const destCell = run.floorRuntime.peekNeighborCell(exitSide);
+        // Challenge rooms are only enterable at full health (CLAUDE.md §3) — the door simply doesn't open otherwise.
+        const blockedByChallenge = destCell?.type === 'challenge' && !isAtFullRedHealth(run.playerHealth);
+        if (!blockedByChallenge) {
+          const leavingType = run.floorRuntime.getCurrentCell().type;
+          const result = run.floorRuntime.move(exitSide);
+          if (result) {
+            run.pendingEntrySide = result.enteredFrom;
+            run.pendingLeavingType = leavingType;
+            startTransition(run.transition, exitSide);
+          }
         }
       }
 
@@ -549,6 +669,21 @@ async function boot() {
       for (const behavior of ['orbit', 'hover', 'follow']) {
         const def = registries.of('familiar').all().find((d) => d.behavior === behavior);
         if (def) spawnFamiliar(run.room.world, def, { player: run.player });
+      }
+    },
+    /** Stocks the current room with a P2.6 special room type's content directly (dev/test only, since these room types are rare/gated and this skips waiting on a natural floor roll). */
+    debugStockSpecial(type) {
+      const run = currentRun;
+      const room = run.room;
+      const tileGrid = room.world.tileGrid;
+      if (type === 'sacrifice') {
+        spawnSacrificeSpike(room.world, tileGrid.tileCenter(6, 3));
+      } else if (type === 'arcade') {
+        spawnSlotMachine(room.world, tileGrid.tileCenter(4, 3));
+        spawnFortuneMachine(room.world, tileGrid.tileCenter(8, 3));
+      } else if (type === 'devil') {
+        const itemId = itemPools.draw('devil', run.spawnRng) ?? registries.of('item').all()[0]?.id;
+        if (itemId) spawnDevilItem(room.world, itemId, tileGrid.tileCenter(5, 3));
       }
     },
     enemyIds: () => registries.of('enemy').all().map((d) => d.id),

@@ -218,6 +218,65 @@ export function renderRoom(
     }
   }
 
+  for (const slot of room.world.entities.byType('devilItem')) {
+    if (!slot.alive || slot.bought) continue;
+    const screen = camera.worldToScreen(slot.x, slot.y);
+    const icon = resolveItemIcon(getItemDef(slot.itemId));
+    ctx.strokeStyle = '#a02020';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(screen.x, screen.y, 15 * camera.zoom, 0, Math.PI * 2);
+    ctx.stroke();
+    drawIcon(ctx, icon, screen.x, screen.y, 11 * camera.zoom);
+    const itemDef = getItemDef(slot.itemId);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(itemDef?.name ?? slot.itemId, screen.x, screen.y - 11 * camera.zoom - 22);
+    ctx.fillStyle = '#ff6060';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText('♥ heart', screen.x, screen.y - 11 * camera.zoom - 10);
+  }
+
+  for (const spike of room.world.entities.byType('sacrificeSpike')) {
+    if (!spike.alive) continue;
+    const screen = camera.worldToScreen(spike.x, spike.y);
+    const r = spike.radius * camera.zoom;
+    ctx.fillStyle = '#3a0a14';
+    ctx.beginPath();
+    ctx.arc(screen.x, screen.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#c04040';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(screen.x + Math.cos(angle) * r * 0.4, screen.y + Math.sin(angle) * r * 0.4);
+      ctx.lineTo(screen.x + Math.cos(angle) * r * 1.3, screen.y + Math.sin(angle) * r * 1.3);
+      ctx.stroke();
+    }
+  }
+
+  const MACHINE_STYLE = { slotMachine: { color: '#1f6a7a', label: 'S' }, fortuneMachine: { color: '#6a4a1f', label: 'F' } };
+  for (const [type, style] of Object.entries(MACHINE_STYLE)) {
+    for (const machine of room.world.entities.byType(type)) {
+      if (!machine.alive) continue;
+      const screen = camera.worldToScreen(machine.x, machine.y);
+      const size = machine.radius * 1.6 * camera.zoom;
+      ctx.fillStyle = style.color;
+      ctx.fillRect(screen.x - size / 2, screen.y - size / 2, size, size);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(screen.x - size / 2, screen.y - size / 2, size, size);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(style.label, screen.x, screen.y);
+      ctx.textBaseline = 'alphabetic';
+    }
+  }
+
   for (const trapdoor of room.world.entities.byType('trapdoor')) {
     if (!trapdoor.alive) continue;
     const screen = camera.worldToScreen(trapdoor.x, trapdoor.y);

@@ -114,6 +114,44 @@ test('boss room is the farthest dead end (max BFS depth among dead ends)', () =>
   assert.equal(floor.boss.depth, Math.max(...deadEndDepths));
 });
 
+test('P2.6: special room types (sacrifice/challenge/curse/arcade), when assigned, are distinct dead ends never colliding with start/boss/treasure/shop', () => {
+  for (let seed = 0; seed < 200; seed++) {
+    const rng = new Rng(`special-rooms-${seed}`);
+    const floor = generateFloor(2, rng); // stage 2+ so challenge rooms are eligible
+    const specials = [floor.sacrifice, floor.challenge, floor.curse, floor.arcade].filter(Boolean);
+    const seen = new Set();
+    for (const cell of specials) {
+      const key = cellKey(cell.x, cell.y);
+      assert.ok(!seen.has(key), `seed ${seed}: two special rooms landed on the same cell`);
+      seen.add(key);
+      assert.notEqual(cell, floor.startCell);
+      assert.notEqual(cell, floor.boss);
+      assert.notEqual(cell, floor.treasure);
+      assert.notEqual(cell, floor.shop);
+    }
+  }
+});
+
+test('P2.6: challenge rooms never appear on floor 1', () => {
+  let sawOne = false;
+  for (let seed = 0; seed < 300; seed++) {
+    const floor = generateFloor(1, new Rng(`floor1-challenge-${seed}`));
+    if (floor.challenge) sawOne = true;
+  }
+  assert.equal(sawOne, false, 'a challenge room appeared on floor 1');
+});
+
+test('P2.6: a full-health floor rolls sacrifice rooms more often than a not-full-health floor, over many seeds', () => {
+  let fullHealthCount = 0;
+  let notFullHealthCount = 0;
+  const trials = 500;
+  for (let seed = 0; seed < trials; seed++) {
+    if (generateFloor(1, new Rng(`sac-full-${seed}`), { isPlayerFullHealth: true }).sacrifice) fullHealthCount++;
+    if (generateFloor(1, new Rng(`sac-notfull-${seed}`), { isPlayerFullHealth: false }).sacrifice) notFullHealthCount++;
+  }
+  assert.ok(fullHealthCount > notFullHealthCount, `expected more sacrifice rooms at full health (${fullHealthCount} vs ${notFullHealthCount})`);
+});
+
 test('generateFloor is deterministic for a given seed', () => {
   const floorA = generateFloor(1, new Rng('determinism-check'));
   const floorB = generateFloor(1, new Rng('determinism-check'));

@@ -69,7 +69,17 @@ export function drawPitTile(ctx, x, y, size, pitColor) {
   ctx.strokeRect(x + edge / 2, y + edge / 2, size - edge, size - edge);
 }
 
-const DOOR_DESTINATION_TINT = { treasure: '#5a3a7a', shop: '#2f5a3a', boss: '#6a1f1f' };
+const DOOR_DESTINATION_TINT = {
+  treasure: '#5a3a7a',
+  shop: '#2f5a3a',
+  boss: '#6a1f1f',
+  challenge: '#7a3a1f',
+  curse: '#3a0a0a',
+  sacrifice: '#5a1f3a',
+  arcade: '#1f4a5a',
+  devil: '#2a0a0a',
+  angel: '#d4c078',
+};
 
 /** `door` is the room's own `{ locked, keyLocked, leadsToType }` for this tile, or null for a borderless room edge.
  * `pulse` (0..1 or null, P1.G7) is the door's open/close animation progress — 0 right as its lock state flips,

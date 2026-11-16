@@ -92,6 +92,13 @@ export class FloorRuntime {
     return this.floor.cells.get(this.currentKey);
   }
 
+  /** Looks at the cell in `direction` from the current one, without moving there (null if there's nothing that way). */
+  peekNeighborCell(direction) {
+    const cell = this.getCurrentCell();
+    const delta = SIDE_OF_DELTA.find((d) => d.side === direction);
+    return this.floor.cells.get(cellKey(cell.x + delta.dx, cell.y + delta.dy)) ?? null;
+  }
+
   /** Moves to the neighbor in `direction`, only if a (possibly just-revealed) door already exists that way. */
   move(direction) {
     const cell = this.getCurrentCell();
@@ -103,6 +110,30 @@ export class FloorRuntime {
     this.currentKey = key;
     this.visited.add(key);
     return { room: this.getRoom(key), enteredFrom: oppositeSide(direction) };
+  }
+
+  /**
+   * Attaches a brand-new cell of `type` (devil/angel) to a free side of the
+   * current room, with a real door carved both ways immediately — unlike
+   * secret rooms, a deal room is meant to be seen and walked into right away
+   * once the boss is dead. Returns the new cell's key, or null if the current
+   * room has no free wall left (every side already has a door or neighbor).
+   */
+  attachBonusRoom(type) {
+    const cell = this.getCurrentCell();
+    const room = this.getCurrentRoom();
+    for (const { side, dx, dy } of SIDE_OF_DELTA) {
+      if (room.doors.has(side)) continue;
+      const key = cellKey(cell.x + dx, cell.y + dy);
+      if (this.floor.cells.has(key)) continue;
+
+      const newCell = { x: cell.x + dx, y: cell.y + dy, type, depth: null };
+      this.floor.cells.set(key, newCell);
+      room.addDoorToSide(side);
+      this.getRoom(key).addDoorToSide(oppositeSide(side));
+      return key;
+    }
+    return null;
   }
 
   /** If a bomb exploding at (x, y) in the current room lands near a wall shared with a secret room, carves a door both ways. */
