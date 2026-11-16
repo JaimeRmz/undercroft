@@ -1,0 +1,10 @@
+{
+  "id": "core:familiar-02",
+  "description": "A tight, buzzing little orbit.",
+  "name": "Rusted Gnat",
+  "behavior": "orbit",
+  "radius": 7,
+  "damage": 2,
+  "orbitRadius": 40,
+  "orbitSpeed": 3.2
+}

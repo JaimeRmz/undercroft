@@ -1,0 +1,10 @@
+{
+  "id": "core:familiar-04",
+  "description": "Slow, heavy, and mean on contact.",
+  "name": "Grave Beetle",
+  "behavior": "orbit",
+  "radius": 10,
+  "damage": 3,
+  "orbitRadius": 45,
+  "orbitSpeed": 2
+}

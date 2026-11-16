@@ -1,0 +1,14 @@
+{
+  "id": "core:item-42",
+  "name": "Guttering Wick",
+  "type": "passive",
+  "description": "An ember settles just behind you.",
+  "effects": [],
+  "grantsFamiliar": "core:familiar-05",
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

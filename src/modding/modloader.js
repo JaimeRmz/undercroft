@@ -22,6 +22,7 @@ const FOLDER_TO_KIND = {
   cards: 'card',
   pills: 'pill',
   trinkets: 'trinket',
+  familiars: 'familiar',
   transformations: 'transformation',
   gamemodes: 'gamemode',
   synergies: 'synergy',

@@ -1,5 +1,5 @@
 /** Draws one room: tiles, decals, entities (via sprite specs), particles, and the HUD. Canvas-only, no game logic. */
-import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, SPRITES } from './sprites.js';
+import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, resolveFamiliarSpec, SPRITES } from './sprites.js';
 import {
   isFlashing,
   updateHitFlash,
@@ -126,6 +126,10 @@ export function renderRoom(
       bodyAngle: Math.atan2(player.moveDir?.y ?? 1, player.moveDir?.x ?? 0),
     });
     ctx.globalAlpha = 1;
+  }
+
+  for (const familiar of room.world.entities.byType('familiar')) {
+    if (familiar.alive) drawEntity(familiar, resolveFamiliarSpec(familiar));
   }
 
   const PICKUP_COLORS = {

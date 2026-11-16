@@ -1,0 +1,12 @@
+{
+  "id": "core:familiar-10",
+  "description": "Brittle, watchful, and quick on the trigger.",
+  "name": "Glass Sentinel",
+  "behavior": "follow",
+  "radius": 8,
+  "damage": 1,
+  "followOffsetX": 0,
+  "followOffsetY": -30,
+  "fireCooldownSeconds": 0.8,
+  "range": 6.5
+}

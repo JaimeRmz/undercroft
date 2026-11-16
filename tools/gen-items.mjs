@@ -153,4 +153,36 @@ STATUS_ARCHETYPES.forEach((archetype, i) => {
   written++;
 });
 
+// One item per familiar (P2.4), so every orbital/hover/follower-shooter
+// archetype is actually reachable in a real run. Named explicitly, same
+// reasoning as STATUS_ARCHETYPES above.
+const FAMILIAR_ARCHETYPES = [
+  { name: 'Moonlit Locket', familiar: 'core:familiar-01', flavor: 'Something pale now circles you.' },
+  { name: 'Corroded Thimble', familiar: 'core:familiar-02', flavor: 'A buzzing weight settles in close.' },
+  { name: 'Powdered Wing', familiar: 'core:familiar-03', flavor: 'A moth takes up a slow, wide orbit.' },
+  { name: 'Cracked Carapace', familiar: 'core:familiar-04', flavor: 'Something heavy now guards your flank.' },
+  { name: 'Guttering Wick', familiar: 'core:familiar-05', flavor: 'An ember settles just behind you.' },
+  { name: 'Threadbare Veil', familiar: 'core:familiar-06', flavor: 'A small light drifts at your shoulder.' },
+  { name: 'Soot-Stained Collar', familiar: 'core:familiar-07', flavor: 'Something loyal now follows at your heel.' },
+  { name: 'Unspooled Thread', familiar: 'core:familiar-08', flavor: 'A thin light learns to aim for you.' },
+  { name: 'Blackened Horn', familiar: 'core:familiar-09', flavor: 'A slow, grudging little helper joins you.' },
+  { name: 'Fractured Lens', familiar: 'core:familiar-10', flavor: 'A watchful sliver of glass takes your side.' },
+];
+
+const FAMILIAR_START_INDEX = STATUS_START_INDEX + STATUS_ARCHETYPES.length;
+FAMILIAR_ARCHETYPES.forEach((archetype, i) => {
+  writeItem({
+    id: `core:item-${String(FAMILIAR_START_INDEX + i + 1).padStart(2, '0')}`,
+    name: archetype.name,
+    type: 'passive',
+    description: archetype.flavor,
+    effects: [],
+    grantsFamiliar: archetype.familiar,
+    quality: 3,
+    weight: 1,
+    pools: ['treasure', 'shop'],
+  });
+  written++;
+});
+
 console.log(`Wrote ${written} items to ${OUT_DIR}`);

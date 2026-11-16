@@ -1,0 +1,10 @@
+{
+  "id": "core:familiar-01",
+  "description": "A pale light that circles you, slow and steady.",
+  "name": "Drifting Will",
+  "behavior": "orbit",
+  "radius": 8,
+  "damage": 1,
+  "orbitRadius": 55,
+  "orbitSpeed": 2.4
+}

@@ -1,0 +1,10 @@
+{
+  "id": "core:familiar-03",
+  "description": "It keeps a wide, unhurried distance.",
+  "name": "Hollow Moth",
+  "behavior": "orbit",
+  "radius": 9,
+  "damage": 1.5,
+  "orbitRadius": 70,
+  "orbitSpeed": 1.6
+}

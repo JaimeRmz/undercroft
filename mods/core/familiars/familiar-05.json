@@ -1,0 +1,10 @@
+{
+  "id": "core:familiar-05",
+  "description": "A smoldering ember that never leaves your side.",
+  "name": "Tethered Cinder",
+  "behavior": "hover",
+  "radius": 8,
+  "damage": 2,
+  "followOffsetX": -22,
+  "followOffsetY": -26
+}

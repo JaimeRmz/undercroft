@@ -28,3 +28,22 @@ export function placePlayerInRoom(player, fromWorld, room, { x, y }) {
   player.chargeTime = 0;
   room.world.enemyGraceTimer = CONFIG.ROOM_ENTRY_GRACE_SECONDS;
 }
+
+/**
+ * Re-homes every familiar entity (P2.4) into the destination world alongside
+ * the player, same reason placePlayerInRoom re-homes the player itself — each
+ * Room owns its own World, so anything that's supposed to persist across a
+ * door has to be physically moved into the new one. Snaps each familiar to
+ * the player's new position so it doesn't render at a stale old-room
+ * coordinate for the one frame before updateFamiliars repositions it.
+ */
+export function placeFamiliarsInRoom(fromWorld, toWorld, player) {
+  if (!fromWorld || fromWorld === toWorld) return;
+  for (const familiar of fromWorld.entities.byType('familiar')) {
+    if (!familiar.alive) continue;
+    fromWorld.entities.remove(familiar.id);
+    toWorld.entities.add(familiar);
+    familiar.x = player.x;
+    familiar.y = player.y;
+  }
+}

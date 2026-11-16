@@ -1,0 +1,10 @@
+{
+  "id": "core:familiar-07",
+  "description": "Loyal, low to the ground, and quick to bite.",
+  "name": "Ashen Pup",
+  "behavior": "hover",
+  "radius": 9,
+  "damage": 2.5,
+  "followOffsetX": -26,
+  "followOffsetY": 10
+}

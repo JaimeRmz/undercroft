@@ -48,6 +48,26 @@ test('mods/core ships 30+ normal room templates across 2 chapters, plus start/bo
   }
 });
 
+test('mods/core ships 10 familiars covering all 3 behaviors (orbit/hover/follow)', async () => {
+  const registries = new ContentRegistries();
+  const loader = new ModLoader({
+    source: createFsSource(MODS_DIR),
+    registries,
+    events: createEventBus(),
+    log: createLogger('real-mods-test', 'error'),
+  });
+  await loader.loadAll();
+  const familiars = registries.of('familiar').all();
+  assert.equal(familiars.length, 10);
+  for (const behavior of ['orbit', 'hover', 'follow']) {
+    assert.ok(familiars.some((f) => f.behavior === behavior), `expected at least one "${behavior}" familiar`);
+  }
+  const items = registries.of('item').all();
+  for (const familiar of familiars) {
+    assert.ok(items.some((i) => i.grantsFamiliar === familiar.id), `expected an item granting ${familiar.id}`);
+  }
+});
+
 test('core loads before example-mod per loadOrder/dependency', async () => {
   const registries = new ContentRegistries();
   const loader = new ModLoader({

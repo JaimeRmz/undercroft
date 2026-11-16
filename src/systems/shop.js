@@ -72,7 +72,7 @@ export function stockShop(world, positions, { pools, itemDefsById, rng, itemSlot
  * coins, spends them, grants the item/pickup, and removes the slot. Items
  * are also removed from every pool so they can't reappear elsewhere.
  */
-export function resolveShopPurchases(world, player, { inventory, stats, playerHealth, currency, pools, getItemDef, events } = {}) {
+export function resolveShopPurchases(world, player, { inventory, stats, playerHealth, currency, pools, getItemDef, getFamiliarDef, events } = {}) {
   for (const slot of world.entities.byType('shopItem')) {
     if (!slot.alive || slot.sold) continue;
     if (!circlesOverlap(slot.x, slot.y, slot.radius, player.x, player.y, player.radius)) continue;
@@ -84,7 +84,7 @@ export function resolveShopPurchases(world, player, { inventory, stats, playerHe
     if (slot.kind === 'item') {
       const def = getItemDef(slot.itemId);
       if (def) {
-        pickUpItem(inventory, stats, playerHealth, def, player);
+        pickUpItem(inventory, stats, playerHealth, def, player, { world, getFamiliarDef });
         pools?.removeFromAllPools(def.id);
         events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '', x: slot.x, y: slot.y });
       }

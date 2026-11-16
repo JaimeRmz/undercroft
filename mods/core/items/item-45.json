@@ -1,0 +1,14 @@
+{
+  "id": "core:item-45",
+  "name": "Unspooled Thread",
+  "type": "passive",
+  "description": "A thin light learns to aim for you.",
+  "effects": [],
+  "grantsFamiliar": "core:familiar-08",
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

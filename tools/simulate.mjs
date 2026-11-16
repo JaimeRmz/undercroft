@@ -28,6 +28,8 @@ import { createTransitionState, startTransition, updateTransition, detectDoorExi
 import { buildItemPools, spawnItemPedestal, resolveItemPedestals, chargeActivesOnRoomClear, ItemInventory } from '../src/systems/items.js';
 import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from '../src/systems/pickups.js';
 import { TrinketInventory, resolveTrinketPickups } from '../src/systems/trinkets.js';
+import { spawnFamiliar, updateFamiliars } from '../src/systems/familiars.js';
+import { placeFamiliarsInRoom } from '../src/systems/roomEntry.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MODS_DIR = path.join(__dirname, '..', 'mods');
@@ -51,6 +53,7 @@ async function loadContentDefs() {
     bossDefs: registries.of('boss').all(),
     itemDefs: registries.of('item').all(),
     trinketDefs: registries.of('trinket').all(),
+    familiarDefs: registries.of('familiar').all(),
     roomTemplates: registries.of('room').all(),
   };
 }
@@ -169,9 +172,9 @@ function testEachBossAlone(bossDefs) {
   }
 }
 
-/** (b) Player + every enemy at once for 3000 frames of combat: no exceptions, frame time under budget. */
-function testKitchenSink(enemyDefs) {
-  console.log(`\n[simulate] (b) kitchen sink: player + all ${enemyDefs.length} enemies for 3000 frames...`);
+/** (b) Player + every enemy (+ one of every familiar behavior) at once for 3000 frames of combat: no exceptions, frame time under budget. */
+function testKitchenSink(enemyDefs, familiarDefs) {
+  console.log(`\n[simulate] (b) kitchen sink: player + all ${enemyDefs.length} enemies + ${familiarDefs.length} familiars for 3000 frames...`);
   const room = new Room();
   const centerX = (room.widthTiles * room.world.tileGrid.tileSize) / 2;
   const centerY = (room.heightTiles * room.world.tileGrid.tileSize) / 2;
@@ -180,6 +183,11 @@ function testKitchenSink(enemyDefs) {
   enemyDefs.forEach((def, i) => {
     spawnEnemy(room.world, def, { x: centerX + 100 + i * 40, y: centerY - 60 + i * 30 });
   });
+  // One familiar per behavior (not all 10 defs — they're interchangeable per-behavior, this just needs to exercise every code path), same as giving the player "every item" would grant a mixed familiar loadout in a real run.
+  for (const behavior of ['orbit', 'hover', 'follow']) {
+    const def = familiarDefs.find((d) => d.behavior === behavior);
+    if (def) spawnFamiliar(room.world, def, { player });
+  }
   const input = createInputState();
   input.moveX = 1;
   input.held.add('shootRight');
@@ -190,6 +198,7 @@ function testKitchenSink(enemyDefs) {
   for (let frame = 0; frame < 3000; frame++) {
     updatePlayer(room.world, player, input, DT, { events });
     updateEnemies(room.world, player, DT, { events, rng });
+    updateFamiliars(room.world, player, DT, { events, rng });
     updateProjectiles(room.world, DT, events);
     resolveCombat(room.world, { player, playerHealth, events });
     tickInvuln(playerHealth, DT);
@@ -341,12 +350,13 @@ function bfsTilePath(tileGrid, startTx, startTy, goalTx, goalTy) {
  * real game's difficulty tuning are for. Mirrors main.js's
  * run-building/update-loop logic headlessly.
  */
-function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemplates, seedCount = 20) {
+function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, familiarDefs, roomTemplates, seedCount = 20) {
   console.log(`\n[simulate] (d) bot plays ${seedCount} seeded floors, visiting every room (floorgen -> full clear -> boss defeated)...`);
   const itemPools = buildItemPools(itemDefs);
   const getItemDef = (id) => itemDefs.find((d) => d.id === id);
   const trinketPools = buildItemPools(trinketDefs);
   const getTrinketDef = (id) => trinketDefs.find((d) => d.id === id);
+  const getFamiliarDef = (id) => familiarDefs.find((d) => d.id === id);
 
   for (let seed = 0; seed < seedCount; seed++) {
     const floorRng = new Rng(`floor-${seed}`);
@@ -421,6 +431,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
 
       if (transition.active) {
         if (updateTransition(transition, DT)) {
+          const previousWorld = room.world;
           room = floorRuntime.getCurrentRoom();
           stockRoom(room, floorRuntime.getCurrentCell());
           visitedRooms.add(floorRuntime.currentKey);
@@ -429,6 +440,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
           player.y = pos.y;
           player.vx = 0;
           player.vy = 0;
+          placeFamiliarsInRoom(previousWorld, room.world, player);
           waypoints = null;
         }
         continue;
@@ -503,9 +515,10 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
 
       updatePlayer(room.world, player, input, DT, { events });
       updateEnemies(room.world, player, DT, { events, rng: aiRng });
+      updateFamiliars(room.world, player, DT, { events, rng: spawnRng });
       updateProjectiles(room.world, DT, events);
       resolveCombat(room.world, { player, playerHealth, events, rng: spawnRng });
-      resolveItemPedestals(room.world, player, { inventory, stats: player.stats, playerHealth, events, pools: itemPools, getItemDef });
+      resolveItemPedestals(room.world, player, { inventory, stats: player.stats, playerHealth, events, pools: itemPools, getItemDef, getFamiliarDef });
       resolvePickups(room.world, player, { currency, playerHealth, events, rng: spawnRng, trinketPools });
       resolveTrinketPickups(room.world, player, { inventory: trinketInventory, stats: player.stats, events, pools: trinketPools, getTrinketDef });
       tickInvuln(playerHealth, DT);
@@ -550,15 +563,15 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
 
 async function main() {
   console.log('=== Undercroft headless simulate harness ===');
-  const { enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemplates } = await loadContentDefs();
+  const { enemyDefs, bossDefs, itemDefs, trinketDefs, familiarDefs, roomTemplates } = await loadContentDefs();
   if (enemyDefs.length === 0) throw new Error('no enemy definitions loaded from mods/core — check the mod loader');
   if (bossDefs.length === 0) throw new Error('no boss definitions loaded from mods/core — check the mod loader');
 
   testEachEnemyAlone(enemyDefs);
   testEachBossAlone(bossDefs);
-  testKitchenSink(enemyDefs);
+  testKitchenSink(enemyDefs, familiarDefs);
   testBotClearsRooms(enemyDefs);
-  testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemplates);
+  testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, familiarDefs, roomTemplates);
 
   console.log('\n=== simulate: ALL CHECKS PASSED ===');
 }

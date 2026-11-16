@@ -1,0 +1,14 @@
+{
+  "id": "core:item-40",
+  "name": "Powdered Wing",
+  "type": "passive",
+  "description": "A moth takes up a slow, wide orbit.",
+  "effects": [],
+  "grantsFamiliar": "core:familiar-03",
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

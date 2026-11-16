@@ -308,6 +308,21 @@ async function main() {
       }
     }
 
+    // --- P2.4: familiars (orbital/hover/follower-shooter) actually render and persist across a door ---
+    {
+      const s0 = await snap();
+      const normal = s0.floorCells.find((c) => c.type === 'normal');
+      await page.evaluate((key) => {
+        window.__undercroft.gotoCell(key);
+        window.__undercroft.killAllEnemies();
+        window.__undercroft.setHealth(6);
+        window.__undercroft.giveFamiliars();
+      }, normal.key);
+      await page.waitForTimeout(400);
+      expect((await snap()).familiars === 3, `expected 3 familiars, got ${(await snap()).familiars}`);
+      await shot('familiars');
+    }
+
     // --- P1.G7: door open-flash pulse, right as a cleared room's doors swing open --------------
     {
       const s0 = await snap();

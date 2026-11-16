@@ -1,0 +1,14 @@
+{
+  "id": "core:item-38",
+  "name": "Moonlit Locket",
+  "type": "passive",
+  "description": "Something pale now circles you.",
+  "effects": [],
+  "grantsFamiliar": "core:familiar-01",
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

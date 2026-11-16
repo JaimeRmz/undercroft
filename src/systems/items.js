@@ -9,6 +9,7 @@ import { addRedContainer, addSoulHeart, addBlackHeart, heal } from './health.js'
 import { circlesOverlap } from '../engine/collision.js';
 import { applyEnemyDamage } from './enemies.js';
 import { STAT_FIELD_APPLIERS } from './statEffects.js';
+import { spawnFamiliar } from './familiars.js';
 
 export class ItemInventory {
   constructor() {
@@ -27,14 +28,24 @@ export function applyPassiveItem(stats, playerHealth, def) {
   }
 }
 
-/** Records an item as taken and, for passives, applies its effects immediately (plus a permanent tear modifier, if `def.grantsTearModifier` names one). Active items just join the inventory at 0 charge. */
-export function pickUpItem(inventory, stats, playerHealth, def, player) {
+/**
+ * Records an item as taken and, for passives, applies its effects immediately
+ * (plus a permanent tear modifier, if `def.grantsTearModifier` names one, and
+ * a new familiar entity, if `def.grantsFamiliar` names one — requires `world`
+ * and `getFamiliarDef` in `ctx`, which headless callers that don't care about
+ * familiars can simply omit). Active items just join the inventory at 0 charge.
+ */
+export function pickUpItem(inventory, stats, playerHealth, def, player, ctx = {}) {
   inventory.seenIds.add(def.id);
   if (def.type === 'passive') {
     inventory.passives.push(def.id);
     applyPassiveItem(stats, playerHealth, def);
     if (def.grantsTearModifier && player) {
       player.tearModifiers = [...(player.tearModifiers ?? []), def.grantsTearModifier];
+    }
+    if (def.grantsFamiliar && player && ctx.world && ctx.getFamiliarDef) {
+      const familiarDef = ctx.getFamiliarDef(def.grantsFamiliar);
+      if (familiarDef) spawnFamiliar(ctx.world, familiarDef, { player });
     }
   } else if (def.type === 'active') {
     inventory.actives.push({ id: def.id, charge: 0, maxCharges: def.maxCharges ?? 3 });
@@ -142,14 +153,14 @@ export function spawnItemPedestal(world, itemId, { x, y }) {
  * pool, and emits 'item:pickup' (name + description) for the pickup banner.
  * `getItemDef(id)` is injected so this stays decoupled from the registry singleton.
  */
-export function resolveItemPedestals(world, player, { inventory, stats, playerHealth, events, pools, getItemDef }) {
+export function resolveItemPedestals(world, player, { inventory, stats, playerHealth, events, pools, getItemDef, getFamiliarDef }) {
   for (const pedestal of world.entities.byType('itemPedestal')) {
     if (!pedestal.alive) continue;
     if (!circlesOverlap(pedestal.x, pedestal.y, pedestal.radius, player.x, player.y, player.radius)) continue;
     const def = getItemDef(pedestal.itemId);
     if (!def) continue;
 
-    pickUpItem(inventory, stats, playerHealth, def, player);
+    pickUpItem(inventory, stats, playerHealth, def, player, { world, getFamiliarDef });
     pools?.removeFromAllPools(def.id);
     events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '', x: pedestal.x, y: pedestal.y });
     pedestal.destroy();

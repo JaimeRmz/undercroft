@@ -292,3 +292,33 @@ export function resolveEnemySpec(entity) {
   generatedSpecCache.set(key, spec);
   return spec;
 }
+
+/**
+ * Sprite spec for a familiar (P2.4). Procedurally generated the same way an
+ * unauthored enemy is, but biased into a blue-green hue band (rather than the
+ * full 0-360 range enemies use) so a familiar reads as "on your side" at a
+ * glance, never coinciding with an enemy's color.
+ */
+export function resolveFamiliarSpec(entity) {
+  const radius = Math.round(entity.radius ?? 8);
+  const key = `familiar|${entity.defId}|${radius}`;
+  let spec = generatedSpecCache.get(key);
+  if (spec) return spec;
+
+  const hash = hashString(String(entity.defId));
+  const hue = 180 + (hash % 80); // [180, 260): cyan through blue-violet, distinct from the enemy hue range
+  const eyeR = Math.max(1.2, radius * 0.22);
+  spec = {
+    shape: 'circle',
+    radius,
+    fill: `hsl(${hue}, 55%, 60%)`,
+    outline: `hsl(${hue}, 50%, 25%)`,
+    outlineWidth: 1.5,
+    eyes: [
+      { dx: -radius * 0.35, dy: -radius * 0.1, r: eyeR },
+      { dx: radius * 0.35, dy: -radius * 0.1, r: eyeR },
+    ],
+  };
+  generatedSpecCache.set(key, spec);
+  return spec;
+}

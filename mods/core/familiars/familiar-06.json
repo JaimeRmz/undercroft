@@ -1,0 +1,10 @@
+{
+  "id": "core:familiar-06",
+  "description": "It drifts just behind your right shoulder.",
+  "name": "Weeping Sprite",
+  "behavior": "hover",
+  "radius": 7,
+  "damage": 1,
+  "followOffsetX": 24,
+  "followOffsetY": -20
+}

@@ -1,0 +1,12 @@
+{
+  "id": "core:familiar-09",
+  "description": "Slow to fire, but it hits like a grudge.",
+  "name": "Charred Imp",
+  "behavior": "follow",
+  "radius": 9,
+  "damage": 2.5,
+  "followOffsetX": -20,
+  "followOffsetY": -24,
+  "fireCooldownSeconds": 1.8,
+  "range": 4
+}

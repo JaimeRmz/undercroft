@@ -1,0 +1,12 @@
+{
+  "id": "core:familiar-08",
+  "description": "A thin light that fires wherever you can't.",
+  "name": "Spindle Wisp",
+  "behavior": "follow",
+  "radius": 7,
+  "damage": 1.5,
+  "followOffsetX": 20,
+  "followOffsetY": -24,
+  "fireCooldownSeconds": 1.2,
+  "range": 5
+}

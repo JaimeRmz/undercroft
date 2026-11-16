@@ -59,6 +59,11 @@ export const SCHEMAS = {
     id: { required: true, type: 'string' },
     name: { required: true, type: 'string' },
   },
+  familiar: {
+    id: { required: true, type: 'string' },
+    name: { required: true, type: 'string' },
+    behavior: { required: true, oneOf: ['orbit', 'hover', 'follow'] },
+  },
   transformation: {
     id: { required: true, type: 'string' },
     name: { required: true, type: 'string' },

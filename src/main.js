@@ -14,7 +14,7 @@ import {
 } from './systems/transitions.js';
 import { createFloorTransitionState, startFloorTransition, updateFloorTransition, floorTransitionAlpha } from './systems/floorTransition.js';
 import { createPlayer, updatePlayer } from './systems/player.js';
-import { placePlayerInRoom } from './systems/roomEntry.js';
+import { placePlayerInRoom, placeFamiliarsInRoom } from './systems/roomEntry.js';
 import { describeDeathCause } from './systems/deathCause.js';
 import { spawnEnemy, updateEnemies } from './systems/enemies.js';
 import { findGroundSpawnTile } from './systems/spawnPlacement.js';
@@ -34,6 +34,7 @@ import {
   useActiveItem,
 } from './systems/items.js';
 import { TrinketInventory, resolveTrinketPickups, dropTrinket, equipTrinket } from './systems/trinkets.js';
+import { spawnFamiliar, updateFamiliars } from './systems/familiars.js';
 import { ConsumableInventory, resolveConsumablePickups, useConsumableSlot } from './systems/consumables.js';
 import { PillIdentity } from './systems/pills.js';
 import { updateTempStatBoosts } from './systems/effects.js';
@@ -79,6 +80,7 @@ async function boot() {
   const getCardDef = (id) => registries.of('card').get(id);
   const pillDefs = registries.of('pill').all();
   const getPillDef = (id) => registries.of('pill').get(id);
+  const getFamiliarDef = (id) => registries.of('familiar').get(id);
   const getBossDef = (id) => registries.of('boss').get(id);
   const getBossDefsForChapter = (chapter) => {
     const all = registries.of('boss').all();
@@ -153,6 +155,7 @@ async function boot() {
     run.room = run.floorRuntime.getCurrentRoom();
     stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
     placePlayerInRoom(run.player, previousWorld, run.room, { x: run.centerX, y: run.centerY });
+    placeFamiliarsInRoom(previousWorld, run.room.world, run.player);
     run.decals.clear();
   }
 
@@ -163,6 +166,7 @@ async function boot() {
     stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
     const pos = entrySide ? entryPositionForSide(run.room, entrySide) : { x: run.centerX, y: run.centerY };
     placePlayerInRoom(run.player, previousWorld, run.room, pos);
+    placeFamiliarsInRoom(previousWorld, run.room.world, run.player);
     run.decals.clear();
     announceFloor(run);
   }
@@ -321,6 +325,7 @@ async function boot() {
 
       updatePlayer(run.room.world, run.player, input, dt, { events });
       updateEnemies(run.room.world, run.player, dt, { events, rng: run.aiRng });
+      updateFamiliars(run.room.world, run.player, dt, { events, rng: run.spawnRng });
       updateProjectiles(run.room.world, dt, events);
       updateBombs(run.room.world, dt, { player: run.player, playerHealth: run.playerHealth, room: run.room, events, rng: run.spawnRng });
       resolveCombat(run.room.world, { player: run.player, playerHealth: run.playerHealth, events, rng: run.spawnRng });
@@ -331,6 +336,7 @@ async function boot() {
         events,
         pools: itemPools,
         getItemDef,
+        getFamiliarDef,
       });
       resolveShopPurchases(run.room.world, run.player, {
         inventory: run.inventory,
@@ -339,6 +345,7 @@ async function boot() {
         currency: run.currency,
         pools: itemPools,
         getItemDef,
+        getFamiliarDef,
         events,
       });
       resolveKeyLockedDoors(run.room, run.player, { currency: run.currency, events });
@@ -454,6 +461,7 @@ async function boot() {
         cellType: run.floorRuntime.getCurrentCell().type,
         player: { x: run.player.x, y: run.player.y, inWorld: room.world.entities.byType('player').includes(run.player) },
         enemies: room.world.entities.byType('enemy').filter((e) => e.alive).length,
+        familiars: room.world.entities.byType('familiar').filter((e) => e.alive).length,
         enemyPos: room.world.entities.byType('enemy').filter((e) => e.alive).map((e) => ({ x: e.x, y: e.y })),
         enemyShots: room.world.entities.byType('projectile').filter((p) => p.alive && p.team === 'enemy').length,
         graceTimer: room.world.enemyGraceTimer ?? 0,
@@ -513,6 +521,14 @@ async function boot() {
     spawnEnemyAt(defId, x, y) {
       const run = currentRun;
       return spawnEnemy(run.room.world, registries.of('enemy').get(defId), { x, y, rng: run.spawnRng });
+    },
+    /** Spawns one familiar of each behavior (orbit/hover/follow) on the player (dev/test only, for P2.4 visual verification). */
+    giveFamiliars() {
+      const run = currentRun;
+      for (const behavior of ['orbit', 'hover', 'follow']) {
+        const def = registries.of('familiar').all().find((d) => d.behavior === behavior);
+        if (def) spawnFamiliar(run.room.world, def, { player: run.player });
+      }
     },
     enemyIds: () => registries.of('enemy').all().map((d) => d.id),
     /** Paints a pit into the current room's tile grid (dev/test only, for P1.G1's pit-vs-tear verification). */

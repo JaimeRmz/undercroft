@@ -1,0 +1,14 @@
+{
+  "id": "core:item-43",
+  "name": "Threadbare Veil",
+  "type": "passive",
+  "description": "A small light drifts at your shoulder.",
+  "effects": [],
+  "grantsFamiliar": "core:familiar-06",
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

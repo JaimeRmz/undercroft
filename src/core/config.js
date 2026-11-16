@@ -139,4 +139,11 @@ export const CONFIG = {
   CONFUSE_REDIRECT_SECONDS: 0.5, // how often a confused enemy picks a new random direction
   BOSS_STATUS_IMMUNITY_SECONDS: 8, // CLAUDE.md §3: "~8 seconds of status immunity after being afflicted"
   CHARM_ATTACK_COOLDOWN_TICKS: 30, // [assumed] half a second at 60Hz between a charmed enemy's attacks on others
+
+  // Familiars (§3: orbitals, followers that shoot, blue-fly style helpers) — all [assumed], no canonical values
+  FAMILIAR_FOLLOW_EASE: 6, // per-second ease-toward-target rate for 'follow'/'hover' behaviors
+  FAMILIAR_CONTACT_COOLDOWN_TICKS: 30, // half a second at 60Hz between an orbiting/hovering familiar's contact-damage hits
+  FAMILIAR_DEFAULT_ORBIT_RADIUS_PX: 50,
+  FAMILIAR_DEFAULT_ORBIT_SPEED_RAD_PER_SEC: 2,
+  FAMILIAR_DEFAULT_FOLLOW_OFFSET_PX: -24, // hover/follow sit this far up-and-left of the player by default
 };
