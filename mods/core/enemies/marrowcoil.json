@@ -1,0 +1,14 @@
+{
+  "id": "core:marrowcoil",
+  "name": "Marrowcoil",
+  "chapter": 4,
+  "hp": 8,
+  "speed": 60,
+  "radius": 15,
+  "behaviors": [
+    "chase",
+    "splitter"
+  ],
+  "contactDamageHalfHearts": 2,
+  "description": "Breaks into two smaller horrors the moment it is finally put down."
+}

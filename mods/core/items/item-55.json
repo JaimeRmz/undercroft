@@ -1,0 +1,18 @@
+{
+  "id": "core:item-55",
+  "name": "Inverted Ribcage",
+  "type": "passive",
+  "description": "A crooked, favorable star.",
+  "effects": [
+    {
+      "stat": "luck",
+      "value": 3
+    }
+  ],
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "curse"
+  ]
+}

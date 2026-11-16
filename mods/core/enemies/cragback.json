@@ -1,0 +1,11 @@
+{
+  "id": "core:cragback",
+  "name": "Cragback",
+  "chapter": 3,
+  "hp": 11,
+  "speed": 60,
+  "radius": 16,
+  "behavior": "frontArmoredKnight",
+  "contactDamageHalfHearts": 1,
+  "description": "A thicker plate, a harder charge — flanking it still works."
+}

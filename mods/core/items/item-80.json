@@ -1,0 +1,18 @@
+{
+  "id": "core:item-80",
+  "name": "Jagged-Edged Brand",
+  "type": "active",
+  "description": "For a moment, you outrun everything.",
+  "activeEffect": {
+    "type": "speedBoost",
+    "multiplier": 2,
+    "duration": 3
+  },
+  "maxCharges": 3,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

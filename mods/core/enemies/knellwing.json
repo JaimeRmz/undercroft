@@ -1,0 +1,12 @@
+{
+  "id": "core:knellwing",
+  "name": "Knellwing",
+  "chapter": 5,
+  "hp": 10,
+  "speed": 110,
+  "radius": 14,
+  "behavior": "erraticFlier",
+  "flies": true,
+  "contactDamageHalfHearts": 2,
+  "description": "Swoops without warning, fast enough to close any gap in an instant."
+}

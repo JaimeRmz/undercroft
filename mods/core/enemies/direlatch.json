@@ -1,0 +1,11 @@
+{
+  "id": "core:direlatch",
+  "name": "Direlatch",
+  "chapter": 5,
+  "hp": 15,
+  "speed": 70,
+  "radius": 17,
+  "behavior": "frontArmoredKnight",
+  "contactDamageHalfHearts": 2,
+  "description": "An armored horror that has learned to keep its plated side toward you."
+}

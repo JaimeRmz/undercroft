@@ -103,6 +103,39 @@ test('mods/core ships 5 characters, each with a distinct §3-named mechanic', as
   assert.ok(characters.some((c) => c.startingFamiliar), 'expected a character with a starting familiar');
 });
 
+test('mods/core ships chapters 3-5 (P2.8): 5 more floors, 25 more enemies, 8 more bosses incl. one isFinalBoss, item count 80+', async () => {
+  const registries = new ContentRegistries();
+  const loader = new ModLoader({
+    source: createFsSource(MODS_DIR),
+    registries,
+    events: createEventBus(),
+    log: createLogger('real-mods-test', 'error'),
+  });
+  await loader.loadAll();
+
+  const floors = registries.of('floor').all();
+  for (const stage of [5, 6, 7, 8, 9]) {
+    assert.ok(floors.some((f) => f.stage === stage), `expected a floor def for stage ${stage}`);
+  }
+  assert.equal(floors.find((f) => f.stage === 9)?.chapter, 5);
+
+  const enemies = registries.of('enemy').all();
+  assert.ok(enemies.length >= 41, `expected 41+ enemies, got ${enemies.length}`);
+  for (const chapter of [3, 4, 5]) {
+    assert.ok(enemies.some((e) => e.chapter === chapter), `expected at least one chapter-${chapter} enemy`);
+  }
+
+  const bosses = registries.of('boss').all();
+  assert.ok(bosses.length >= 12, `expected 12+ bosses, got ${bosses.length}`);
+  const finalBosses = bosses.filter((b) => b.isFinalBoss);
+  assert.equal(finalBosses.length, 1, 'expected exactly one isFinalBoss');
+  assert.ok(finalBosses[0].phases.length >= 3, 'the final boss should have 3+ phases');
+  assert.equal(finalBosses[0].chapter, 5);
+
+  const items = registries.of('item').all();
+  assert.ok(items.length >= 80, `expected 80+ items, got ${items.length}`);
+});
+
 test('core loads before example-mod per loadOrder/dependency', async () => {
   const registries = new ContentRegistries();
   const loader = new ModLoader({

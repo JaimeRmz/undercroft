@@ -1,0 +1,18 @@
+{
+  "id": "core:item-57",
+  "name": "Knotted Chrysalis",
+  "type": "passive",
+  "description": "A pale light clings to your chest.",
+  "effects": [
+    {
+      "stat": "soulHearts",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

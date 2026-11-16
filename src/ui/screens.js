@@ -57,3 +57,18 @@ export function drawDeathScreen(ctx, { width, height, stats }) {
   centeredText(ctx, 'Press Space to restart', width / 2, height / 2 + 62, { font: 'bold 11px sans-serif', color: '#d4af37' });
   ctx.restore();
 }
+
+/** `stats`: { floorsCleared, kills, coins, elapsedSeconds }. Shown once the final boss's trapdoor is taken. */
+export function drawVictoryScreen(ctx, { width, height, stats }) {
+  overlay(ctx, width, height, 0.9);
+  centeredText(ctx, 'THE DEPTHS ARE QUIET', width / 2, height / 2 - 50, { font: 'bold 22px sans-serif', color: '#d4af37' });
+  const lines = [
+    `Floors cleared: ${stats.floorsCleared}`,
+    `Enemies defeated: ${stats.kills}`,
+    `Coins collected: ${stats.coins}`,
+    `Time survived: ${stats.elapsedSeconds.toFixed(1)}s`,
+  ];
+  lines.forEach((line, i) => centeredText(ctx, line, width / 2, height / 2 - 20 + i * 15, { font: '10px sans-serif' }));
+  centeredText(ctx, 'Press Space to play again', width / 2, height / 2 + 62, { font: 'bold 11px sans-serif', color: '#d4af37' });
+  ctx.restore();
+}

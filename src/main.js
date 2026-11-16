@@ -28,7 +28,7 @@ import { createFloorTransitionState, startFloorTransition, updateFloorTransition
 import { createPlayer, updatePlayer } from './systems/player.js';
 import { placePlayerInRoom, placeFamiliarsInRoom } from './systems/roomEntry.js';
 import { describeDeathCause } from './systems/deathCause.js';
-import { spawnEnemy, updateEnemies } from './systems/enemies.js';
+import { spawnEnemy, updateEnemies, killEnemy } from './systems/enemies.js';
 import { findGroundSpawnTile } from './systems/spawnPlacement.js';
 import { updateProjectiles } from './systems/projectiles.js';
 import { resolveCombat } from './systems/combat.js';
@@ -69,7 +69,7 @@ import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
 import { computeHudModel } from './ui/hudModel.js';
 import { drawHudPanels, drawFloorBanner } from './ui/hudPanels.js';
-import { drawMenuScreen, drawCharacterSelectScreen, drawPauseScreen, drawDeathScreen } from './ui/screens.js';
+import { drawMenuScreen, drawCharacterSelectScreen, drawPauseScreen, drawDeathScreen, drawVictoryScreen } from './ui/screens.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
 import { createHttpSource } from './modding/source-http.js';
@@ -270,6 +270,7 @@ async function boot() {
       pendingLeavingType: null,
       floorRedDamageTaken: false,
       bossFightRedDamageTaken: false,
+      finalBossDefeated: false,
       lastDealRoomStage: -Infinity,
       transition: createTransitionState(),
       floorTransition: createFloorTransitionState(),
@@ -343,6 +344,7 @@ async function boot() {
     if (enemy.isBoss) {
       const itemId = itemPools.draw('boss', currentRun.spawnRng);
       if (itemId) spawnItemPedestal(currentRun.room.world, itemId, { x: enemy.x, y: enemy.y });
+      currentRun.finalBossDefeated = !!getBossDef(enemy.defId)?.isFinalBoss;
       spawnTrapdoor(currentRun.room.world, { x: currentRun.centerX, y: currentRun.centerY });
 
       // Devil/angel deal room (CLAUDE.md §3): a chance, built from this floor's damage-free streak, to
@@ -406,7 +408,7 @@ async function boot() {
     update: (dt) => {
       pollGamepads(input);
 
-      if (gameState === 'menu' || gameState === 'dead') {
+      if (gameState === 'menu' || gameState === 'dead' || gameState === 'victory') {
         if (input.justPressed.has('useActive')) {
           selectedCharacterIndex = 0;
           gameState = 'characterSelect';
@@ -582,7 +584,12 @@ async function boot() {
       }
 
       if (resolveTrapdoor(run.room.world, run.player)) {
-        startFloorTransition(run.floorTransition);
+        if (run.finalBossDefeated) {
+          run.stats.elapsedSeconds = (performance.now() - run.stats.startTime) / 1000;
+          gameState = 'victory';
+        } else {
+          startFloorTransition(run.floorTransition);
+        }
         clearFrameEdges(input);
         return;
       }
@@ -643,6 +650,13 @@ async function boot() {
     },
     killAllEnemies() {
       for (const e of currentRun.room.world.entities.byType('enemy')) e.alive = false;
+    },
+    /** Kills the current room's boss through the real killEnemy path (dev/test only), so 'enemy:death' fires for real — needed to exercise the item/trapdoor/victory wiring that killAllEnemies' direct `alive = false` deliberately skips. */
+    killBoss() {
+      const run = currentRun;
+      const boss = run.room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
+      if (boss) killEnemy(run.room.world, boss, { events, rng: run.spawnRng });
+      return !!boss;
     },
     setPlayer(x, y) {
       currentRun.player.x = x;
@@ -720,6 +734,10 @@ async function boot() {
       }
     },
     enemyIds: () => registries.of('enemy').all().map((d) => d.id),
+    /** Forces `gameState` back to 'playing' (dev/test only) — used after the P2.8 victory-screen smoke scene so the rest of the script's checks (which need combat/death processing to actually run) aren't stuck behind the 'menu'/'dead'/'victory' early-return branch. */
+    forcePlaying() {
+      gameState = 'playing';
+    },
     /** Paints a pit into the current room's tile grid (dev/test only, for P1.G1's pit-vs-tear verification). */
     placePit(tx, ty) {
       currentRun.room.placePit(tx, ty);
@@ -727,6 +745,21 @@ async function boot() {
     /** Clears a tile back to plain floor regardless of what a template put there (dev/test only). */
     setFloor(tx, ty) {
       currentRun.room.setTileType(tx, ty, TILE.FLOOR);
+    },
+    /** Regenerates the current run directly at `stage` (dev/test only, for P2.8 visual verification of chapters 3-5 without playing through floors 1-8 first). */
+    jumpToStage(stage) {
+      const run = currentRun;
+      const previousWorld = run.room.world;
+      run.stage = stage;
+      run.floor = generateFloor(run.stage, run.floorRng, { isPlayerFullHealth: true });
+      run.floorRuntime = new FloorRuntime(run.floor, templates, run.templateRng);
+      run.stockedRooms.clear();
+      run.room = run.floorRuntime.getCurrentRoom();
+      stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
+      placePlayerInRoom(run.player, previousWorld, run.room, { x: run.centerX, y: run.centerY });
+      placeFamiliarsInRoom(previousWorld, run.room.world, run.player);
+      run.decals.clear();
+      announceFloor(run);
     },
     /** Starts the floor-descent fade (dev/test only, for P1.G7 visual verification without walking to a real trapdoor). */
     triggerFloorTransition() {
@@ -842,6 +875,18 @@ async function boot() {
           coins: run.currency.coins,
           elapsedSeconds: run.stats.elapsedSeconds,
           killedBy: run.stats.killedBy,
+        },
+      });
+    }
+    if (gameState === 'victory') {
+      drawVictoryScreen(ctx, {
+        width: VIEW_W,
+        height: VIEW_H,
+        stats: {
+          floorsCleared: run.stats.floorsCleared,
+          kills: run.stats.kills,
+          coins: run.currency.coins,
+          elapsedSeconds: run.stats.elapsedSeconds,
         },
       });
     }

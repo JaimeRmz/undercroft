@@ -1,0 +1,17 @@
+{
+  "id": "core:item-78",
+  "name": "Hushed Shackle",
+  "type": "active",
+  "description": "A deep, costly mending.",
+  "activeEffect": {
+    "type": "heal",
+    "value": 6
+  },
+  "maxCharges": 4,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

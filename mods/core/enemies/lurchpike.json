@@ -1,0 +1,11 @@
+{
+  "id": "core:lurchpike",
+  "name": "Lurchpike",
+  "chapter": 3,
+  "hp": 8,
+  "speed": 65,
+  "radius": 14,
+  "behavior": "hopLeap",
+  "contactDamageHalfHearts": 1,
+  "description": "Coils tighter and leaps further than anything seen on the upper floors."
+}

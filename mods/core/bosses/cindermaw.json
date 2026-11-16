@@ -1,0 +1,45 @@
+{
+  "id": "core:cindermaw",
+  "name": "Cindermaw",
+  "chapter": 3,
+  "hp": 110,
+  "radius": 30,
+  "speed": 55,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.2,
+  "damage": 2,
+  "range": 9,
+  "phases": [
+    {
+      "hpThreshold": 1,
+      "patterns": [
+        {
+          "id": "ring",
+          "weight": 2
+        },
+        {
+          "id": "spiral",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.5,
+      "patterns": [
+        {
+          "id": "spiral",
+          "weight": 2
+        },
+        {
+          "id": "summonMinions",
+          "weight": 1
+        },
+        {
+          "id": "ring",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "description": "Fills the room with slow, spiraling fire and calls in help once it is hurting."
+}

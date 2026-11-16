@@ -1,0 +1,14 @@
+{
+  "id": "core:emberthrall",
+  "name": "Emberthrall",
+  "chapter": 5,
+  "hp": 9,
+  "speed": 80,
+  "radius": 14,
+  "behaviors": [
+    "chase",
+    "exploder"
+  ],
+  "contactDamageHalfHearts": 2,
+  "description": "Burns with a hunger that ends in a final, violent release."
+}

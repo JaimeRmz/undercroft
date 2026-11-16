@@ -1,0 +1,17 @@
+{
+  "id": "core:item-56",
+  "name": "Jaundiced Cocoon",
+  "type": "passive",
+  "description": "A second skin grows beneath the first.",
+  "effects": [
+    {
+      "stat": "redHeartContainers",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

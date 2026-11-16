@@ -1,0 +1,45 @@
+{
+  "id": "core:hollowgiant",
+  "name": "The Hollow Giant",
+  "chapter": 4,
+  "hp": 150,
+  "radius": 34,
+  "speed": 50,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.2,
+  "damage": 2,
+  "range": 8,
+  "phases": [
+    {
+      "hpThreshold": 1,
+      "patterns": [
+        {
+          "id": "slam",
+          "weight": 2
+        },
+        {
+          "id": "charge",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.5,
+      "patterns": [
+        {
+          "id": "slam",
+          "weight": 2
+        },
+        {
+          "id": "summonMinions",
+          "weight": 1
+        },
+        {
+          "id": "charge",
+          "weight": 2
+        }
+      ]
+    }
+  ],
+  "description": "Every footfall ends in a shockwave; every slam calls more of its brood."
+}

@@ -1,0 +1,45 @@
+{
+  "id": "core:greylung",
+  "name": "Greylung",
+  "chapter": 4,
+  "hp": 160,
+  "radius": 30,
+  "speed": 60,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.3,
+  "damage": 2,
+  "range": 9,
+  "phases": [
+    {
+      "hpThreshold": 1,
+      "patterns": [
+        {
+          "id": "projectileRain",
+          "weight": 2
+        },
+        {
+          "id": "spread",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.5,
+      "patterns": [
+        {
+          "id": "projectileRain",
+          "weight": 2
+        },
+        {
+          "id": "ring",
+          "weight": 1
+        },
+        {
+          "id": "spread",
+          "weight": 2
+        }
+      ]
+    }
+  ],
+  "description": "Chokes the room in a near-constant rain of fire from above."
+}

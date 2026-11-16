@@ -1,0 +1,22 @@
+{
+  "id": "core:item-49",
+  "name": "Clotted Seed",
+  "type": "passive",
+  "description": "Hits harder, and from further away.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 0.8
+    },
+    {
+      "stat": "range",
+      "value": 1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

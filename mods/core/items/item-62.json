@@ -1,0 +1,18 @@
+{
+  "id": "core:item-62",
+  "name": "Plagued Totem",
+  "type": "passive",
+  "description": "A blunt, guaranteed hurt.",
+  "effects": [
+    {
+      "stat": "flatDamage",
+      "value": 1.5
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "angel"
+  ]
+}

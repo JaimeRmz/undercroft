@@ -1,0 +1,14 @@
+{
+  "id": "core:faminecoil",
+  "name": "Faminecoil",
+  "chapter": 5,
+  "hp": 11,
+  "speed": 70,
+  "radius": 16,
+  "behaviors": [
+    "chase",
+    "splitter"
+  ],
+  "contactDamageHalfHearts": 2,
+  "description": "Divides again and again until there is nothing left worth splitting."
+}

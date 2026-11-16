@@ -1,0 +1,18 @@
+{
+  "id": "core:item-54",
+  "name": "Hallowed Mask",
+  "type": "passive",
+  "description": "Your feet forget the floor.",
+  "effects": [
+    {
+      "stat": "speed",
+      "value": 0.35
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "angel"
+  ]
+}

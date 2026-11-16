@@ -1,0 +1,15 @@
+{
+  "id": "core:vantablight",
+  "name": "Vantablight",
+  "chapter": 4,
+  "hp": 12,
+  "speed": 0,
+  "radius": 16,
+  "behavior": "turretShooter",
+  "fireCooldownSeconds": 0.7,
+  "shotSpeed": 1.4,
+  "damage": 2,
+  "range": 7,
+  "contactDamageHalfHearts": 2,
+  "description": "A merciless emplacement with almost no downtime between shots."
+}

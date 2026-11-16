@@ -1,0 +1,22 @@
+{
+  "id": "core:item-70",
+  "name": "Yawning Urn",
+  "type": "passive",
+  "description": "Cruelty rewarded by chance.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 1
+    },
+    {
+      "stat": "luck",
+      "value": 2
+    }
+  ],
+  "quality": 2,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "angel"
+  ]
+}

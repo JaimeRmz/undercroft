@@ -1,0 +1,45 @@
+{
+  "id": "core:vultross",
+  "name": "Vultross",
+  "chapter": 4,
+  "hp": 180,
+  "radius": 33,
+  "speed": 75,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.4,
+  "damage": 2,
+  "range": 9,
+  "phases": [
+    {
+      "hpThreshold": 1,
+      "patterns": [
+        {
+          "id": "charge",
+          "weight": 2
+        },
+        {
+          "id": "teleport",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.5,
+      "patterns": [
+        {
+          "id": "charge",
+          "weight": 2
+        },
+        {
+          "id": "teleport",
+          "weight": 2
+        },
+        {
+          "id": "aimedBurst",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "description": "Blinks into line with you and closes the gap before you can finish turning."
+}

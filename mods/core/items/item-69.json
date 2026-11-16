@@ -1,0 +1,18 @@
+{
+  "id": "core:item-69",
+  "name": "Warped Pupa",
+  "type": "passive",
+  "description": "You are already gone before you move.",
+  "effects": [
+    {
+      "stat": "speed",
+      "value": 0.45
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "devil"
+  ]
+}

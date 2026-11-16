@@ -1,0 +1,11 @@
+{
+  "id": "core:fetterling",
+  "name": "Fetterling",
+  "chapter": 4,
+  "hp": 8,
+  "speed": 130,
+  "radius": 14,
+  "behavior": "fourDirectionBouncer",
+  "contactDamageHalfHearts": 2,
+  "description": "Ricochets at a punishing speed, impossible to predict after the first wall."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "core:pallbearer",
+  "name": "Pallbearer",
+  "chapter": 4,
+  "hp": 8,
+  "speed": 100,
+  "radius": 13,
+  "behavior": "orbiter",
+  "flies": true,
+  "contactDamageHalfHearts": 2,
+  "description": "Sweeps a wide, punishing patrol with real weight behind every pass."
+}

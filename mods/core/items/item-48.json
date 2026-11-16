@@ -1,0 +1,17 @@
+{
+  "id": "core:item-48",
+  "name": "Blistered Claw",
+  "type": "passive",
+  "description": "A second, colder kind of anger.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 1.2
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "core:hollowgale",
+  "name": "Hollowgale",
+  "chapter": 4,
+  "hp": 8,
+  "speed": 75,
+  "radius": 13,
+  "behavior": "wallPhasingGhost",
+  "flies": true,
+  "contactDamageHalfHearts": 2,
+  "description": "Drifts through every wall in the room as if it isn't there."
+}

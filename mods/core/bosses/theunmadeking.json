@@ -1,0 +1,96 @@
+{
+  "id": "core:theunmadeking",
+  "name": "The Unmade King",
+  "chapter": 5,
+  "hp": 260,
+  "radius": 36,
+  "speed": 55,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.4,
+  "damage": 2,
+  "range": 10,
+  "isFinalBoss": true,
+  "phases": [
+    {
+      "hpThreshold": 1,
+      "patterns": [
+        {
+          "id": "ring",
+          "weight": 2
+        },
+        {
+          "id": "aimedBurst",
+          "weight": 1
+        },
+        {
+          "id": "charge",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.65,
+      "patterns": [
+        {
+          "id": "spiral",
+          "weight": 2
+        },
+        {
+          "id": "telegraphedLaser",
+          "weight": 2
+        },
+        {
+          "id": "summonMinions",
+          "weight": 1
+        },
+        {
+          "id": "charge",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.35,
+      "patterns": [
+        {
+          "id": "projectileRain",
+          "weight": 2
+        },
+        {
+          "id": "telegraphedLaser",
+          "weight": 2
+        },
+        {
+          "id": "slam",
+          "weight": 2
+        },
+        {
+          "id": "summonMinions",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.15,
+      "patterns": [
+        {
+          "id": "teleport",
+          "weight": 1
+        },
+        {
+          "id": "telegraphedLaser",
+          "weight": 3
+        },
+        {
+          "id": "slam",
+          "weight": 2
+        },
+        {
+          "id": "spiral",
+          "weight": 2
+        }
+      ]
+    }
+  ],
+  "description": "The final chapter's capstone: composed at first, then every pattern at once."
+}

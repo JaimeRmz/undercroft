@@ -1,0 +1,11 @@
+{
+  "id": "core:gravepicker",
+  "name": "Gravepicker",
+  "chapter": 3,
+  "hp": 9,
+  "speed": 95,
+  "radius": 14,
+  "behavior": "chase",
+  "contactDamageHalfHearts": 1,
+  "description": "A heavier, faster cousin of the things that merely shuffle toward you."
+}

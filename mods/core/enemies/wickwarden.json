@@ -1,0 +1,15 @@
+{
+  "id": "core:wickwarden",
+  "name": "Wickwarden",
+  "chapter": 3,
+  "hp": 9,
+  "speed": 0,
+  "radius": 15,
+  "behavior": "turretShooter",
+  "fireCooldownSeconds": 0.9,
+  "shotSpeed": 1.2,
+  "damage": 2,
+  "range": 6,
+  "contactDamageHalfHearts": 1,
+  "description": "A fortified gun emplacement that never moves and rarely misses."
+}

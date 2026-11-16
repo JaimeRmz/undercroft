@@ -1,0 +1,22 @@
+{
+  "id": "core:item-74",
+  "name": "Draining Pendant",
+  "type": "passive",
+  "description": "Something dark lends you its strength.",
+  "effects": [
+    {
+      "stat": "blackHearts",
+      "value": 2
+    },
+    {
+      "stat": "damageUps",
+      "value": 0.5
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "boss"
+  ]
+}

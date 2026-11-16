@@ -1,0 +1,12 @@
+{
+  "id": "core:tideling",
+  "name": "Tideling",
+  "chapter": 3,
+  "hp": 7,
+  "speed": 85,
+  "radius": 13,
+  "behavior": "erraticFlier",
+  "flies": true,
+  "contactDamageHalfHearts": 1,
+  "description": "Skims over every pit in the room, veering unpredictably as it closes in."
+}

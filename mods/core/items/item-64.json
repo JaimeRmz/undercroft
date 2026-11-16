@@ -1,0 +1,21 @@
+{
+  "id": "core:item-64",
+  "name": "Ruined Veil",
+  "type": "passive",
+  "description": "Everything about you quickens.",
+  "effects": [
+    {
+      "stat": "speed",
+      "value": 0.2
+    },
+    {
+      "stat": "shotSpeed",
+      "value": 0.2
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure"
+  ]
+}

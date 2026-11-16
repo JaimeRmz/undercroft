@@ -1,0 +1,18 @@
+{
+  "id": "core:item-66",
+  "name": "Tattered Husk-Shell",
+  "type": "passive",
+  "description": "A single, terrible purpose.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 2.5
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "boss"
+  ]
+}

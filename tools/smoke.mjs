@@ -396,6 +396,30 @@ async function main() {
       expect((await snap()).stage === before + 1, 'advanceFloor did not run at the fade swap');
     }
 
+    // --- P2.8: chapter 5 (final chapter) palette + the final boss -> victory screen ------------
+    {
+      await page.evaluate(() => window.__undercroft.jumpToStage(9));
+      await page.waitForTimeout(200);
+      let s = await snap();
+      expect(s.stage === 9, 'jumpToStage(9) did not land on stage 9');
+      await shot('chapter-5-floor');
+      const bossCell = s.floorCells.find((c) => c.type === 'boss');
+      expect(!!bossCell, 'stage 9 floor has no boss room');
+      if (bossCell) {
+        await page.evaluate((key) => window.__undercroft.gotoCell(key), bossCell.key);
+        await page.waitForTimeout(700); // clear the entry-grace window so the boss is a real, visible threat
+        s = await snap();
+        expect(s.enemies > 0, 'no boss spawned in the stage-9 boss room');
+        await shot('final-boss');
+        const killed = await page.evaluate(() => window.__undercroft.killBoss());
+        expect(killed, 'killBoss found no boss entity to kill');
+        await page.waitForTimeout(200);
+        expect((await snap()).state === 'victory', 'defeating the final boss and touching its trapdoor did not reach the victory screen');
+        await shot('victory');
+        await page.evaluate(() => window.__undercroft.forcePlaying());
+      }
+    }
+
     // --- death ---------------------------------------------------------------------------------
     {
       const s = await snap();

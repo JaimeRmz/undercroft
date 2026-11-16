@@ -1,0 +1,15 @@
+{
+  "id": "core:hexwarden",
+  "name": "Hexwarden",
+  "chapter": 5,
+  "hp": 14,
+  "speed": 0,
+  "radius": 17,
+  "behavior": "turretShooter",
+  "fireCooldownSeconds": 0.6,
+  "shotSpeed": 1.5,
+  "damage": 2,
+  "range": 8,
+  "contactDamageHalfHearts": 2,
+  "description": "The last and worst of the gun emplacements."
+}

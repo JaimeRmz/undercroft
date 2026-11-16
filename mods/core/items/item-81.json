@@ -1,0 +1,16 @@
+{
+  "id": "core:item-81",
+  "name": "Keening Grimoire",
+  "type": "active",
+  "description": "A second, shorter tear through space.",
+  "activeEffect": {
+    "type": "teleport"
+  },
+  "maxCharges": 3,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "core:item-58",
+  "name": "Leaden Tusk",
+  "type": "passive",
+  "description": "Something patient waits inside you.",
+  "effects": [
+    {
+      "stat": "blackHearts",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "boss"
+  ]
+}

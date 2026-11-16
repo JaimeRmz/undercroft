@@ -1,0 +1,22 @@
+{
+  "id": "core:item-61",
+  "name": "Oily Scale",
+  "type": "passive",
+  "description": "Fortune favors the far-reaching.",
+  "effects": [
+    {
+      "stat": "luck",
+      "value": 1
+    },
+    {
+      "stat": "range",
+      "value": 1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "devil"
+  ]
+}

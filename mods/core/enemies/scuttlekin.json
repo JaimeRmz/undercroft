@@ -1,0 +1,11 @@
+{
+  "id": "core:scuttlekin",
+  "name": "Scuttlekin",
+  "chapter": 4,
+  "hp": 9,
+  "speed": 75,
+  "radius": 14,
+  "behavior": "burrower",
+  "contactDamageHalfHearts": 2,
+  "description": "Surfaces only long enough to strike, then dives back out of reach."
+}

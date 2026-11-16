@@ -1,0 +1,18 @@
+{
+  "id": "core:item-65",
+  "name": "Scorched Fang",
+  "type": "passive",
+  "description": "The odds simply stop mattering.",
+  "effects": [
+    {
+      "stat": "luck",
+      "value": 5
+    }
+  ],
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

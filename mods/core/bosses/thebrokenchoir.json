@@ -1,0 +1,45 @@
+{
+  "id": "core:thebrokenchoir",
+  "name": "The Broken Choir",
+  "chapter": 4,
+  "hp": 170,
+  "radius": 32,
+  "speed": 0,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.3,
+  "damage": 2,
+  "range": 10,
+  "phases": [
+    {
+      "hpThreshold": 1,
+      "patterns": [
+        {
+          "id": "telegraphedLaser",
+          "weight": 2
+        },
+        {
+          "id": "ring",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.5,
+      "patterns": [
+        {
+          "id": "telegraphedLaser",
+          "weight": 2
+        },
+        {
+          "id": "spiral",
+          "weight": 1
+        },
+        {
+          "id": "summonMinions",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "description": "Several locked beams sweep the room in a pattern that only looks random."
+}

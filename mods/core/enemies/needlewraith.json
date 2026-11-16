@@ -1,0 +1,11 @@
+{
+  "id": "core:needlewraith",
+  "name": "Needlewraith",
+  "chapter": 4,
+  "hp": 9,
+  "speed": 200,
+  "radius": 14,
+  "behavior": "mirrorOfPlayer",
+  "contactDamageHalfHearts": 2,
+  "description": "A sharper shadow, closing the gap a little faster than Doppel ever did."
+}

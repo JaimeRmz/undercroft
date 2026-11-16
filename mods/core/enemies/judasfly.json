@@ -1,0 +1,12 @@
+{
+  "id": "core:judasfly",
+  "name": "Judasfly",
+  "chapter": 5,
+  "hp": 10,
+  "speed": 120,
+  "radius": 14,
+  "behavior": "orbiter",
+  "flies": true,
+  "contactDamageHalfHearts": 2,
+  "description": "Patrols its circle with a speed that makes cornering it a gamble."
+}

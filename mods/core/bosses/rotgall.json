@@ -1,0 +1,45 @@
+{
+  "id": "core:rotgall",
+  "name": "Rotgall",
+  "chapter": 3,
+  "hp": 100,
+  "radius": 28,
+  "speed": 70,
+  "contactDamageHalfHearts": 2,
+  "shotSpeed": 1.2,
+  "damage": 2,
+  "range": 8,
+  "phases": [
+    {
+      "hpThreshold": 1,
+      "patterns": [
+        {
+          "id": "aimedBurst",
+          "weight": 2
+        },
+        {
+          "id": "charge",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "hpThreshold": 0.5,
+      "patterns": [
+        {
+          "id": "spread",
+          "weight": 2
+        },
+        {
+          "id": "projectileRain",
+          "weight": 1
+        },
+        {
+          "id": "charge",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "description": "A bloated, charging brute that showers the room in a final desperate spread."
+}

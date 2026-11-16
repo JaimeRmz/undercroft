@@ -1,0 +1,17 @@
+{
+  "id": "core:item-52",
+  "name": "Flickering Mirror",
+  "type": "passive",
+  "description": "Your tears fly further than they should.",
+  "effects": [
+    {
+      "stat": "range",
+      "value": 2
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "shop"
+  ]
+}

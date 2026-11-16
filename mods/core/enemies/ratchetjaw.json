@@ -1,0 +1,11 @@
+{
+  "id": "core:ratchetjaw",
+  "name": "Ratchetjaw",
+  "chapter": 3,
+  "hp": 10,
+  "speed": 85,
+  "radius": 15,
+  "behavior": "dashCharger",
+  "contactDamageHalfHearts": 1,
+  "description": "Lines up with brutal patience before rocketing down the row."
+}

@@ -1,0 +1,22 @@
+{
+  "id": "core:item-73",
+  "name": "Cindered Hook",
+  "type": "passive",
+  "description": "Sharper, and loosed without delay.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 0.6
+    },
+    {
+      "stat": "shotSpeed",
+      "value": 0.3
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

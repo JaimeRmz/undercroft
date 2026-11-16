@@ -1,0 +1,18 @@
+{
+  "id": "core:item-50",
+  "name": "Dreaming Carcass",
+  "type": "passive",
+  "description": "You weep without pause.",
+  "effects": [
+    {
+      "stat": "tears",
+      "value": 0.9
+    }
+  ],
+  "quality": 0,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "boss"
+  ]
+}

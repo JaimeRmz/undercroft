@@ -1,0 +1,18 @@
+{
+  "id": "core:item-82",
+  "name": "Blistered Tallow",
+  "type": "active",
+  "description": "A tight, bitter burst.",
+  "activeEffect": {
+    "type": "nova",
+    "radius": 110,
+    "damage": 10
+  },
+  "maxCharges": 2,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

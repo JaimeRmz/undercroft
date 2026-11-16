@@ -1,0 +1,11 @@
+{
+  "id": "core:wraithgrip",
+  "name": "Wraithgrip",
+  "chapter": 4,
+  "hp": 13,
+  "speed": 100,
+  "radius": 16,
+  "behavior": "dashCharger",
+  "contactDamageHalfHearts": 2,
+  "description": "Charges nearly twice as fast as anything from the upper chapters."
+}

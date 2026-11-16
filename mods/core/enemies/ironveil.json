@@ -1,0 +1,11 @@
+{
+  "id": "core:ironveil",
+  "name": "Ironveil",
+  "chapter": 5,
+  "hp": 10,
+  "speed": 150,
+  "radius": 15,
+  "behavior": "fourDirectionBouncer",
+  "contactDamageHalfHearts": 2,
+  "description": "A blur across the room, too fast to track by eye alone."
+}

@@ -1,0 +1,21 @@
+{
+  "id": "core:item-76",
+  "name": "Fused Gristle",
+  "type": "passive",
+  "description": "Brutal up close, useless at range.",
+  "effects": [
+    {
+      "stat": "damageUps",
+      "value": 1.5
+    },
+    {
+      "stat": "range",
+      "value": -1
+    }
+  ],
+  "quality": 1,
+  "weight": 1,
+  "pools": [
+    "shop"
+  ]
+}

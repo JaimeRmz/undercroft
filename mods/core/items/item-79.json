@@ -1,0 +1,18 @@
+{
+  "id": "core:item-79",
+  "name": "Ink-Stained Molar",
+  "type": "active",
+  "description": "A wide, merciless detonation.",
+  "activeEffect": {
+    "type": "nova",
+    "radius": 170,
+    "damage": 20
+  },
+  "maxCharges": 5,
+  "quality": 3,
+  "weight": 1,
+  "pools": [
+    "treasure",
+    "shop"
+  ]
+}

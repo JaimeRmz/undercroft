@@ -1,0 +1,12 @@
+{
+  "id": "core:gloamstalker",
+  "name": "Gloamstalker",
+  "chapter": 5,
+  "hp": 11,
+  "speed": 90,
+  "radius": 14,
+  "behavior": "wallPhasingGhost",
+  "flies": true,
+  "contactDamageHalfHearts": 2,
+  "description": "No wall in the final halls can keep this thing out."
+}

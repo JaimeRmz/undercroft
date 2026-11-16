@@ -23,6 +23,9 @@ const CHAMPION_RING_COLORS = { cyan: '#4ad8ff', red: '#ff4a4a', green: '#4aff6a'
 const CHAPTER_PALETTES = {
   1: { floor: '#2b2b33', wall: '#232330', rock: '#5a5248', pit: '#0a0a0c', door: '#443322' },
   2: { floor: '#243128', wall: '#1c2e22', rock: '#4d5a4f', pit: '#070c09', door: '#3a4322' },
+  3: { floor: '#332424', wall: '#2a1c1c', rock: '#5a4040', pit: '#0c0606', door: '#4a2a1e' },
+  4: { floor: '#232633', wall: '#1b1e2a', rock: '#454d5e', pit: '#06070c', door: '#2e3a4a' },
+  5: { floor: '#2c2030', wall: '#231a28', rock: '#52405a', pit: '#0a060c', door: '#4a2244' },
 };
 
 function paletteForChapter(chapter) {

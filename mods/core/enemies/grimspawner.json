@@ -1,0 +1,11 @@
+{
+  "id": "core:grimspawner",
+  "name": "Grimspawner",
+  "chapter": 4,
+  "hp": 9,
+  "speed": 60,
+  "radius": 15,
+  "behavior": "fleeingSpawner",
+  "contactDamageHalfHearts": 2,
+  "description": "Flees relentlessly while a steady trickle of minions chase in its place."
+}
