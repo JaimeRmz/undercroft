@@ -1,0 +1,16 @@
+{
+  "id": "core:transformation-03",
+  "description": "Something leaves you, and something else stays.",
+  "name": "Hollowed",
+  "setTag": "core:set-hollowed",
+  "grantsFlight": false,
+  "costumeColor": "#c9b8e8",
+  "effect": {
+    "statBonus": [
+      {
+        "stat": "soulHearts",
+        "value": 2
+      }
+    ]
+  }
+}

@@ -24,15 +24,32 @@ function applyStatBonus(stats, playerHealth, bonus) {
   else STAT_FIELD_APPLIERS[bonus.stat]?.(stats, bonus.value);
 }
 
-function heldItemIds(inventory) {
+/** The set of item ids the player currently holds (passives + actives), used by anything that keys off "which items are held" (synergy rules, transformations' set-tag counting). */
+export function heldItemIds(inventory) {
   return new Set([...inventory.passives, ...inventory.actives.map((a) => a.id)]);
 }
 
 /**
+ * Applies a `{ statBonus?, weaponType?, tearModifiers? }` effect bundle — the
+ * shape shared by synergy rules and transformations (P2.5), since both are
+ * "when a condition over held items is met, grant this once."
+ */
+export function applyEffectBundle(stats, playerHealth, player, effect) {
+  for (const bonus of effect?.statBonus ?? []) {
+    applyStatBonus(stats, playerHealth, bonus);
+  }
+  if (effect?.weaponType && player) {
+    setWeaponType(player, effect.weaponType);
+  }
+  if (effect?.tearModifiers && player) {
+    player.tearModifiers = [...(player.tearModifiers ?? []), ...effect.tearModifiers];
+  }
+}
+
+/**
  * Checks every rule not yet applied; if all of its `requires` ids are held,
- * applies `effect.statBonus` (stat deltas) and/or `effect.weaponType` (sets
- * the player's weapon type, subject to the normal priority rule), then marks
- * it applied so it never re-fires. Returns the list of rule ids that just fired.
+ * applies its effect bundle, then marks it applied so it never re-fires.
+ * Returns the list of rule ids that just fired.
  */
 export function checkSynergies(inventory, stats, playerHealth, player, rules, appliedIds) {
   const held = heldItemIds(inventory);
@@ -42,15 +59,7 @@ export function checkSynergies(inventory, stats, playerHealth, player, rules, ap
     if (appliedIds.has(rule.id)) continue;
     if (!rule.requires.every((id) => held.has(id))) continue;
 
-    for (const bonus of rule.effect?.statBonus ?? []) {
-      applyStatBonus(stats, playerHealth, bonus);
-    }
-    if (rule.effect?.weaponType && player) {
-      setWeaponType(player, rule.effect.weaponType);
-    }
-    if (rule.effect?.tearModifiers && player) {
-      player.tearModifiers = [...(player.tearModifiers ?? []), ...rule.effect.tearModifiers];
-    }
+    applyEffectBundle(stats, playerHealth, player, rule.effect);
 
     appliedIds.add(rule.id);
     justApplied.push(rule.id);

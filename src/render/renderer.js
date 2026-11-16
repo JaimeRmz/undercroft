@@ -126,6 +126,17 @@ export function renderRoom(
       bodyAngle: Math.atan2(player.moveDir?.y ?? 1, player.moveDir?.x ?? 0),
     });
     ctx.globalAlpha = 1;
+
+    // Transformation costumes (P2.5): one stacked ring per active transformation, same
+    // "tinted ring around the body" language as a champion enemy's tint, just on the player.
+    const playerScreen = camera.worldToScreen(player.x, player.y - (player.height ?? 0));
+    (player.transformCostumes ?? []).forEach((color, i) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(playerScreen.x, playerScreen.y, ((player.radius ?? 14) + 4 + i * 4) * camera.zoom, 0, Math.PI * 2);
+      ctx.stroke();
+    });
   }
 
   for (const familiar of room.world.entities.byType('familiar')) {

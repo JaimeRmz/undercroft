@@ -68,6 +68,24 @@ test('mods/core ships 10 familiars covering all 3 behaviors (orbit/hover/follow)
   }
 });
 
+test('mods/core ships 5 transformations, each with a set tag carried by 3+ real items', async () => {
+  const registries = new ContentRegistries();
+  const loader = new ModLoader({
+    source: createFsSource(MODS_DIR),
+    registries,
+    events: createEventBus(),
+    log: createLogger('real-mods-test', 'error'),
+  });
+  await loader.loadAll();
+  const transformations = registries.of('transformation').all();
+  assert.equal(transformations.length, 5);
+  const items = registries.of('item').all();
+  for (const transformation of transformations) {
+    const carriers = items.filter((i) => i.sets?.includes(transformation.setTag));
+    assert.ok(carriers.length >= 3, `expected 3+ items carrying ${transformation.setTag}, got ${carriers.length}`);
+  }
+});
+
 test('core loads before example-mod per loadOrder/dependency', async () => {
   const registries = new ContentRegistries();
   const loader = new ModLoader({

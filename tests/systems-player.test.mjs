@@ -155,6 +155,18 @@ test('player stays inside the room: resolveTileCollision pushes it off a solid t
   assert.ok(!world.tileGrid.isSolid(tx, ty));
 });
 
+test('P2.5: a flying player (transformation-granted) ignores solid tiles entirely, only clamped to the room bounds', () => {
+  const world = freshWorld();
+  world.tileGrid.setSolid(10, 10, true); // would normally push the player off this tile
+  const center = world.tileGrid.tileCenter(10, 10);
+  const player = createPlayer(world, { x: center.x, y: center.y, stats: new Stats() });
+  player.flying = true;
+  const input = createInputState();
+  updatePlayer(world, player, input, 1 / 60);
+  assert.equal(player.x, center.x);
+  assert.equal(player.y, center.y, 'a flying player should not be pushed off a solid tile');
+});
+
 test('facingDir (head) tracks the current aim direction and keeps the last one after releasing (CLAUDE.md §3)', () => {
   const world = freshWorld();
   const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });

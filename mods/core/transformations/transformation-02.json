@@ -1,0 +1,13 @@
+{
+  "id": "core:transformation-02",
+  "description": "Your tears now smolder on contact.",
+  "name": "Cinderkin",
+  "setTag": "core:set-cinderkin",
+  "grantsFlight": false,
+  "costumeColor": "#ff6a2a",
+  "effect": {
+    "tearModifiers": [
+      "burn"
+    ]
+  }
+}

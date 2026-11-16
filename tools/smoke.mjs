@@ -323,6 +323,18 @@ async function main() {
       await shot('familiars');
     }
 
+    // --- P2.5: transformations (flight + costume ring) via collecting 3 real set-tagged items ---
+    {
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+      const ok = await page.evaluate(() => window.__undercroft.triggerTransformation('core:transformation-01')); // Mothwing: grants flight
+      expect(ok, 'triggerTransformation could not find 3 items carrying core:transformation-01\'s set tag');
+      await page.waitForTimeout(100);
+      const s = await snap();
+      expect(s.transformations.includes('core:transformation-01'), 'Mothwing never activated after collecting its 3 set items');
+      expect(s.flying, 'Mothwing should have granted flight');
+      await shot('transformation');
+    }
+
     // --- P1.G7: door open-flash pulse, right as a cleared room's doors swing open --------------
     {
       const s0 = await snap();

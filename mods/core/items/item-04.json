@@ -14,5 +14,8 @@
   "pools": [
     "treasure",
     "secret"
+  ],
+  "sets": [
+    "core:set-cinderkin"
   ]
 }

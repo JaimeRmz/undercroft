@@ -18,5 +18,8 @@
   "pools": [
     "treasure",
     "secret"
+  ],
+  "sets": [
+    "core:set-ironclad"
   ]
 }

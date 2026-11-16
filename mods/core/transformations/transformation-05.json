@@ -1,0 +1,20 @@
+{
+  "id": "core:transformation-05",
+  "description": "Everything about you moves a half-step ahead.",
+  "name": "Quicksilver",
+  "setTag": "core:set-quicksilver",
+  "grantsFlight": false,
+  "costumeColor": "#e8eef5",
+  "effect": {
+    "statBonus": [
+      {
+        "stat": "speed",
+        "value": 0.3
+      },
+      {
+        "stat": "shotSpeed",
+        "value": 0.2
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "core:transformation-04",
+  "description": "Your skin takes on a dull, metal sheen.",
+  "name": "Ironclad",
+  "setTag": "core:set-ironclad",
+  "grantsFlight": false,
+  "costumeColor": "#8a97a8",
+  "effect": {
+    "statBonus": [
+      {
+        "stat": "damageUps",
+        "value": 1.5
+      }
+    ]
+  }
+}

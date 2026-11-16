@@ -14,5 +14,8 @@
   "pools": [
     "treasure",
     "devil"
+  ],
+  "sets": [
+    "core:set-quicksilver"
   ]
 }

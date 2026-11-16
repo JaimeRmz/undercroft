@@ -72,6 +72,17 @@ const ACTIVE_ARCHETYPES = [
   { activeEffect: { type: 'nova', radius: 90, damage: 8 }, maxCharges: 2, flavor: 'A smaller, quicker detonation.' },
 ];
 
+// P2.5: 3 items per transformation set tag (indices into PASSIVE_ARCHETYPES
+// below), so every transformation (tools/gen-transformations.mjs) is actually
+// reachable by collecting 3 real items, not just exercisable by hand/tests.
+const PASSIVE_SET_TAGS = [
+  'core:set-mothwing', 'core:set-mothwing', 'core:set-mothwing',
+  'core:set-cinderkin', 'core:set-cinderkin', 'core:set-cinderkin',
+  'core:set-hollowed', 'core:set-hollowed', 'core:set-hollowed',
+  'core:set-ironclad', 'core:set-ironclad', 'core:set-ironclad',
+  'core:set-quicksilver', 'core:set-quicksilver', 'core:set-quicksilver',
+];
+
 function writeItem(def) {
   const file = path.join(OUT_DIR, `${def.id.replace('core:', '')}.json`);
   fs.writeFileSync(file, JSON.stringify(def, null, 2) + '\n', 'utf-8');
@@ -103,6 +114,7 @@ PASSIVE_ARCHETYPES.forEach((archetype, i) => {
     quality,
     weight: 1,
     pools: POOL_CYCLE[i % POOL_CYCLE.length],
+    ...(PASSIVE_SET_TAGS[i] ? { sets: [PASSIVE_SET_TAGS[i]] } : {}),
   });
   written++;
 });

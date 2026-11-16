@@ -5,7 +5,7 @@
  * falling back to any other currently-held shoot key when that one releases.
  */
 import { CONFIG } from '../core/config.js';
-import { normalizeDiagonal, moveToward } from '../core/math.js';
+import { normalizeDiagonal, moveToward, clamp } from '../core/math.js';
 import { fireWeapon, WEAPON_TYPES } from './weapons.js';
 
 const SHOOT_DIRS = {
@@ -32,6 +32,8 @@ export function createPlayer(world, { x, y, stats }) {
     chargeTime: 0,
     facingDir: { x: 0, y: -1 }, // head: last aimed direction (CLAUDE.md §3 "head turns toward the shooting direction")
     moveDir: { x: 0, y: 1 }, // body: last moved direction ("body faces the movement direction")
+    flying: false, // set by a transformation that grants flight (P2.5)
+    transformCostumes: [], // costume tint colors from every active transformation (P2.5), stacked
     tags: ['player'],
   });
 }
@@ -66,7 +68,17 @@ export function updatePlayer(world, player, input, dt, { events } = {}) {
   player.vy = moveToward(player.vy, targetVy, maxDelta);
   player.x += player.vx * dt;
   player.y += player.vy * dt;
-  world.resolveTileCollision(player);
+  if (player.flying) {
+    // A flight-granting transformation (P2.5) bypasses tile collision entirely, same
+    // convention as a `flies: true` enemy (ai/behaviors.js's moveAndIntegrate) — just
+    // clamped to the room's outer bounds so it can't leave through a wall.
+    const maxX = world.tileGrid.width * world.tileGrid.tileSize;
+    const maxY = world.tileGrid.height * world.tileGrid.tileSize;
+    player.x = clamp(player.x, player.radius, maxX - player.radius);
+    player.y = clamp(player.y, player.radius, maxY - player.radius);
+  } else {
+    world.resolveTileCollision(player);
+  }
 
   player.aimAction = resolveShootAction(input, player.aimAction);
   if (player.aimAction) player.facingDir = SHOOT_DIRS[player.aimAction];

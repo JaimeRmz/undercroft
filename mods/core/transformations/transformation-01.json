@@ -1,0 +1,16 @@
+{
+  "id": "core:transformation-01",
+  "description": "Pale wings unfurl — you drift just above the floor.",
+  "name": "Mothwing",
+  "setTag": "core:set-mothwing",
+  "grantsFlight": true,
+  "costumeColor": "#7fd4e0",
+  "effect": {
+    "statBonus": [
+      {
+        "stat": "tears",
+        "value": 0.3
+      }
+    ]
+  }
+}

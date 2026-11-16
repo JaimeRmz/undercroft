@@ -39,6 +39,7 @@ import { ConsumableInventory, resolveConsumablePickups, useConsumableSlot } from
 import { PillIdentity } from './systems/pills.js';
 import { updateTempStatBoosts } from './systems/effects.js';
 import { checkSynergies } from './systems/synergies.js';
+import { checkTransformations } from './systems/transformations.js';
 import { stockShop, resolveShopPurchases } from './systems/shop.js';
 import { spawnBoss, spawnTrapdoor, resolveTrapdoor } from './systems/bosses.js';
 import { drawBossBar } from './ui/bossbar.js';
@@ -93,6 +94,7 @@ async function boot() {
     return matching.length > 0 ? matching : all;
   };
   const synergyRules = registries.of('synergy').all();
+  const transformationDefs = registries.of('transformation').all();
 
   /** Stocks a freshly-visited room's cell with whatever it should hold (item/shop/boss/enemies). */
   function stockRoom(run, room, cell) {
@@ -183,6 +185,7 @@ async function boot() {
       stage: 1,
       stockedRooms: new Set(),
       appliedSynergyIds: new Set(),
+      activeTransformationIds: new Set(),
       pendingEntrySide: null,
       transition: createTransitionState(),
       floorTransition: createFloorTransitionState(),
@@ -370,6 +373,11 @@ async function boot() {
         const rule = synergyRules.find((r) => r.id === ruleId);
         events.emit('item:pickup', { id: ruleId, name: 'Synergy!', description: rule?.description ?? '' });
       }
+      const activatedTransformations = checkTransformations(run.inventory, run.player.stats, run.playerHealth, run.player, transformationDefs, getItemDef, run.activeTransformationIds);
+      for (const transformationId of activatedTransformations) {
+        const def = transformationDefs.find((t) => t.id === transformationId);
+        events.emit('item:pickup', { id: transformationId, name: `Transformation: ${def?.name ?? transformationId}!`, description: def?.description ?? '', x: run.player.x, y: run.player.y });
+      }
       tickInvuln(run.playerHealth, dt);
       run.room.world.reap();
 
@@ -462,6 +470,8 @@ async function boot() {
         player: { x: run.player.x, y: run.player.y, inWorld: room.world.entities.byType('player').includes(run.player) },
         enemies: room.world.entities.byType('enemy').filter((e) => e.alive).length,
         familiars: room.world.entities.byType('familiar').filter((e) => e.alive).length,
+        transformations: [...run.activeTransformationIds],
+        flying: !!run.player.flying,
         enemyPos: room.world.entities.byType('enemy').filter((e) => e.alive).map((e) => ({ x: e.x, y: e.y })),
         enemyShots: room.world.entities.byType('projectile').filter((p) => p.alive && p.team === 'enemy').length,
         graceTimer: room.world.enemyGraceTimer ?? 0,
@@ -521,6 +531,17 @@ async function boot() {
     spawnEnemyAt(defId, x, y) {
       const run = currentRun;
       return spawnEnemy(run.room.world, registries.of('enemy').get(defId), { x, y, rng: run.spawnRng });
+    },
+    /** Picks up 3 real items carrying `transformationId`'s set tag through the real pickUpItem pipeline, so the next tick's checkTransformations call activates it for real (dev/test only, for P2.5 visual verification). */
+    triggerTransformation(transformationId) {
+      const run = currentRun;
+      const def = registries.of('transformation').get(transformationId);
+      if (!def) return false;
+      const carriers = registries.of('item').all().filter((i) => i.sets?.includes(def.setTag)).slice(0, 3);
+      for (const itemDef of carriers) {
+        pickUpItem(run.inventory, run.player.stats, run.playerHealth, itemDef, run.player);
+      }
+      return carriers.length >= 3;
     },
     /** Spawns one familiar of each behavior (orbit/hover/follow) on the player (dev/test only, for P2.4 visual verification). */
     giveFamiliars() {

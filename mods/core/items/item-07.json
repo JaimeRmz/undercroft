@@ -14,5 +14,8 @@
   "pools": [
     "treasure",
     "angel"
+  ],
+  "sets": [
+    "core:set-hollowed"
   ]
 }
