@@ -3,7 +3,7 @@ import { FixedStepLoop } from './core/loop.js';
 import { CONFIG } from './core/config.js';
 import { FloorRuntime } from './systems/floor.js';
 import { TILE } from './systems/room.js';
-import { generateFloor, ROOM_TYPE } from './systems/floorgen.js';
+import { generateFloor, cellKey, ROOM_TYPE } from './systems/floorgen.js';
 import {
   applyCurseDoorDamage,
   spawnSacrificeSpike,
@@ -53,6 +53,7 @@ import { updateTempStatBoosts } from './systems/effects.js';
 import { checkSynergies } from './systems/synergies.js';
 import { checkTransformations } from './systems/transformations.js';
 import { createCharacterHealth, applyCharacterStartingLoadout } from './systems/characters.js';
+import { saveRunToStorage, loadRunFromStorage, hasSavedRun, clearSavedRun } from './systems/save.js';
 import { stockShop, resolveShopPurchases } from './systems/shop.js';
 import { spawnBoss, spawnTrapdoor, resolveTrapdoor } from './systems/bosses.js';
 import { drawBossBar } from './ui/bossbar.js';
@@ -84,6 +85,7 @@ async function boot() {
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+  const storage = window.localStorage;
 
   const templates = registries.of('room').all();
   const itemPools = buildItemPools(registries.of('item').all());
@@ -236,6 +238,7 @@ async function boot() {
     placePlayerInRoom(run.player, previousWorld, run.room, { x: run.centerX, y: run.centerY });
     placeFamiliarsInRoom(previousWorld, run.room.world, run.player);
     run.decals.clear();
+    autosave(run);
   }
 
   /** Makes floorRuntime's current cell the active room: stock it, re-home the player, clear decals. `entrySide` null = room center. */
@@ -251,6 +254,7 @@ async function boot() {
     run.pendingLeavingType = null;
     run.decals.clear();
     announceFloor(run);
+    autosave(run);
   }
 
   /** Builds a brand-new run (fresh seeds, floor 1, starting stats) for the given character def — called on first start and on restart. */
@@ -308,7 +312,90 @@ async function boot() {
       });
     }
     announceFloor(run);
+    autosave(run);
     return run;
+  }
+
+  /** Rebuilds a full run object from a save.js-deserialized descriptor (P2.9's "Continue"). See save.js's module doc for what is/isn't preserved. */
+  function restoreRun(data) {
+    const rngStreams = new RngStreams(`run-${Date.now()}`);
+    const cells = new Map(data.floor.cells.map((c) => [cellKey(c.x, c.y), c]));
+    const floor = { stage: data.floor.stage, cells, startCell: cells.get(cellKey(data.floor.startCell.x, data.floor.startCell.y)) };
+    const run = {
+      floorRng: rngStreams.stream('floorgen'),
+      templateRng: rngStreams.stream('rooms'),
+      aiRng: rngStreams.stream('ai'),
+      vfxRng: rngStreams.stream('vfx'),
+      spawnRng: rngStreams.stream('spawns'),
+      stage: data.stage,
+      stockedRooms: new Set(data.stockedRooms),
+      appliedSynergyIds: new Set(data.appliedSynergyIds),
+      activeTransformationIds: new Set(data.activeTransformationIds),
+      pendingEntrySide: null,
+      pendingLeavingType: null,
+      floorRedDamageTaken: data.floorRedDamageTaken,
+      bossFightRedDamageTaken: data.bossFightRedDamageTaken,
+      finalBossDefeated: data.finalBossDefeated,
+      lastDealRoomStage: data.lastDealRoomStage,
+      transition: createTransitionState(),
+      floorTransition: createFloorTransitionState(),
+      particles: new ParticlePool(),
+      decals: new DecalLayer(),
+      banner: createBannerState(),
+      floorBanner: createBannerState(),
+      currency: new Currency(data.currency),
+      inventory: new ItemInventory(),
+      trinketInventory: new TrinketInventory(),
+      consumableInventory: new ConsumableInventory(),
+      pillIdentity: Object.assign(Object.create(PillIdentity.prototype), data.pillIdentity),
+      playerHealth: new Health({ redMax: data.health.redMax, red: data.health.red }),
+      characterId: data.characterId,
+      stats: { kills: data.progress.kills, floorsCleared: data.progress.floorsCleared, startTime: performance.now() - data.progress.elapsedSeconds * 1000, elapsedSeconds: data.progress.elapsedSeconds },
+    };
+    run.playerHealth.extra = data.health.extra;
+    run.inventory.passives = data.inventory.passives;
+    run.inventory.actives = data.inventory.actives;
+    run.inventory.seenIds = new Set(data.inventory.seenIds);
+    for (const id of run.inventory.seenIds) itemPools.removeFromAllPools(id);
+    if (data.trinketId) {
+      run.trinketInventory.current = getTrinketDef(data.trinketId) ?? null;
+      trinketPools.removeFromAllPools(data.trinketId);
+    }
+    if (data.consumable) {
+      run.consumableInventory.current = data.consumable;
+      if (data.consumable.kind === 'card') cardPools.removeFromAllPools(data.consumable.cardId);
+    }
+
+    run.floor = floor;
+    run.floorRuntime = new FloorRuntime(run.floor, templates, run.templateRng);
+    run.floorRuntime.currentKey = data.currentKey;
+    run.floorRuntime.visited = new Set(data.visited);
+    run.room = run.floorRuntime.getCurrentRoom();
+    stockRoom(run, run.room, run.floorRuntime.getCurrentCell());
+    const tileSize = run.room.world.tileGrid.tileSize;
+    run.centerX = (run.room.widthTiles * tileSize) / 2;
+    run.centerY = (run.room.heightTiles * tileSize) / 2;
+    run.player = createPlayer(run.room.world, { x: run.centerX, y: run.centerY, stats: new Stats(data.player.stats) });
+    run.player.weaponType = data.player.weaponType;
+    run.player.paysDealsWithCoins = data.player.paysDealsWithCoins;
+    run.player.flying = data.player.flying;
+    run.player.transformCostumes = data.player.transformCostumes;
+    run.player.tearModifiers = data.player.tearModifiers;
+    // Familiars aren't saved directly — they're re-derived from the restored passive items that grant them,
+    // the same way they were originally granted, so there's exactly one source of truth for "which familiars exist."
+    for (const itemId of run.inventory.passives) {
+      const itemDef = getItemDef(itemId);
+      if (itemDef?.grantsFamiliar) {
+        const familiarDef = getFamiliarDef(itemDef.grantsFamiliar);
+        if (familiarDef) spawnFamiliar(run.room.world, familiarDef, { player: run.player });
+      }
+    }
+    announceFloor(run);
+    return run;
+  }
+
+  function autosave(run) {
+    saveRunToStorage(storage, run);
   }
 
   const input = createInputState();
@@ -409,6 +496,15 @@ async function boot() {
       pollGamepads(input);
 
       if (gameState === 'menu' || gameState === 'dead' || gameState === 'victory') {
+        if (gameState === 'menu' && input.justPressed.has('useConsumable') && hasSavedRun(storage)) {
+          const saved = loadRunFromStorage(storage);
+          if (saved) {
+            currentRun = restoreRun(saved);
+            gameState = 'playing';
+            clearFrameEdges(input);
+            return;
+          }
+        }
         if (input.justPressed.has('useActive')) {
           selectedCharacterIndex = 0;
           gameState = 'characterSelect';
@@ -579,6 +675,7 @@ async function boot() {
       if (!run.playerHealth.alive) {
         run.stats.elapsedSeconds = (performance.now() - run.stats.startTime) / 1000;
         gameState = 'dead';
+        clearSavedRun(storage); // a finished run (win or lose) is never "continue"-able
         clearFrameEdges(input);
         return;
       }
@@ -587,6 +684,7 @@ async function boot() {
         if (run.finalBossDefeated) {
           run.stats.elapsedSeconds = (performance.now() - run.stats.startTime) / 1000;
           gameState = 'victory';
+          clearSavedRun(storage);
         } else {
           startFloorTransition(run.floorTransition);
         }
@@ -786,7 +884,7 @@ async function boot() {
 
     if (gameState === 'menu') {
       ctx.clearRect(0, 0, VIEW_W, VIEW_H);
-      drawMenuScreen(ctx, { width: VIEW_W, height: VIEW_H });
+      drawMenuScreen(ctx, { width: VIEW_W, height: VIEW_H, canContinue: hasSavedRun(storage) });
       requestAnimationFrame(frame);
       return;
     }

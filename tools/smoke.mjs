@@ -111,6 +111,24 @@ async function main() {
     expect(await playerPainted(), 'no player pixels in the start room');
     await shot('start-room');
 
+    // --- P2.9: mid-run save (on room entry) + "Continue" survives a real page reload -----------
+    {
+      const beforeReload = await snap();
+      await page.reload({ waitUntil: 'load' });
+      await page.waitForFunction(() => window.__undercroft, null, { timeout: 15000 });
+      await page.waitForTimeout(300);
+      expect((await snap()).state === 'menu', 'expected the main menu right after a reload');
+      await shot('menu-with-continue');
+      await page.keyboard.press('KeyQ');
+      await page.waitForTimeout(700); // re-stock the (freshly re-entered) current room + entry grace
+      const afterContinue = await snap();
+      expect(afterContinue.state === 'playing', 'pressing Q on the menu did not resume a saved run');
+      expect(afterContinue.stage === beforeReload.stage, `continued run landed on stage ${afterContinue.stage}, expected ${beforeReload.stage}`);
+      expect(afterContinue.cellKey === beforeReload.cellKey, `continued run landed in room ${afterContinue.cellKey}, expected ${beforeReload.cellKey}`);
+      expect(await playerPainted(), 'no player pixels after continuing a saved run');
+      await shot('continued-run');
+    }
+
     // Resize handling: integer scale (canvas = 640*k x 360*k), letterboxed inside the window, still painting.
     for (const [w, h, k] of [[1366, 768, 2], [2560, 1440, 4], [1920, 1080, 3]]) {
       await page.setViewportSize({ width: w, height: h });

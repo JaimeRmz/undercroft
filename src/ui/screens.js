@@ -13,10 +13,13 @@ function centeredText(ctx, text, x, y, { font = '10px sans-serif', color = '#fff
   ctx.fillText(text, x, y);
 }
 
-export function drawMenuScreen(ctx, { width, height }) {
+export function drawMenuScreen(ctx, { width, height, canContinue = false }) {
   overlay(ctx, width, height, 0.9);
   centeredText(ctx, 'UNDERCROFT', width / 2, height / 2 - 12, { font: 'bold 28px sans-serif' });
   centeredText(ctx, 'Press Space to start', width / 2, height / 2 + 10);
+  if (canContinue) {
+    centeredText(ctx, 'Press Q to continue your last run', width / 2, height / 2 + 28, { font: '10px sans-serif', color: '#d4af37' });
+  }
   ctx.restore();
 }
 
