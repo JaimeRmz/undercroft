@@ -11,7 +11,7 @@
  */
 import { circlesOverlap } from '../engine/collision.js';
 import { applyDamage } from './health.js';
-import { triggerHitFlash } from '../render/vfx.js';
+import { triggerHitFlash, triggerSquash } from '../render/vfx.js';
 import { normalize } from '../core/math.js';
 import { runModifiersOnHitEnemy } from './tearModifiers.js';
 import { isEnemyDamageBlocked, applyEnemyDamage } from './enemies.js';
@@ -40,6 +40,7 @@ export function resolveCombat(world, { player, playerHealth, events, rng } = {})
         const result = applyDamage(playerHealth, enemy.contactDamageHalfHearts, { events, source: enemy.defId });
         if (result.applied > 0) {
           triggerHitFlash(player);
+          triggerSquash(player);
           if (enemy.dropsCoinsOnHit) {
             spawnPickup(world, PICKUP_TYPE.COIN, { x: enemy.x, y: enemy.y, value: CONFIG.CHAMPION_COINS_ON_HIT_VALUE });
           }
@@ -95,7 +96,10 @@ export function resolveCombat(world, { player, playerHealth, events, rng } = {})
     } else if (projectile.team === 'enemy' && player && playerHealth?.alive && !enemiesInert) {
       if (circlesOverlap(projectile.x, projectile.y, projectile.radius, player.x, player.y, player.radius)) {
         const result = applyDamage(playerHealth, Math.round(projectile.damage), { events, source: projectile.ownerDefId ?? 'enemy-projectile' });
-        if (result.applied > 0) triggerHitFlash(player);
+        if (result.applied > 0) {
+          triggerHitFlash(player);
+          triggerSquash(player);
+        }
         projectile.destroy();
         events?.emit('projectile:splash', { entity: projectile, reason: 'hit' });
       }

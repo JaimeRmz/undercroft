@@ -1,11 +1,22 @@
 /** Draws one room: tiles, decals, entities (via sprite specs), particles, and the HUD. Canvas-only, no game logic. */
 import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, SPRITES } from './sprites.js';
-import { isFlashing, updateHitFlash, playerBlinkAlpha } from './vfx.js';
+import {
+  isFlashing,
+  updateHitFlash,
+  playerBlinkAlpha,
+  updateSquash,
+  squashScale,
+  updateWalkBob,
+  walkBobOffset,
+  updateChampionPulse,
+  championPulseScale,
+} from './vfx.js';
 import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
 import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from './tiles.js';
 import { TILE } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
+const CHAMPION_RING_COLORS = { cyan: '#4ad8ff', red: '#ff4a4a', green: '#4aff6a', white: '#ffffff', gold: '#f0d060' };
 
 /** Per-chapter palette (CLAUDE.md §3: "each with its own palette"). [assumed] colors — chapter 1 is the original default tint. */
 const CHAPTER_PALETTES = {
@@ -57,11 +68,15 @@ export function renderRoom(
     const spec = typeof spriteKey === 'string' ? SPRITES[spriteKey] : spriteKey;
     if (!spec) return;
     updateHitFlash(entity, dt);
-    const screen = camera.worldToScreen(entity.x, entity.y - (entity.height ?? 0));
+    updateSquash(entity, dt);
+    const bobY = walkBobOffset(entity);
+    const squash = squashScale(entity);
+    const screen = camera.worldToScreen(entity.x, entity.y - (entity.height ?? 0) + bobY);
     executeDrawOps(ctx, computeSpriteDrawOps(spec, facing), {
       x: screen.x,
       y: screen.y,
-      scale: camera.zoom,
+      scaleX: camera.zoom * squash.x,
+      scaleY: camera.zoom * squash.y,
       flashWhite: isFlashing(entity),
     });
   };
@@ -72,6 +87,16 @@ export function renderRoom(
     if (!enemy.alive) continue;
     ctx.globalAlpha = enemyAlpha;
     drawEntity(enemy, resolveEnemySpec(enemy));
+    if (enemy.isChampion) {
+      // Champions (P1.G5): a slow-breathing tinted ring around the body, colored by the champion's secondary effect.
+      updateChampionPulse(enemy, dt);
+      const screen = camera.worldToScreen(enemy.x, enemy.y - (enemy.height ?? 0));
+      ctx.strokeStyle = CHAMPION_RING_COLORS[enemy.championColor] ?? '#f0d060';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(screen.x, screen.y, (enemy.radius ?? 14) * 1.5 * championPulseScale(enemy) * camera.zoom, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
   }
   for (const projectile of room.world.entities.byType('projectile')) {
@@ -79,6 +104,9 @@ export function renderRoom(
   }
   const player = room.world.entities.byType('player')[0];
   if (player) {
+    // Walk bob (P1.G5): ramps toward full amplitude as the player picks up speed, frozen while still.
+    const speed = Math.hypot(player.vx ?? 0, player.vy ?? 0);
+    updateWalkBob(player, dt, Math.min(1, speed / 150));
     // I-frame blink: faint/solid toggle (never fully transparent); alpha is always restored.
     ctx.globalAlpha = playerBlinkAlpha(playerHealth?.invulnTimer ?? 0);
     drawEntity(player, 'player', {

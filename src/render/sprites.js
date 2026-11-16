@@ -4,6 +4,7 @@
  * it's headlessly testable; executeDrawOps is the only part touching a canvas
  * context, exercised by the Playwright smoke test instead of unit tests.
  */
+import { accessoryOpsFor } from './enemyAccessories.js';
 
 /** Built-in specs for the P0 vertical slice. Mods can supply their own via the same shape. */
 export const SPRITES = {
@@ -62,6 +63,7 @@ export const SPRITES = {
     fill: '#cfe8ff',
     outline: '#3a6a8a',
     outlineWidth: 1,
+    shadow: false, // flying projectiles don't want a ground shadow
   },
   // Enemy/boss projectiles: hot red-orange body, bright core, dark outline and a soft red glow ring.
   enemyTear: {
@@ -72,6 +74,7 @@ export const SPRITES = {
     outlineWidth: 2,
     glow: { extra: 4, fill: 'rgba(255, 60, 20, 0.35)' },
     core: { radiusFraction: 0.45, fill: '#ffe08a' },
+    shadow: false,
   },
 };
 
@@ -88,6 +91,10 @@ function rotateVec(x, y, angle) {
  */
 export function computeSpriteDrawOps(spec, { headAngle, bodyAngle } = {}) {
   const ops = [];
+  // Shadow (P1.G5 "shadows on everything"): drawn first, beneath the body; opt out with spec.shadow = false.
+  if (spec.shadow !== false && spec.radius) {
+    ops.push({ op: 'circle', x: 0, y: spec.radius * 0.65, radius: spec.radius * 0.8, fill: 'rgba(0, 0, 0, 0.32)', skipFlash: true });
+  }
   if (spec.glow) ops.push({ op: 'circle', x: 0, y: 0, radius: spec.radius + spec.glow.extra, fill: spec.glow.fill });
   if (spec.shape === 'circle') {
     ops.push({ op: 'circle', x: 0, y: 0, radius: spec.radius, fill: spec.fill, outline: spec.outline, outlineWidth: spec.outlineWidth });
@@ -122,16 +129,26 @@ export function computeSpriteDrawOps(spec, { headAngle, bodyAngle } = {}) {
     const pos = eyeRotation ? rotateVec(eye.dx, eye.dy, eyeRotation) : { x: eye.dx, y: eye.dy };
     ops.push({ op: 'circle', x: pos.x, y: pos.y, radius: eye.r, fill: eye.fill ?? '#1a1a1a' });
   }
+
+  // Archetype silhouette accessories (P1.G5), precomputed onto the spec by resolveEnemySpec:
+  // wings/spikes/shell/etc. layered on top of the body so every archetype reads as distinct.
+  if (spec.accessories) ops.push(...spec.accessories);
+
   return ops;
 }
 
-/** Draws precomputed ops at (x, y), optionally tinted white (hit flash) and scaled. Canvas-only. */
-export function executeDrawOps(ctx, ops, { x, y, scale = 1, flashWhite = false }) {
+/**
+ * Draws precomputed ops at (x, y), optionally tinted white (hit flash, skippable per-op via
+ * `op.skipFlash` for things like shadows that shouldn't flash) and scaled — `scaleX`/`scaleY`
+ * let a squash effect stretch/compress independently of the camera zoom (`scale`), which both
+ * default to when not given. Canvas-only.
+ */
+export function executeDrawOps(ctx, ops, { x, y, scale = 1, scaleX, scaleY, flashWhite = false }) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(scale, scale);
+  ctx.scale(scaleX ?? scale, scaleY ?? scale);
   for (const op of ops) {
-    const fill = flashWhite && op.fill ? '#ffffff' : op.fill;
+    const fill = flashWhite && op.fill && !op.skipFlash ? '#ffffff' : op.fill;
     if (op.op === 'circle') {
       ctx.beginPath();
       ctx.arc(op.x, op.y, op.radius, 0, Math.PI * 2);
@@ -154,6 +171,19 @@ export function executeDrawOps(ctx, ops, { x, y, scale = 1, flashWhite = false }
         ctx.strokeStyle = op.outline;
         ctx.strokeRect(op.x, op.y, op.width, op.height);
       }
+    } else if (op.op === 'polygon') {
+      ctx.beginPath();
+      op.points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }
+      if (op.outline && !flashWhite) {
+        ctx.lineWidth = op.outlineWidth ?? 1;
+        ctx.strokeStyle = op.outline;
+        ctx.stroke();
+      }
     }
   }
   ctx.restore();
@@ -174,38 +204,90 @@ export function hashString(str) {
 
 const generatedSpecCache = new Map();
 
+/** Small satellite circles around a boss's main body, one per phase it has left — "bosses large and multi-part" (P1.G5), and a readable cue of how many phases remain. */
+function bossPartOps(radius, fill, outline, remainingPhases) {
+  const count = Math.max(0, Math.min(3, remainingPhases - 1));
+  const ops = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (i / Math.max(1, count)) * Math.PI * 2 + Math.PI / 4;
+    ops.push({ op: 'circle', x: Math.cos(angle) * radius * 1.2, y: Math.sin(angle) * radius * 1.2, radius: radius * 0.4, fill, outline, outlineWidth: 2 });
+  }
+  return ops;
+}
+
 /**
  * Sprite spec for an enemy/boss entity. Uses a hand-authored SPRITES entry when
  * one exists; otherwise procedurally generates one from the def id (stable hue,
  * the entity's own collision radius, eyes) so EVERY registered enemy is visible.
- * Bosses get a thicker outline and bigger eyes so they read as bosses.
+ * Bosses get a thicker outline, bigger eyes and multi-part satellite accessories
+ * (P1.G5) so they read as large and composite. A hand-authored or generated
+ * base always gets an archetype silhouette accessory layered on top (wings,
+ * spikes, shell, ...) so no enemy reads as a plain recolored circle.
  */
 export function resolveEnemySpec(entity) {
-  if (SPRITES[entity.defId]) return SPRITES[entity.defId];
   const radius = Math.round(entity.radius ?? 14);
-  const key = `${entity.defId}|${radius}|${entity.isBoss ? 'b' : 'e'}`;
-  let spec = generatedSpecCache.get(key);
-  if (spec) return spec;
+
+  if (SPRITES[entity.defId]) {
+    const base = SPRITES[entity.defId];
+    const baseRadius = base.radius ?? radius;
+    const key = `hand|${entity.defId}`;
+    let spec = generatedSpecCache.get(key);
+    if (!spec) {
+      spec = { ...base, radius: baseRadius, accessories: accessoryOpsFor(entity.defId, { radius: baseRadius, fill: base.fill, outline: base.outline }) };
+      generatedSpecCache.set(key, spec);
+    }
+    return spec;
+  }
 
   const hash = hashString(String(entity.defId));
   const hue = hash % 360;
   const rectLike = (hash >> 9) % 3 === 0;
   const eyeR = Math.max(1.6, radius * (entity.isBoss ? 0.16 : 0.14));
   const eyeDx = radius * 0.3;
+  const fill = `hsl(${hue}, 45%, ${entity.isBoss ? 38 : 45}%)`;
+  const outline = `hsl(${hue}, 50%, 14%)`;
+  const accessories = accessoryOpsFor(entity.defId, { radius, fill, outline });
+
+  if (entity.isBoss) {
+    // Bosses vary by current phase, so they're recomputed fresh rather than cached by defId.
+    const remainingPhases = Math.max(1, (entity.phases?.length ?? 1) - (entity.currentPhaseIndex ?? 0));
+    return {
+      shape: rectLike ? 'rect' : 'circle',
+      radius,
+      width: radius * 1.8,
+      height: radius * 1.8,
+      fill,
+      outline,
+      outlineWidth: 4,
+      eyes: [
+        { dx: -eyeDx, dy: -radius * 0.15, r: eyeR, fill: '#f5f0e0' },
+        { dx: eyeDx, dy: -radius * 0.15, r: eyeR, fill: '#f5f0e0' },
+        { dx: -eyeDx, dy: -radius * 0.15, r: eyeR * 0.5 },
+        { dx: eyeDx, dy: -radius * 0.15, r: eyeR * 0.5 },
+      ],
+      accessories: [...accessories, ...bossPartOps(radius, fill, outline, remainingPhases)],
+    };
+  }
+
+  const key = `${entity.defId}|${radius}|e`;
+  let spec = generatedSpecCache.get(key);
+  if (spec) return spec;
+
   spec = {
     shape: rectLike ? 'rect' : 'circle',
     radius,
     width: radius * 1.8,
     height: radius * 1.8,
-    fill: `hsl(${hue}, 45%, ${entity.isBoss ? 38 : 45}%)`,
-    outline: `hsl(${hue}, 50%, 14%)`,
-    outlineWidth: entity.isBoss ? 4 : 2,
+    fill,
+    outline,
+    outlineWidth: 2,
     eyes: [
       { dx: -eyeDx, dy: -radius * 0.15, r: eyeR, fill: '#f5f0e0' },
       { dx: eyeDx, dy: -radius * 0.15, r: eyeR, fill: '#f5f0e0' },
       { dx: -eyeDx, dy: -radius * 0.15, r: eyeR * 0.5 },
       { dx: eyeDx, dy: -radius * 0.15, r: eyeR * 0.5 },
     ],
+    accessories,
   };
   generatedSpecCache.set(key, spec);
   return spec;

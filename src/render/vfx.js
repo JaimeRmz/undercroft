@@ -28,3 +28,42 @@ export function playerBlinkAlpha(invulnSecondsLeft) {
 export function isFlashing(entity) {
   return (entity.hitFlashTimer ?? 0) > 0;
 }
+
+const SQUASH_SECONDS = 0.18; // [assumed] a quick, readable squash-and-recover on taking damage
+
+/** Squash-on-hit (P1.G5): a brief vertical-compress/horizontal-stretch that eases back to normal. */
+export function triggerSquash(entity, seconds = SQUASH_SECONDS) {
+  entity.squashTimer = seconds;
+  entity.squashDuration = seconds;
+}
+
+export function updateSquash(entity, dt) {
+  if (entity.squashTimer > 0) entity.squashTimer = Math.max(0, entity.squashTimer - dt);
+}
+
+/** {x, y} scale multipliers: squashed flat and wide at the moment of impact, springing back to {1,1}. */
+export function squashScale(entity) {
+  const timer = entity.squashTimer ?? 0;
+  if (timer <= 0) return { x: 1, y: 1 };
+  const frac = timer / (entity.squashDuration || SQUASH_SECONDS); // 1 at impact -> 0 as it recovers
+  const amount = 0.25 * frac;
+  return { x: 1 + amount, y: 1 - amount };
+}
+
+/** Walk bob (P1.G5): advances a phase while moving, frozen while still, for a small up/down bounce. */
+export function updateWalkBob(entity, dt, movingFraction) {
+  entity.bobPhase = (entity.bobPhase ?? 0) + dt * 10 * movingFraction;
+}
+
+export function walkBobOffset(entity, amplitude = 2) {
+  return Math.sin(entity.bobPhase ?? 0) * amplitude;
+}
+
+/** Champion pulse (P1.G5): a slow breathing scale applied to the tinted ring drawn around a champion enemy. */
+export function updateChampionPulse(entity, dt) {
+  entity.championPulseT = (entity.championPulseT ?? 0) + dt;
+}
+
+export function championPulseScale(entity) {
+  return 1 + 0.15 * Math.sin((entity.championPulseT ?? 0) * 6);
+}
