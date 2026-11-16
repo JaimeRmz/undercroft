@@ -517,7 +517,18 @@ async function boot() {
     updateBanner(run.floorBanner, dt);
 
     const chapter = Math.ceil(run.stage / 2);
-    renderRoom(ctx, { room: run.room, camera, playerHealth: run.playerHealth, particles: run.particles, decals: run.decals, dt, chapter });
+    renderRoom(ctx, {
+      room: run.room,
+      camera,
+      playerHealth: run.playerHealth,
+      particles: run.particles,
+      decals: run.decals,
+      dt,
+      chapter,
+      getItemDef,
+      getTrinketDef,
+      getCardDef,
+    });
     const ps = camera.worldToScreen(run.player.x, run.player.y);
     lastPlayerScreen = { x: ps.x * viewport.scale, y: ps.y * viewport.scale }; // canvas backing-store pixels (for the smoke pixel check)
     drawHudPanels(ctx, computeHudModel({

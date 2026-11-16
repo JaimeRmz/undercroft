@@ -1,6 +1,9 @@
 /** Draws one room: tiles, decals, entities (via sprite specs), particles, and the HUD. Canvas-only, no game logic. */
 import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, SPRITES } from './sprites.js';
 import { isFlashing, updateHitFlash, playerBlinkAlpha } from './vfx.js';
+import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
+
+const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
 
 /** Per-chapter palette (CLAUDE.md §3: "each with its own palette"). [assumed] colors — chapter 1 is the original default tint. */
 const CHAPTER_PALETTES = {
@@ -12,7 +15,10 @@ function paletteForChapter(chapter) {
   return CHAPTER_PALETTES[chapter] ?? CHAPTER_PALETTES[1];
 }
 
-export function renderRoom(ctx, { room, camera, playerHealth, particles, decals, dt, chapter = 1 }) {
+export function renderRoom(
+  ctx,
+  { room, camera, playerHealth, particles, decals, dt, chapter = 1, getItemDef = () => null, getTrinketDef = () => null, getCardDef = () => null }
+) {
   // Logical-space draw (main.js applies the integer scale transform); never read ctx.canvas size here.
   ctx.fillStyle = '#0a0a0d';
   ctx.fillRect(0, 0, camera.viewportWidth, camera.viewportHeight);
@@ -97,63 +103,54 @@ export function renderRoom(ctx, { room, camera, playerHealth, particles, decals,
   for (const pickup of room.world.entities.byType('trinketPickup')) {
     if (!pickup.alive) continue;
     const screen = camera.worldToScreen(pickup.x, pickup.y);
-    const r = 8 * camera.zoom;
-    ctx.fillStyle = '#c08a3a';
-    ctx.fillRect(screen.x - r, screen.y - r, r * 2, r * 2);
-    ctx.strokeStyle = '#2a1a0a';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(screen.x - r, screen.y - r, r * 2, r * 2);
+    drawIcon(ctx, resolveTrinketIcon(getTrinketDef(pickup.trinketId)), screen.x, screen.y, 8 * camera.zoom);
   }
 
   for (const pickup of room.world.entities.byType('consumablePickup')) {
     if (!pickup.alive) continue;
     const screen = camera.worldToScreen(pickup.x, pickup.y);
     if (pickup.kind === 'card') {
-      ctx.fillStyle = '#e8e4d0';
-      ctx.fillRect(screen.x - 7 * camera.zoom, screen.y - 10 * camera.zoom, 14 * camera.zoom, 20 * camera.zoom);
-      ctx.strokeStyle = '#3a6a8a';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(screen.x - 7 * camera.zoom, screen.y - 10 * camera.zoom, 14 * camera.zoom, 20 * camera.zoom);
+      drawIcon(ctx, resolveCardIcon(getCardDef(pickup.cardId)), screen.x, screen.y, 9 * camera.zoom);
     } else {
-      ctx.fillStyle = pickup.pillColor ?? '#ddd';
-      ctx.beginPath();
-      ctx.arc(screen.x, screen.y, 8 * camera.zoom, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      drawIcon(ctx, resolvePillIcon(pickup.pillColor), screen.x, screen.y, 8 * camera.zoom);
     }
   }
 
   for (const pedestal of room.world.entities.byType('itemPedestal')) {
     if (!pedestal.alive) continue;
     const screen = camera.worldToScreen(pedestal.x, pedestal.y);
-    ctx.fillStyle = '#6a4aa0';
-    ctx.fillRect(screen.x - 10 * camera.zoom, screen.y - 10 * camera.zoom, 20 * camera.zoom, 20 * camera.zoom);
-    ctx.strokeStyle = '#e0d0ff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(screen.x - 10 * camera.zoom, screen.y - 10 * camera.zoom, 20 * camera.zoom, 20 * camera.zoom);
+    const icon = resolveItemIcon(getItemDef(pedestal.itemId));
+    drawPedestal(ctx, icon, screen.x, screen.y, 9 * camera.zoom);
+    drawIcon(ctx, icon, screen.x, screen.y - 2 * camera.zoom, 9 * camera.zoom);
   }
 
   for (const slot of room.world.entities.byType('shopItem')) {
     if (!slot.alive || slot.sold) continue;
     const screen = camera.worldToScreen(slot.x, slot.y);
-    ctx.fillStyle = slot.kind === 'item' ? '#6a4aa0' : '#d4af37';
-    ctx.beginPath();
-    ctx.arc(screen.x, screen.y, 12 * camera.zoom, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = slot.onSale ? '#ff5050' : '#e0d0ff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    const icon = slot.kind === 'item' ? resolveItemIcon(getItemDef(slot.itemId)) : resolveItemIcon({ id: slot.pickupType, type: 'passive' });
+    if (slot.onSale) {
+      ctx.strokeStyle = '#ff5050';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(screen.x, screen.y, 15 * camera.zoom, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    drawIcon(ctx, icon, screen.x, screen.y, 11 * camera.zoom);
 
+    // Clear of drawIcon's quality pips (drawn at y - iconSize - 6): stack name above price above pips.
+    const iconSize = 11 * camera.zoom;
+    const itemDef = slot.kind === 'item' ? getItemDef(slot.itemId) : null;
+    const label = slot.kind === 'item' ? itemDef?.name ?? slot.itemId : PICKUP_LABELS[slot.pickupType] ?? slot.pickupType;
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 9px sans-serif';
+    ctx.font = 'bold 8px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${slot.displayPrice}c`, screen.x, screen.y - 18 * camera.zoom);
+    ctx.fillText(label, screen.x, screen.y - iconSize - 22);
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText(`${slot.displayPrice}c`, screen.x, screen.y - iconSize - 10);
     if (slot.onSale) {
       ctx.fillStyle = '#ff5050';
       ctx.font = 'bold 8px sans-serif';
-      ctx.fillText('SALE', screen.x, screen.y - 30 * camera.zoom);
+      ctx.fillText('SALE', screen.x, screen.y + iconSize + 14);
     }
   }
 

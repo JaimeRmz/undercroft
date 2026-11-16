@@ -29,9 +29,9 @@ import { loadRealRegistries } from './helpers/realContent.mjs';
 const CX = 260;
 const CY = 140;
 
-function renderCount(room, player, camera, { health = new Health({ redMax: 6 }) } = {}) {
+function renderCount(room, player, camera, { health = new Health({ redMax: 6 }), ...defGetters } = {}) {
   const ctx = createMockCtx(640, 360);
-  renderRoom(ctx, { room, camera, playerHealth: health, particles: new ParticlePool(), decals: new DecalLayer(), dt: 1 / 60 });
+  renderRoom(ctx, { room, camera, playerHealth: health, particles: new ParticlePool(), decals: new DecalLayer(), dt: 1 / 60, ...defGetters });
   return ctx;
 }
 
@@ -43,13 +43,13 @@ function freshRoom() {
 }
 
 /** Draw-call delta between a room with and without the spawned entity (player kept out of the way). */
-function visibleDelta(spawn) {
+function visibleDelta(spawn, defGetters) {
   const baseline = freshRoom();
-  const baseCalls = renderCount(baseline.room, null, baseline.camera).calls.length;
+  const baseCalls = renderCount(baseline.room, null, baseline.camera, defGetters).calls.length;
   const { room, camera } = freshRoom();
   const entity = spawn(room.world);
   assert.ok(entity, 'spawn helper must return the entity');
-  const ctx = renderCount(room, null, camera);
+  const ctx = renderCount(room, null, camera, defGetters);
   return { delta: ctx.calls.length - baseCalls, ctx, entity, camera };
 }
 
@@ -104,21 +104,30 @@ test('every pickup type produces draw calls', () => {
   }
 });
 
-test('trinket, card and pill pickups produce draw calls', async () => {
+test('every registered trinket, card and pill color pickup produces draw calls', async () => {
   const { registries } = await loadRealRegistries();
-  const trinket = registries.of('trinket').all()[0];
-  const card = registries.of('card').all()[0];
-  const pill = registries.of('pill').all()[0];
-  assert.ok((visibleDelta((w) => spawnTrinketPickup(w, trinket.id, { x: CX, y: CY })).delta) > 0, 'trinket pickup invisible');
-  assert.ok((visibleDelta((w) => spawnCardPickup(w, card.id, { x: CX, y: CY })).delta) > 0, 'card pickup invisible');
-  assert.ok((visibleDelta((w) => spawnPillPickup(w, 'red', { x: CX, y: CY })).delta) > 0, 'pill pickup invisible');
+  const getTrinketDef = (id) => registries.of('trinket').get(id);
+  const getCardDef = (id) => registries.of('card').get(id);
+  for (const trinket of registries.of('trinket').all()) {
+    assert.ok(visibleDelta((w) => spawnTrinketPickup(w, trinket.id, { x: CX, y: CY }), { getTrinketDef }).delta > 0, `${trinket.id} trinket pickup invisible`);
+  }
+  for (const card of registries.of('card').all()) {
+    assert.ok(visibleDelta((w) => spawnCardPickup(w, card.id, { x: CX, y: CY }), { getCardDef }).delta > 0, `${card.id} card pickup invisible`);
+  }
+  for (const pill of registries.of('pill').all()) {
+    assert.ok(visibleDelta((w) => spawnPillPickup(w, 'red', { x: CX, y: CY })).delta > 0, `${pill.id} pill pickup invisible`);
+  }
 });
 
-test('item pedestals, shop slots and the trapdoor produce draw calls', async () => {
+test('every registered item\'s pedestal and shop slot produce draw calls', async () => {
   const { registries } = await loadRealRegistries();
-  const item = registries.of('item').all()[0];
-  assert.ok(visibleDelta((w) => spawnItemPedestal(w, item.id, { x: CX, y: CY })).delta > 0, 'pedestal invisible');
-  assert.ok(visibleDelta((w) => spawnShopItem(w, { x: CX, y: CY, kind: 'item', itemId: item.id, price: 15 })).delta > 0, 'shop item invisible');
-  assert.ok(visibleDelta((w) => spawnShopItem(w, { x: CX, y: CY, kind: 'pickup', pickupType: 'key', price: 3 })).delta > 0, 'shop pickup invisible');
+  const getItemDef = (id) => registries.of('item').get(id);
+  for (const item of registries.of('item').all()) {
+    assert.ok(visibleDelta((w) => spawnItemPedestal(w, item.id, { x: CX, y: CY }), { getItemDef }).delta > 0, `${item.id} pedestal invisible`);
+    assert.ok(visibleDelta((w) => spawnShopItem(w, { x: CX, y: CY, kind: 'item', itemId: item.id, price: 15 }), { getItemDef }).delta > 0, `${item.id} shop item invisible`);
+  }
+  for (const pickupType of ['key', 'bomb', 'battery', 'heart_full']) {
+    assert.ok(visibleDelta((w) => spawnShopItem(w, { x: CX, y: CY, kind: 'pickup', pickupType, price: 3 })).delta > 0, `shop pickup ${pickupType} invisible`);
+  }
   assert.ok(visibleDelta((w) => spawnTrapdoor(w, { x: CX, y: CY })).delta > 0, 'trapdoor invisible');
 });
