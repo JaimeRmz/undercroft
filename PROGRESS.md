@@ -51,6 +51,21 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 - [x] P1.F3 Full HUD: coin/bomb/key counters with icons, stats column (DMG/TEARS/SPEED/RANGE/SHOT/LUCK), active item + segmented charge bar, trinket + card/pill slots, floor-name banner (new mods/core/floors data), boss HP bar. Pure model in ui/hudModel.js, drawing in ui/hudPanels.js; test asserts nothing draws over the play area.
 - [x] P1.F4 Fairness: 0.5s enemy grace on room entry (enemies inert + translucent, no damage of any kind), blinking i-frames (alpha 0.3/1, never 0), high-contrast `enemyTear` sprite distinct from player tears, `ownerDefId` on enemy shots, death screen shows "Killed by <enemy name>". Smoke asserts grace in the real game and screenshots enemy projectiles + death.
 
+## P1.G — Softlock + readability (user playtest #2; strictly before any P2 work, in this order)
+- [ ] P1.G1 **SOFTLOCK (highest priority).** User got permanently stuck: an enemy sat on/inside a central pit block, tears hit the pit like a wall, doors never opened.
+  - Per-tile collision flags: pits block walking for ground entities only; pits do NOT block any projectiles or fliers. Rocks/blocks block walking and shots (spectral passes). Walls block everything except wall-phasers. Test every entity type vs every tile type.
+  - Ground enemies never spawn on pits/rocks or unreachable tiles; snap invalid markers to the nearest valid reachable tile.
+  - Template test over every room template: all doors mutually reachable, and every ground-enemy marker reachable. Fix the failing templates.
+  - Failsafe: room locked 20s+ with every enemy unreachable and unhittable -> log the template id and open the doors.
+  - Playwright screenshot of tears flying over a pit and hitting an enemy on the far side (read it).
+- [ ] P1.G2 **Bot that actually tests softlocks.** simulate (d) bot currently dies in 18/20 floors (2026-11-16 status check), so it never reaches most rooms. Make it survive (god mode flag and/or dodge routine) so every seeded floor is fully traversed; assert every room visited/cleared and boss defeated or report the stuck room + template id.
+- [ ] P1.G3 **Art: items.** Unique procedural icon per item/trinket/card/pill from its JSON sprite spec; stone pedestals with a glow; shop items show icon + name + price; test that no two items render identically. Identify the unlabeled red-outlined circle in the shop and give it a proper sprite/label.
+- [ ] P1.G4 **Art: environment.** Per-chapter floor tiles, shaded walls, real doorways with distinct variants (normal, closed while enemies alive, key-locked, treasure, shop, boss), shaded irregular rocks, pits with visible edges, blocks distinct from rocks.
+- [ ] P1.G5 **Art: characters.** Original player design with head/body, facing, walk bob, squash on hit. Every enemy archetype gets a distinct silhouette (wings, shells, spikes, etc.), not recolored circles. Shadows + outlines on everything. Champions tinted and pulsing. Bosses large and multi-part.
+- [ ] P1.G6 **Telegraphs.** Every boss attack and dangerous enemy attack gets a 0.4s+ wind-up (flash, swell, line preview, ground marker).
+- [ ] P1.G7 **Juice.** Shot puff, tear splash, death bursts, item pickup flash, door open/close animation, a short transition when descending to the next floor.
+- Each G task ends with a Playwright screenshot that is read and judged as a first-time player (CLAUDE.md rule 11); all three gates green before commit.
+
 ---
 
 ## P2 — Depth (what makes it feel like the reference)
