@@ -25,7 +25,7 @@ export function getBossPattern(id) {
   return bossPatternRegistry.get(id);
 }
 
-function fireAimedTear(world, boss, player) {
+function fireAimedTear(world, boss, player, ctx) {
   const dir = normalize(player.x - boss.x, player.y - boss.y);
   return spawnTear(world, {
     x: boss.x,
@@ -34,10 +34,11 @@ function fireAimedTear(world, boss, player) {
     stats: { shotSpeed: boss.shotSpeed ?? 1, damage: boss.damage ?? 2, range: boss.range ?? 8 },
     team: 'enemy',
     ownerDefId: boss.defId,
+    events: ctx?.events,
   });
 }
 
-function fireTearAtAngle(world, boss, angle) {
+function fireTearAtAngle(world, boss, angle, ctx) {
   return spawnTear(world, {
     x: boss.x,
     y: boss.y,
@@ -45,6 +46,7 @@ function fireTearAtAngle(world, boss, angle) {
     stats: { shotSpeed: boss.shotSpeed ?? 1, damage: boss.damage ?? 2, range: boss.range ?? 8 },
     team: 'enemy',
     ownerDefId: boss.defId,
+    events: ctx?.events,
   });
 }
 
@@ -55,10 +57,10 @@ registerBossPattern('aimedBurst', {
     boss._patternTimer = 0;
     boss._patternShotsLeft = CONFIG.BOSS_AIMED_BURST_SHOTS;
   },
-  onTick(world, boss, player, dt) {
+  onTick(world, boss, player, dt, ctx) {
     boss._patternTimer -= dt;
     if (boss._patternTimer <= 0 && boss._patternShotsLeft > 0) {
-      fireAimedTear(world, boss, player);
+      fireAimedTear(world, boss, player, ctx);
       boss._patternShotsLeft -= 1;
       boss._patternTimer = CONFIG.BOSS_AIMED_BURST_INTERVAL_SECONDS;
     }
@@ -68,10 +70,10 @@ registerBossPattern('aimedBurst', {
 registerBossPattern('ring', {
   telegraphSeconds: 0.5,
   durationSeconds: 0.1,
-  onStart(world, boss) {
+  onStart(world, boss, player, ctx) {
     const count = CONFIG.BOSS_RING_SHOT_COUNT;
     for (let i = 0; i < count; i++) {
-      fireTearAtAngle(world, boss, (i / count) * Math.PI * 2);
+      fireTearAtAngle(world, boss, (i / count) * Math.PI * 2, ctx);
     }
   },
 });
@@ -79,12 +81,12 @@ registerBossPattern('ring', {
 registerBossPattern('spread', {
   telegraphSeconds: 0.4,
   durationSeconds: 0.1,
-  onStart(world, boss, player) {
+  onStart(world, boss, player, ctx) {
     const baseAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
     const count = CONFIG.BOSS_SPREAD_SHOT_COUNT;
     for (let i = 0; i < count; i++) {
       const t = count === 1 ? 0 : i / (count - 1) - 0.5;
-      fireTearAtAngle(world, boss, baseAngle + t * CONFIG.BOSS_SPREAD_ARC_RADIANS);
+      fireTearAtAngle(world, boss, baseAngle + t * CONFIG.BOSS_SPREAD_ARC_RADIANS, ctx);
     }
   },
 });
@@ -96,10 +98,10 @@ registerBossPattern('spiral', {
     boss._patternTimer = 0;
     boss._spiralAngle = Math.atan2(player.y - boss.y, player.x - boss.x);
   },
-  onTick(world, boss, player, dt) {
+  onTick(world, boss, player, dt, ctx) {
     boss._patternTimer -= dt;
     if (boss._patternTimer <= 0) {
-      fireTearAtAngle(world, boss, boss._spiralAngle);
+      fireTearAtAngle(world, boss, boss._spiralAngle, ctx);
       boss._spiralAngle += CONFIG.BOSS_SPIRAL_TURN_RADIANS;
       boss._patternTimer = CONFIG.BOSS_SPIRAL_INTERVAL_SECONDS;
     }
@@ -211,6 +213,7 @@ registerBossPattern('projectileRain', {
         stats: { shotSpeed: boss.shotSpeed ?? 1, damage: boss.damage ?? 2, range: 2 },
         team: 'enemy',
         ownerDefId: boss.defId,
+        events: ctx.events,
       });
     }
   },

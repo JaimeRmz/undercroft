@@ -20,6 +20,7 @@ function fireNormal(world, player, dir, ctx) {
       stats: player.stats,
       ownerVelocity: { x: player.vx, y: player.vy },
       modifiers: player.tearModifiers ?? [],
+      events: ctx.events,
     }),
   ];
 }
@@ -41,6 +42,7 @@ function fireMultishot(world, player, dir, ctx) {
         stats: player.stats,
         ownerVelocity: { x: player.vx, y: player.vy },
         modifiers: player.tearModifiers ?? [],
+        events: ctx.events,
       })
     );
   }
@@ -55,6 +57,7 @@ function fireLaser(world, player, dir, ctx) {
     stats: player.stats,
     ownerVelocity: { x: player.vx, y: player.vy },
     modifiers: [...(player.tearModifiers ?? []), 'piercing'],
+    events: ctx.events,
   });
   tear.pierceRemaining = Infinity; // a laser pierces everything
   tear.isLaser = true;
@@ -89,6 +92,7 @@ function fireChargeShot(world, player, dir, ctx) {
     stats: player.stats,
     ownerVelocity: { x: player.vx, y: player.vy },
     modifiers: player.tearModifiers ?? [],
+    events: ctx.events,
   });
   tear.damage *= 1 + chargeFraction * (CONFIG.CHARGE_SHOT_MAX_DAMAGE_MULT - 1);
   tear.radius *= 1 + chargeFraction * (CONFIG.CHARGE_SHOT_MAX_RADIUS_MULT - 1);
@@ -103,6 +107,7 @@ function fireBombShot(world, player, dir, ctx) {
     stats: player.stats,
     ownerVelocity: { x: player.vx, y: player.vy },
     modifiers: [...(player.tearModifiers ?? []), { id: 'exploding', config: { radius: 70 } }],
+    events: ctx.events,
   });
   return [tear];
 }

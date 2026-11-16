@@ -308,6 +308,45 @@ async function main() {
       }
     }
 
+    // --- P1.G7: door open-flash pulse, right as a cleared room's doors swing open --------------
+    {
+      const s0 = await snap();
+      const normal = s0.floorCells.find((c) => c.type === 'normal');
+      await page.evaluate((key) => {
+        window.__undercroft.gotoCell(key);
+        window.__undercroft.resetRoomClear(); // this room may well have already been cleared earlier in this same test run
+        window.__undercroft.setHealth(6);
+        window.__undercroft.spawnEnemyAt('core:chaser', 200, 160);
+      }, normal.key);
+      await page.waitForTimeout(600); // clear the entry-grace window with the enemy still alive and the doors locked
+      expect((await snap()).doors.some((d) => d.locked), 'doors should be locked while an enemy is alive');
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+      let pulsed = false;
+      for (let i = 0; i < 10 && !pulsed; i++) {
+        await page.waitForTimeout(30);
+        if ((await snap()).doors.some((d) => d.animPulse !== null)) pulsed = true;
+      }
+      expect(pulsed, 'no door-flash pulse fired when the room cleared and its doors opened');
+      if (pulsed) await shot('door-open-pulse');
+    }
+
+    // --- P1.G7: floor-descent fade (dev-triggered — a real trapdoor walk is exercised in P1.8's own tests) ---
+    {
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+      const before = (await snap()).stage;
+      await page.evaluate(() => window.__undercroft.triggerFloorTransition());
+      await page.waitForTimeout(150); // mid fade-out (FLOOR_FADE_OUT_SECONDS = 0.35s)
+      expect((await snap()).floorTransitioning, 'floor transition did not start');
+      await shot('floor-transition-fade');
+      let swapped = false;
+      for (let i = 0; i < 30 && !swapped; i++) {
+        await page.waitForTimeout(50);
+        if (!(await snap()).floorTransitioning) swapped = true;
+      }
+      expect(swapped, 'floor transition never completed');
+      expect((await snap()).stage === before + 1, 'advanceFloor did not run at the fade swap');
+    }
+
     // --- death ---------------------------------------------------------------------------------
     {
       const s = await snap();

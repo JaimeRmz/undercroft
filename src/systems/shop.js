@@ -86,7 +86,7 @@ export function resolveShopPurchases(world, player, { inventory, stats, playerHe
       if (def) {
         pickUpItem(inventory, stats, playerHealth, def, player);
         pools?.removeFromAllPools(def.id);
-        events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '' });
+        events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '', x: slot.x, y: slot.y });
       }
     } else {
       spawnPickup(world, slot.pickupType, { x: slot.x, y: slot.y });

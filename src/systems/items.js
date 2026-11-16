@@ -151,7 +151,7 @@ export function resolveItemPedestals(world, player, { inventory, stats, playerHe
 
     pickUpItem(inventory, stats, playerHealth, def, player);
     pools?.removeFromAllPools(def.id);
-    events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '' });
+    events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '', x: pedestal.x, y: pedestal.y });
     pedestal.destroy();
   }
 }

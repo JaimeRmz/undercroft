@@ -34,10 +34,10 @@ export function resolveConsumablePickups(world, player, { inventory, events, get
       const def = getCardDef(pickup.cardId);
       if (!def) continue;
       inventory.current = { kind: 'card', cardId: pickup.cardId };
-      events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '' });
+      events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '', x: pickup.x, y: pickup.y });
     } else {
       inventory.current = { kind: 'pill', pillColor: pickup.pillColor };
-      events?.emit('item:pickup', { id: `pill:${pickup.pillColor}`, name: pillDisplayName(pickup.pillColor, pillIdentity, getPillDef), description: '' });
+      events?.emit('item:pickup', { id: `pill:${pickup.pillColor}`, name: pillDisplayName(pickup.pillColor, pillIdentity, getPillDef), description: '', x: pickup.x, y: pickup.y });
     }
     pickup.destroy();
     return;

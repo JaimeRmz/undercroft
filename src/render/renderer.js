@@ -40,7 +40,11 @@ export function renderRoom(
   const tileColors = paletteForChapter(chapter);
   const tileSize = room.world.tileGrid.tileSize;
   const doorsByTile = new Map();
-  for (const door of room.doors.values()) doorsByTile.set(`${door.tx},${door.ty}`, door);
+  const doorSideByTile = new Map();
+  for (const [side, door] of room.doors) {
+    doorsByTile.set(`${door.tx},${door.ty}`, door);
+    doorSideByTile.set(`${door.tx},${door.ty}`, side);
+  }
 
   for (let ty = 0; ty < room.heightTiles; ty++) {
     for (let tx = 0; tx < room.widthTiles; tx++) {
@@ -50,8 +54,11 @@ export function renderRoom(
       if (type === TILE.WALL) drawWallTile(ctx, screen.x, screen.y, size, tileColors.wall);
       else if (type === TILE.ROCK) drawRockTile(ctx, screen.x, screen.y, size, tileColors.rock, tx, ty);
       else if (type === TILE.PIT) drawPitTile(ctx, screen.x, screen.y, size, tileColors.pit);
-      else if (type === TILE.DOOR) drawDoorTile(ctx, screen.x, screen.y, size, tileColors.door, doorsByTile.get(`${tx},${ty}`));
-      else drawFloorTile(ctx, screen.x, screen.y, size, tileColors.floor, tx, ty);
+      else if (type === TILE.DOOR) {
+        const door = doorsByTile.get(`${tx},${ty}`);
+        const pulse = door ? room.doorAnimProgress(doorSideByTile.get(`${tx},${ty}`)) : null;
+        drawDoorTile(ctx, screen.x, screen.y, size, tileColors.door, door, pulse);
+      } else drawFloorTile(ctx, screen.x, screen.y, size, tileColors.floor, tx, ty);
     }
   }
 

@@ -88,3 +88,9 @@ test('an enemy-locked door that also leads to a boss room still reads as locked 
   })();
   assert.notEqual(ctx.calls[0].fillStyle, boss);
 });
+
+test('P1.G7: a non-null pulse draws an extra flash ring beyond the normal door fill/overlay', () => {
+  const withoutPulse = callCount((ctx) => drawDoorTile(ctx, 0, 0, 40, '#443322', { locked: false, keyLocked: false }, null));
+  const withPulse = callCount((ctx) => drawDoorTile(ctx, 0, 0, 40, '#443322', { locked: false, keyLocked: false }, 0.2));
+  assert.equal(withPulse, withoutPulse + 2); // beginPath+stroke is recorded as a stroke call plus the arc path call
+});

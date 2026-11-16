@@ -59,7 +59,7 @@ export function resolveTrinketPickups(world, player, { inventory, stats, events,
 
     const previous = equipTrinket(inventory, stats, def);
     pools?.removeFromAllPools(def.id);
-    events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '' });
+    events?.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '', x: pickup.x, y: pickup.y });
     pickup.destroy();
     if (previous) spawnTrinketPickup(world, previous.id, { x: pickup.x, y: pickup.y });
   }

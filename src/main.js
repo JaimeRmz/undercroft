@@ -12,6 +12,7 @@ import {
   entryPositionForSide,
   resolveKeyLockedDoors,
 } from './systems/transitions.js';
+import { createFloorTransitionState, startFloorTransition, updateFloorTransition, floorTransitionAlpha } from './systems/floorTransition.js';
 import { createPlayer, updatePlayer } from './systems/player.js';
 import { placePlayerInRoom } from './systems/roomEntry.js';
 import { describeDeathCause } from './systems/deathCause.js';
@@ -180,6 +181,7 @@ async function boot() {
       appliedSynergyIds: new Set(),
       pendingEntrySide: null,
       transition: createTransitionState(),
+      floorTransition: createFloorTransitionState(),
       particles: new ParticlePool(),
       decals: new DecalLayer(),
       banner: createBannerState(),
@@ -246,6 +248,7 @@ async function boot() {
       getEnemyDef: (id) => registries.of('enemy').get(id),
       getBossDef: (id) => registries.of('boss').get(id),
     });
+    currentRun.particles.burst(currentRun.player.x, currentRun.player.y, 18, { color: '#c0283c', speed: 120, life: 0.45, rng: currentRun.vfxRng });
   });
   events.on('bomb:explode', ({ x, y, radius }) => {
     if (!currentRun) return;
@@ -253,8 +256,25 @@ async function boot() {
     camera.shake(8, 0.2);
     currentRun.floorRuntime.revealSecretWall(x, y);
   });
-  events.on('item:pickup', ({ name, description }) => {
-    if (currentRun) showBanner(currentRun.banner, name, description);
+  events.on('item:pickup', ({ name, description, x, y }) => {
+    if (!currentRun) return;
+    showBanner(currentRun.banner, name, description);
+    // Pickup flash (P1.G7): a bright radial sparkle at the pedestal/pickup spot, falling back to the player if no position was given (e.g. synergies).
+    const px = x ?? currentRun.player.x;
+    const py = y ?? currentRun.player.y;
+    currentRun.particles.burst(px, py, 14, { color: '#ffe9a0', speed: 90, life: 0.35, size: 3, rng: currentRun.vfxRng });
+  });
+  // Shot puff (P1.G7): a tiny muzzle flash wherever any tear (player or enemy) spawns, colored to match that tear's sprite.
+  events.on('tear:fired', ({ x, y, team }) => {
+    if (!currentRun) return;
+    currentRun.particles.burst(x, y, 3, { color: team === 'enemy' ? '#ff9a5a' : '#cfe9ff', speed: 50, life: 0.12, size: 2, rng: currentRun.vfxRng });
+  });
+  // Tear splash (P1.G7): a small fan of particles wherever a tear is destroyed — a wall hit, an enemy hit, or reaching max range.
+  events.on('projectile:splash', ({ entity, reason }) => {
+    if (!currentRun || !entity) return;
+    const count = reason === 'hit' ? 6 : 4;
+    const color = entity.team === 'enemy' ? '#ff9a5a' : '#cfe9ff';
+    currentRun.particles.burst(entity.x, entity.y, count, { color, speed: 70, life: 0.2, size: 2, rng: currentRun.vfxRng });
   });
 
   const loop = new FixedStepLoop({
@@ -281,6 +301,12 @@ async function boot() {
       }
 
       const run = currentRun;
+
+      if (run.floorTransition.active) {
+        if (updateFloorTransition(run.floorTransition, dt) === 'swap') advanceFloor(run);
+        clearFrameEdges(input);
+        return;
+      }
 
       if (run.transition.active) {
         if (updateTransition(run.transition, dt)) enterCurrentRoom(run, run.pendingEntrySide);
@@ -395,7 +421,7 @@ async function boot() {
       }
 
       if (resolveTrapdoor(run.room.world, run.player)) {
-        advanceFloor(run);
+        startFloorTransition(run.floorTransition);
         clearFrameEdges(input);
         return;
       }
@@ -431,8 +457,9 @@ async function boot() {
         enemyPos: room.world.entities.byType('enemy').filter((e) => e.alive).map((e) => ({ x: e.x, y: e.y })),
         enemyShots: room.world.entities.byType('projectile').filter((p) => p.alive && p.team === 'enemy').length,
         graceTimer: room.world.enemyGraceTimer ?? 0,
-        doors: [...room.doors].map(([side, d]) => ({ side, tx: d.tx, ty: d.ty, locked: d.locked, keyLocked: !!d.keyLocked })),
+        doors: [...room.doors].map(([side, d]) => ({ side, tx: d.tx, ty: d.ty, locked: d.locked, keyLocked: !!d.keyLocked, animPulse: room.doorAnimProgress(side) })),
         transitioning: run.transition.active,
+        floorTransitioning: run.floorTransition.active,
         hp: run.playerHealth.red,
         killedBy: run.stats.killedBy ?? null,
         playerPixel: lastPlayerScreen,
@@ -495,6 +522,18 @@ async function boot() {
     /** Clears a tile back to plain floor regardless of what a template put there (dev/test only). */
     setFloor(tx, ty) {
       currentRun.room.setTileType(tx, ty, TILE.FLOOR);
+    },
+    /** Starts the floor-descent fade (dev/test only, for P1.G7 visual verification without walking to a real trapdoor). */
+    triggerFloorTransition() {
+      startFloorTransition(currentRun.floorTransition);
+    },
+    /** Resets the current room's clear/lock bookkeeping (dev/test only) so a freshly spawned enemy actually re-locks its doors, even if this room was already cleared earlier in the same test run. */
+    resetRoomClear() {
+      const room = currentRun.room;
+      room.cleared = false;
+      room._locked = false;
+      room._lockedSeconds = 0;
+      room._softlockEscaped = false;
     },
   };
 
@@ -571,6 +610,14 @@ async function boot() {
 
     const icons = computeMinimapIcons(run.floor, { visited: run.floorRuntime.visited, currentKey: run.floorRuntime.currentKey });
     drawMinimap(ctx, icons, { x: VIEW_W - 56, y: 6, cellSize: 5, gap: 1 });
+
+    const floorFadeAlpha = floorTransitionAlpha(run.floorTransition);
+    if (floorFadeAlpha > 0) {
+      ctx.fillStyle = '#000';
+      ctx.globalAlpha = floorFadeAlpha;
+      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+      ctx.globalAlpha = 1;
+    }
 
     if (gameState === 'paused') drawPauseScreen(ctx, { width: VIEW_W, height: VIEW_H });
     if (gameState === 'dead') {

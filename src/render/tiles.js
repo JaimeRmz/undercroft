@@ -71,8 +71,10 @@ export function drawPitTile(ctx, x, y, size, pitColor) {
 
 const DOOR_DESTINATION_TINT = { treasure: '#5a3a7a', shop: '#2f5a3a', boss: '#6a1f1f' };
 
-/** `door` is the room's own `{ locked, keyLocked, leadsToType }` for this tile, or null for a borderless room edge. */
-export function drawDoorTile(ctx, x, y, size, defaultColor, door) {
+/** `door` is the room's own `{ locked, keyLocked, leadsToType }` for this tile, or null for a borderless room edge.
+ * `pulse` (0..1 or null, P1.G7) is the door's open/close animation progress — 0 right as its lock state flips,
+ * fading to 1; a bright ring sweeps outward from the door to sell the moment it unlocks/locks. */
+export function drawDoorTile(ctx, x, y, size, defaultColor, door, pulse = null) {
   let fill = defaultColor;
   if (door?.locked) fill = '#15151a';
   else if (door?.keyLocked) fill = '#4a3a10';
@@ -96,5 +98,15 @@ export function drawDoorTile(ctx, x, y, size, defaultColor, door) {
     ctx.arc(x + size / 2, y + size * 0.4, size * 0.12, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(x + size / 2 - size * 0.04, y + size * 0.42, size * 0.08, size * 0.22);
+  }
+
+  if (pulse !== null) {
+    const alpha = 1 - pulse;
+    const radius = size * (0.5 + pulse * 0.7);
+    ctx.strokeStyle = door?.locked || door?.keyLocked ? `rgba(220, 70, 70, ${alpha})` : `rgba(255, 230, 150, ${alpha})`;
+    ctx.lineWidth = Math.max(1, size * 0.08 * (1 - pulse));
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, radius, 0, Math.PI * 2);
+    ctx.stroke();
   }
 }

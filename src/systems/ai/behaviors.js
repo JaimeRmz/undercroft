@@ -61,6 +61,7 @@ function aimedShot(world, enemy, player, events) {
     stats: { shotSpeed: enemy.shotSpeed, damage: enemy.damage, range: enemy.range },
     team: 'enemy',
     ownerDefId: enemy.defId,
+    events,
   });
   events?.emit('enemy:shoot', { enemy, dir });
 }

@@ -18,6 +18,9 @@ export const TILE = {
 
 export const DOOR_SIDES = ['north', 'south', 'east', 'west'];
 
+/** P1.G7: how long a door's open/close flash pulse lasts after its lock state actually changes. */
+export const DOOR_ANIM_SECONDS = 0.3;
+
 export class Room {
   constructor({
     widthTiles = CONFIG.ROOM_TILES_W,
@@ -30,6 +33,7 @@ export class Room {
     this.heightTiles = heightTiles;
     this.tileTypes = new Map();
     this.doors = new Map(); // side -> { tx, ty, locked }
+    this.doorAnimTimers = new Map(); // side -> seconds remaining in its open/close flash pulse (P1.G7)
     this.cleared = false;
     this._locked = false;
     this._lockedSeconds = 0;
@@ -113,6 +117,7 @@ export class Room {
   setDoorKeyLocked(side, keyLocked) {
     const door = this.doors.get(side);
     if (!door) return;
+    if (door.keyLocked !== keyLocked) this.doorAnimTimers.set(side, DOOR_ANIM_SECONDS);
     door.keyLocked = keyLocked;
     this.setTileType(door.tx, door.ty, TILE.DOOR);
   }
@@ -133,7 +138,8 @@ export class Room {
   }
 
   lockDoors() {
-    for (const door of this.doors.values()) {
+    for (const [side, door] of this.doors) {
+      if (!door.locked) this.doorAnimTimers.set(side, DOOR_ANIM_SECONDS);
       door.locked = true;
       this.setTileType(door.tx, door.ty, TILE.DOOR);
     }
@@ -142,11 +148,19 @@ export class Room {
   }
 
   openDoors() {
-    for (const door of this.doors.values()) {
+    for (const [side, door] of this.doors) {
+      if (door.locked) this.doorAnimTimers.set(side, DOOR_ANIM_SECONDS);
       door.locked = false;
       this.setTileType(door.tx, door.ty, TILE.DOOR);
     }
     this._locked = false;
+  }
+
+  /** 0 (just changed) to 1 (settled) fade-out progress for a door's open/close pulse, or null if it's not animating. */
+  doorAnimProgress(side) {
+    const remaining = this.doorAnimTimers.get(side);
+    if (remaining === undefined) return null;
+    return 1 - remaining / DOOR_ANIM_SECONDS;
   }
 
   /**
@@ -160,6 +174,11 @@ export class Room {
    * alive — it just stops re-locking the exits.
    */
   update(dt = 0) {
+    for (const [side, remaining] of this.doorAnimTimers) {
+      const next = remaining - dt;
+      if (next <= 0) this.doorAnimTimers.delete(side);
+      else this.doorAnimTimers.set(side, next);
+    }
     if (this.cleared) return false;
     if (this._softlockEscaped) return false;
     const enemiesAlive = this.world.entities.byType('enemy').some((e) => e.alive);

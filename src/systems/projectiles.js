@@ -7,8 +7,8 @@ import { CONFIG } from '../core/config.js';
 import { clamp } from '../core/math.js';
 import { attachModifier, runModifiersOnUpdate, runModifiersOnHitWall, runModifiersOnExpire } from './tearModifiers.js';
 
-/** `modifiers` is an array of modifier ids (strings) or { id, config } objects. */
-export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 }, team = 'player', modifiers = [], ownerDefId = null }) {
+/** `modifiers` is an array of modifier ids (strings) or { id, config } objects. `events`, if given, fires a 'tear:fired' muzzle-puff hook (P1.G7) — optional so headless/test callers don't need to supply one. */
+export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 0 }, team = 'player', modifiers = [], ownerDefId = null, events = null }) {
   const speed = stats.shotSpeed * CONFIG.TEAR_BASE_SPEED_PX_PER_SEC;
   const inherit = CONFIG.SHOT_INHERITS_PLAYER_VELOCITY;
   const vx = dir.x * speed + ownerVelocity.x * inherit;
@@ -32,6 +32,7 @@ export function spawnTear(world, { x, y, dir, stats, ownerVelocity = { x: 0, y: 
     const config = typeof entry === 'string' ? {} : entry.config ?? {};
     attachModifier(tear, id, config);
   }
+  events?.emit('tear:fired', { x, y, dir, team });
   return tear;
 }
 

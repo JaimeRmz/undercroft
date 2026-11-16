@@ -16,6 +16,21 @@ test('spawnTear sets velocity along dir scaled by shotSpeed, plus inherited owne
   assert.equal(tear.damage, stats.damage);
 });
 
+test('P1.G7: spawnTear emits tear:fired (muzzle-puff hook) with the spawn position, direction and team, when given an events bus', () => {
+  const world = new World();
+  const stats = new Stats();
+  const events = createEventBus();
+  let seen = null;
+  events.on('tear:fired', (payload) => { seen = payload; });
+  spawnTear(world, { x: 42, y: 7, dir: { x: 0, y: -1 }, stats, team: 'enemy', events });
+  assert.deepEqual(seen, { x: 42, y: 7, dir: { x: 0, y: -1 }, team: 'enemy' });
+});
+
+test('spawnTear without an events bus does not throw (events is optional)', () => {
+  const world = new World();
+  assert.doesNotThrow(() => spawnTear(world, { x: 0, y: 0, dir: { x: 1, y: 0 }, stats: new Stats() }));
+});
+
 test('updateProjectiles moves the tear and arcs its height up then back to 0 across its range', () => {
   const world = new World({ widthTiles: 40, heightTiles: 40, tileSize: 40 }); // big open room, no walls in the way
   const stats = new Stats({ range: 1 }); // short range so the test runs fast

@@ -152,6 +152,49 @@ test('softlock failsafe: a room locked 20s+ with an enemy still alive forces its
   for (const door of room.doors.values()) assert.ok(!room.world.tileGrid.isSolid(door.tx, door.ty));
 });
 
+test('P1.G7: lockDoors/openDoors only start a door-flash animation on doors whose lock state actually changed', () => {
+  const room = new Room();
+  // Keep an enemy alive so nothing auto-clears/re-opens the doors via room.update() mid-test.
+  const center = room.world.tileGrid.tileCenter(6, 3);
+  spawnEnemy(room.world, CHASER_DEF, { x: center.x, y: center.y });
+
+  assert.equal(room.doorAnimProgress('north'), null, 'no animation before any lock-state change');
+
+  room.lockDoors(); // every door goes false -> true: all 4 animate
+  for (const side of room.doors.keys()) assert.equal(room.doorAnimProgress(side), 0);
+
+  room.update(0.1); // decays the pulse; doors stay locked (enemy still alive), so lockDoors() isn't re-triggered by update()
+  const afterFirstTick = room.doorAnimProgress('north');
+  assert.ok(afterFirstTick > 0 && afterFirstTick < 1);
+
+  room.lockDoors(); // already locked: calling again must not restart the animation
+  assert.equal(room.doorAnimProgress('north'), afterFirstTick, 're-locking an already-locked door should not reset its pulse');
+});
+
+test('P1.G7: a door animation progresses from 0 toward 1 over DOOR_ANIM_SECONDS, then clears', () => {
+  const room = new Room();
+  // Keep an enemy alive so update()'s own lock/clear logic doesn't flip doors again mid-test.
+  const center = room.world.tileGrid.tileCenter(6, 3);
+  spawnEnemy(room.world, CHASER_DEF, { x: center.x, y: center.y });
+  room.lockDoors();
+  assert.equal(room.doorAnimProgress('north'), 0);
+  room.update(0.1);
+  assert.ok(room.doorAnimProgress('north') > 0 && room.doorAnimProgress('north') < 1);
+  room.update(10); // comfortably past DOOR_ANIM_SECONDS (0.3)
+  assert.equal(room.doorAnimProgress('north'), null, 'animation should have expired and been cleared');
+});
+
+test('P1.G7: setDoorKeyLocked only animates on an actual change, independent of the enemy-lock animation', () => {
+  const room = new Room();
+  room.setDoorKeyLocked('east', true);
+  assert.equal(room.doorAnimProgress('east'), 0);
+  room.update(10);
+  assert.equal(room.doorAnimProgress('east'), null);
+
+  room.setDoorKeyLocked('east', true); // unchanged: no restart
+  assert.equal(room.doorAnimProgress('east'), null);
+});
+
 test('softlock failsafe never fires while the room keeps getting cleared/re-locked normally', () => {
   const room = new Room();
   const center = room.world.tileGrid.tileCenter(6, 3);
