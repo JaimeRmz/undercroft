@@ -1,0 +1,8 @@
+{
+  "id": "core:character-04",
+  "name": "Dask the Broker",
+  "description": "Never gives up a heart for a deal — pays every devil in coin instead.",
+  "redMax": 6,
+  "paysDealsWithCoins": true,
+  "startingCoins": 15
+}

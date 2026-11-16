@@ -86,6 +86,23 @@ test('mods/core ships 5 transformations, each with a set tag carried by 3+ real 
   }
 });
 
+test('mods/core ships 5 characters, each with a distinct §3-named mechanic', async () => {
+  const registries = new ContentRegistries();
+  const loader = new ModLoader({
+    source: createFsSource(MODS_DIR),
+    registries,
+    events: createEventBus(),
+    log: createLogger('real-mods-test', 'error'),
+  });
+  await loader.loadAll();
+  const characters = registries.of('character').all();
+  assert.equal(characters.length, 5);
+  assert.ok(characters.some((c) => c.redMax === 0 && c.soulHearts > 0), 'expected a soul-hearts-only character');
+  assert.ok(characters.some((c) => c.weaponType), 'expected a character with a unique starting weapon');
+  assert.ok(characters.some((c) => c.paysDealsWithCoins), 'expected a character that pays deals in coins');
+  assert.ok(characters.some((c) => c.startingFamiliar), 'expected a character with a starting familiar');
+});
+
 test('core loads before example-mod per loadOrder/dependency', async () => {
   const registries = new ContentRegistries();
   const loader = new ModLoader({

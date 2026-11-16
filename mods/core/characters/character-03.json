@@ -1,0 +1,7 @@
+{
+  "id": "core:character-03",
+  "name": "Orin the Lanced",
+  "description": "Fires a single unbroken lance of light instead of tears. Fragile, but it never misses.",
+  "redMax": 4,
+  "weaponType": "laser"
+}

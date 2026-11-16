@@ -1,0 +1,7 @@
+{
+  "id": "core:character-05",
+  "name": "Fenn the Tethered",
+  "description": "Never travels alone — a small ember has followed her since the day she arrived.",
+  "redMax": 6,
+  "startingFamiliar": "core:familiar-05"
+}

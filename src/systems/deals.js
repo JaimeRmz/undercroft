@@ -12,6 +12,7 @@ import { clamp } from '../core/math.js';
 import { circlesOverlap } from '../engine/collision.js';
 import { pickUpItem } from './items.js';
 import { removeRedContainer } from './health.js';
+import { priceForItem } from './shop.js';
 
 /** `{ stage, noBossDamage, noFloorDamage, recentlySeen }` -> chance in [0,1]. Never rolls on floor 1. */
 export function dealRoomChance({ stage, noBossDamage, noFloorDamage, recentlySeen }) {
@@ -45,24 +46,30 @@ function removeThreeSoulHearts(playerHealth) {
 }
 
 /**
- * Touch-to-buy for devil-room items: costs 1 heart container (2 halves) if
- * the player has any, else 3 soul hearts, else the item simply can't be
- * bought yet (left on its pedestal, no-op — same as a shop item the player
- * can't afford).
+ * Touch-to-buy for devil-room items. A character with `paysDealsWithCoins`
+ * (P2.7) pays the same coin price a shop item would instead; everyone else
+ * pays 1 heart container (2 halves) if they have any, else 3 soul hearts,
+ * else the item simply can't be bought yet (left on its pedestal, no-op —
+ * same as a shop item the player can't afford).
  */
-export function resolveDevilDealPurchases(world, player, { inventory, stats, playerHealth, pools, getItemDef, events } = {}) {
+export function resolveDevilDealPurchases(world, player, { inventory, stats, playerHealth, currency, pools, getItemDef, events } = {}) {
   for (const slot of world.entities.byType('devilItem')) {
     if (!slot.alive || slot.bought) continue;
     if (!circlesOverlap(slot.x, slot.y, slot.radius, player.x, player.y, player.radius)) continue;
 
-    const canPayRed = playerHealth.redMax > 0;
-    const canPaySoul = !canPayRed && playerHealth.extra.filter((h) => h.type === 'soul').length >= 3;
-    if (!canPayRed && !canPaySoul) continue;
-
-    if (canPayRed) removeRedContainer(playerHealth, 2);
-    else removeThreeSoulHearts(playerHealth);
-
     const def = getItemDef(slot.itemId);
+    if (player.paysDealsWithCoins) {
+      const price = def ? priceForItem(def) : 0;
+      if (!currency || currency.coins < price) continue;
+      currency.coins -= price;
+    } else {
+      const canPayRed = playerHealth.redMax > 0;
+      const canPaySoul = !canPayRed && playerHealth.extra.filter((h) => h.type === 'soul').length >= 3;
+      if (!canPayRed && !canPaySoul) continue;
+      if (canPayRed) removeRedContainer(playerHealth, 2);
+      else removeThreeSoulHearts(playerHealth);
+    }
+
     if (def) {
       pickUpItem(inventory, stats, playerHealth, def, player, { world });
       pools?.removeFromAllPools(def.id);

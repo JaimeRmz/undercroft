@@ -1,0 +1,13 @@
+{
+  "id": "core:character-02",
+  "name": "Vex the Hollow",
+  "description": "Something took her red hearts long ago. What is left is quieter, and luckier.",
+  "redMax": 0,
+  "soulHearts": 4,
+  "statDeltas": [
+    {
+      "stat": "luck",
+      "value": 1
+    }
+  ]
+}

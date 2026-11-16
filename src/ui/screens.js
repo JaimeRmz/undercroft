@@ -20,6 +20,21 @@ export function drawMenuScreen(ctx, { width, height }) {
   ctx.restore();
 }
 
+/** `character`: the currently-highlighted character def (or null if no characters loaded). */
+export function drawCharacterSelectScreen(ctx, { width, height, character, index, count }) {
+  overlay(ctx, width, height, 0.9);
+  centeredText(ctx, 'CHOOSE YOUR CHARACTER', width / 2, height / 2 - 70, { font: 'bold 18px sans-serif' });
+  if (character) {
+    centeredText(ctx, `< ${character.name} >`, width / 2, height / 2 - 34, { font: 'bold 16px sans-serif', color: '#d4af37' });
+    centeredText(ctx, character.description ?? '', width / 2, height / 2 - 14, { font: '10px sans-serif' });
+    centeredText(ctx, `${index + 1} / ${count}`, width / 2, height / 2 + 6, { font: '9px sans-serif', color: '#999' });
+  } else {
+    centeredText(ctx, 'No characters loaded', width / 2, height / 2 - 14, { font: '12px sans-serif' });
+  }
+  centeredText(ctx, '<-/-> choose   Space confirm', width / 2, height / 2 + 30, { font: '10px sans-serif', color: '#aaa' });
+  ctx.restore();
+}
+
 export function drawPauseScreen(ctx, { width, height }) {
   overlay(ctx, width, height, 0.6);
   centeredText(ctx, 'PAUSED', width / 2, height / 2 - 10, { font: 'bold 22px sans-serif' });

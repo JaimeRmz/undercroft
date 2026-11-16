@@ -5,7 +5,9 @@ import { createPlayer } from '../src/systems/player.js';
 import { Stats } from '../src/systems/stats.js';
 import { Health, addSoulHeart } from '../src/systems/health.js';
 import { ItemInventory, buildItemPools } from '../src/systems/items.js';
+import { Currency } from '../src/systems/pickups.js';
 import { dealRoomChance, rollDealRoomType, spawnDevilItem, resolveDevilDealPurchases } from '../src/systems/deals.js';
+import { priceForItem } from '../src/systems/shop.js';
 import { CONFIG } from '../src/core/config.js';
 
 const ITEM_DEF = { id: 'test:devil-item', name: 'Test Devil Item', type: 'passive', effects: [{ stat: 'luck', value: 1 }] };
@@ -74,4 +76,36 @@ test('resolveDevilDealPurchases is a no-op (stays on its pedestal) if the player
   resolveDevilDealPurchases(world, player, { inventory, stats: player.stats, playerHealth, pools, getItemDef, events: null });
   assert.equal(inventory.passives.length, 0);
   assert.ok(slot.alive, 'the item should still be sitting there, unbought');
+});
+
+test('resolveDevilDealPurchases charges a paysDealsWithCoins character coins instead of hearts, and leaves hearts untouched', () => {
+  const world = new World();
+  const player = createPlayer(world, { x: 0, y: 0, stats: new Stats() });
+  player.paysDealsWithCoins = true;
+  const playerHealth = new Health({ redMax: 6 });
+  const inventory = new ItemInventory();
+  const currency = new Currency({ coins: 100 });
+  const pools = buildItemPools([ITEM_DEF]);
+  spawnDevilItem(world, ITEM_DEF.id, { x: 0, y: 0 });
+
+  resolveDevilDealPurchases(world, player, { inventory, stats: player.stats, playerHealth, currency, pools, getItemDef, events: null });
+  assert.equal(playerHealth.redMax, 6, 'a coin-paying character should never lose a heart container');
+  assert.equal(currency.coins, 100 - priceForItem(ITEM_DEF));
+  assert.ok(inventory.passives.includes(ITEM_DEF.id));
+});
+
+test('resolveDevilDealPurchases leaves a paysDealsWithCoins character\'s item unbought if they cannot afford the coin price', () => {
+  const world = new World();
+  const player = createPlayer(world, { x: 0, y: 0, stats: new Stats() });
+  player.paysDealsWithCoins = true;
+  const playerHealth = new Health({ redMax: 6 });
+  const inventory = new ItemInventory();
+  const currency = new Currency({ coins: 0 });
+  const pools = buildItemPools([ITEM_DEF]);
+  const slot = spawnDevilItem(world, ITEM_DEF.id, { x: 0, y: 0 });
+
+  resolveDevilDealPurchases(world, player, { inventory, stats: player.stats, playerHealth, currency, pools, getItemDef, events: null });
+  assert.equal(inventory.passives.length, 0);
+  assert.ok(slot.alive);
+  assert.equal(playerHealth.redMax, 6, 'should not fall back to charging hearts just because coins ran out');
 });

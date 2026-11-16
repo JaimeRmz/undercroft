@@ -1,0 +1,9 @@
+{
+  "id": "core:character-01",
+  "name": "Mira the Warden",
+  "description": "A steady hand and an old grudge. No tricks, just grit.",
+  "redMax": 6,
+  "startingItems": [
+    "core:item-01"
+  ]
+}

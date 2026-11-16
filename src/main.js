@@ -52,6 +52,7 @@ import { PillIdentity } from './systems/pills.js';
 import { updateTempStatBoosts } from './systems/effects.js';
 import { checkSynergies } from './systems/synergies.js';
 import { checkTransformations } from './systems/transformations.js';
+import { createCharacterHealth, applyCharacterStartingLoadout } from './systems/characters.js';
 import { stockShop, resolveShopPurchases } from './systems/shop.js';
 import { spawnBoss, spawnTrapdoor, resolveTrapdoor } from './systems/bosses.js';
 import { drawBossBar } from './ui/bossbar.js';
@@ -68,7 +69,7 @@ import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
 import { computeHudModel } from './ui/hudModel.js';
 import { drawHudPanels, drawFloorBanner } from './ui/hudPanels.js';
-import { drawMenuScreen, drawPauseScreen, drawDeathScreen } from './ui/screens.js';
+import { drawMenuScreen, drawCharacterSelectScreen, drawPauseScreen, drawDeathScreen } from './ui/screens.js';
 import { RngStreams } from './core/rng.js';
 import { ModLoader } from './modding/modloader.js';
 import { createHttpSource } from './modding/source-http.js';
@@ -107,6 +108,7 @@ async function boot() {
   };
   const synergyRules = registries.of('synergy').all();
   const transformationDefs = registries.of('transformation').all();
+  const characterDefs = registries.of('character').all();
 
   /** Stocks a freshly-visited room's cell with whatever it should hold (item/shop/boss/enemies). */
   function stockRoom(run, room, cell) {
@@ -251,8 +253,8 @@ async function boot() {
     announceFloor(run);
   }
 
-  /** Builds a brand-new run (fresh seeds, floor 1, starting stats) — called on first start and on restart. */
-  function createRun() {
+  /** Builds a brand-new run (fresh seeds, floor 1, starting stats) for the given character def — called on first start and on restart. */
+  function createRun(characterDef) {
     const rngStreams = new RngStreams(`run-${Date.now()}`);
     const run = {
       floorRng: rngStreams.stream('floorgen'),
@@ -280,7 +282,8 @@ async function boot() {
       trinketInventory: new TrinketInventory(),
       consumableInventory: new ConsumableInventory(),
       pillIdentity: new PillIdentity(pillDefs.map((d) => d.id), rngStreams.stream('pills')),
-      playerHealth: new Health({ redMax: 6 }),
+      playerHealth: createCharacterHealth(characterDef ?? {}),
+      characterId: characterDef?.id ?? null,
       stats: { kills: 0, floorsCleared: 0, startTime: performance.now(), elapsedSeconds: 0 },
     };
     run.floor = generateFloor(run.stage, run.floorRng);
@@ -291,6 +294,18 @@ async function boot() {
     run.centerX = (run.room.widthTiles * tileSize) / 2;
     run.centerY = (run.room.heightTiles * tileSize) / 2;
     run.player = createPlayer(run.room.world, { x: run.centerX, y: run.centerY, stats: new Stats() });
+    if (characterDef) {
+      applyCharacterStartingLoadout(characterDef, {
+        player: run.player,
+        stats: run.player.stats,
+        playerHealth: run.playerHealth,
+        inventory: run.inventory,
+        currency: run.currency,
+        world: run.room.world,
+        getItemDef,
+        getFamiliarDef,
+      });
+    }
     announceFloor(run);
     return run;
   }
@@ -315,8 +330,9 @@ async function boot() {
   applyViewport();
   window.addEventListener('resize', applyViewport);
 
-  let gameState = 'menu'; // 'menu' | 'playing' | 'paused' | 'dead'
+  let gameState = 'menu'; // 'menu' | 'characterSelect' | 'playing' | 'paused' | 'dead'
   let currentRun = null;
+  let selectedCharacterIndex = 0;
   let lastPlayerScreen = null;
 
   events.on('enemy:death', ({ enemy }) => {
@@ -392,7 +408,23 @@ async function boot() {
 
       if (gameState === 'menu' || gameState === 'dead') {
         if (input.justPressed.has('useActive')) {
-          currentRun = createRun();
+          selectedCharacterIndex = 0;
+          gameState = 'characterSelect';
+        }
+        clearFrameEdges(input);
+        return;
+      }
+
+      if (gameState === 'characterSelect') {
+        const count = characterDefs.length;
+        if (count > 0 && input.justPressed.has('moveLeft')) {
+          selectedCharacterIndex = (selectedCharacterIndex - 1 + count) % count;
+        }
+        if (count > 0 && input.justPressed.has('moveRight')) {
+          selectedCharacterIndex = (selectedCharacterIndex + 1) % count;
+        }
+        if (input.justPressed.has('useActive')) {
+          currentRun = createRun(characterDefs[selectedCharacterIndex]);
           gameState = 'playing';
         }
         clearFrameEdges(input);
@@ -457,6 +489,7 @@ async function boot() {
         inventory: run.inventory,
         stats: run.player.stats,
         playerHealth: run.playerHealth,
+        currency: run.currency,
         pools: itemPools,
         getItemDef,
         events,
@@ -721,6 +754,13 @@ async function boot() {
     if (gameState === 'menu') {
       ctx.clearRect(0, 0, VIEW_W, VIEW_H);
       drawMenuScreen(ctx, { width: VIEW_W, height: VIEW_H });
+      requestAnimationFrame(frame);
+      return;
+    }
+
+    if (gameState === 'characterSelect') {
+      ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+      drawCharacterSelectScreen(ctx, { width: VIEW_W, height: VIEW_H, character: characterDefs[selectedCharacterIndex] ?? null, index: selectedCharacterIndex, count: characterDefs.length });
       requestAnimationFrame(frame);
       return;
     }

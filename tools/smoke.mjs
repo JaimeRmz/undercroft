@@ -102,6 +102,11 @@ async function main() {
     await shot('menu');
     console.log('[smoke] dismissing the main menu...');
     await page.keyboard.press('Space');
+    await page.waitForTimeout(150);
+    expect((await snap()).state === 'characterSelect', 'did not reach character select after dismissing the menu');
+    await shot('character-select');
+    console.log('[smoke] confirming a character...');
+    await page.keyboard.press('Space');
     await page.waitForTimeout(900); // enemy grace period + first frames
     expect(await playerPainted(), 'no player pixels in the start room');
     await shot('start-room');
