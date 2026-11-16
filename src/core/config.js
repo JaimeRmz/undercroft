@@ -77,6 +77,7 @@ export const CONFIG = {
   DASH_ALIGN_TOLERANCE_PX: 16, // [assumed] how close to the player's row/column counts as "aligned"
   DASH_SPEED_MULT: 3.5,
   DASH_MIN_INTERVAL_SECONDS: 1.2, // [assumed] cooldown between dashes so it isn't a permanent beeline
+  ENEMY_ATTACK_TELEGRAPH_SECONDS: 0.4, // P1.G6: minimum wind-up before any dangerous enemy attack (dash, turret shot, hop leap)
   FLEEING_SPAWNER_INTERVAL_SECONDS: 3, // [assumed]
   FLEEING_SPAWNER_MINION_HP: 1,
   FLEEING_SPAWNER_MAX_MINIONS: 3, // [assumed] caps total spawns per spawner so a room can't fill up forever

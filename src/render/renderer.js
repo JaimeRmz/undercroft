@@ -13,6 +13,7 @@ import {
 } from './vfx.js';
 import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
 import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from './tiles.js';
+import { drawEnemyTelegraph, drawBossTelegraph } from './telegraphs.js';
 import { TILE } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
@@ -81,28 +82,32 @@ export function renderRoom(
     });
   };
 
+  const player = room.world.entities.byType('player')[0];
+
   // Entry grace: enemies are drawn translucent while they are inert, so the player can tell they can't act yet.
   const enemyAlpha = room.world.enemyGraceTimer > 0 ? 0.55 : 1;
   for (const enemy of room.world.entities.byType('enemy')) {
     if (!enemy.alive) continue;
     ctx.globalAlpha = enemyAlpha;
     drawEntity(enemy, resolveEnemySpec(enemy));
+    const screen = camera.worldToScreen(enemy.x, enemy.y - (enemy.height ?? 0));
     if (enemy.isChampion) {
       // Champions (P1.G5): a slow-breathing tinted ring around the body, colored by the champion's secondary effect.
       updateChampionPulse(enemy, dt);
-      const screen = camera.worldToScreen(enemy.x, enemy.y - (enemy.height ?? 0));
       ctx.strokeStyle = CHAMPION_RING_COLORS[enemy.championColor] ?? '#f0d060';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(screen.x, screen.y, (enemy.radius ?? 14) * 1.5 * championPulseScale(enemy) * camera.zoom, 0, Math.PI * 2);
       ctx.stroke();
     }
+    // Attack wind-ups (P1.G6): a growing warning ring, plus a line/area preview for shaped attacks.
+    if (enemy.isBoss) drawBossTelegraph(ctx, enemy, player, screen, camera.zoom);
+    else drawEnemyTelegraph(ctx, enemy, screen, camera.zoom);
     ctx.globalAlpha = 1;
   }
   for (const projectile of room.world.entities.byType('projectile')) {
     if (projectile.alive) drawEntity(projectile, projectile.team === 'enemy' ? 'enemyTear' : 'tear');
   }
-  const player = room.world.entities.byType('player')[0];
   if (player) {
     // Walk bob (P1.G5): ramps toward full amplitude as the player picks up speed, frozen while still.
     const speed = Math.hypot(player.vx ?? 0, player.vy ?? 0);

@@ -135,21 +135,37 @@ registerAIBehavior('dashCharger', {
   onSpawn(enemy) {
     enemy.dashCooldown = 0;
     enemy.dashing = false;
+    enemy.windingUp = false;
   },
   onUpdate(world, enemy, player, dt) {
     enemy.dashCooldown = Math.max(0, enemy.dashCooldown - dt);
     const alignedX = Math.abs(enemy.x - player.x) <= CONFIG.DASH_ALIGN_TOLERANCE_PX;
     const alignedY = Math.abs(enemy.y - player.y) <= CONFIG.DASH_ALIGN_TOLERANCE_PX;
 
-    if (!enemy.dashing && enemy.dashCooldown <= 0 && (alignedX || alignedY)) {
-      enemy.dashing = true;
+    // P1.G6: freezes and telegraphs for ENEMY_ATTACK_TELEGRAPH_SECONDS before actually launching,
+    // with the dash direction locked in at the moment the wind-up starts (so drifting out of
+    // alignment during the wind-up doesn't retarget the charge — same "lock at telegraph start,
+    // not at fire time" rule telegraphedLaser uses).
+    if (!enemy.dashing && !enemy.windingUp && enemy.dashCooldown <= 0 && (alignedX || alignedY)) {
+      enemy.windingUp = true;
+      enemy.windUpTimer = CONFIG.ENEMY_ATTACK_TELEGRAPH_SECONDS;
       enemy.dashCooldown = CONFIG.DASH_MIN_INTERVAL_SECONDS;
-      const dir = alignedX ? { x: 0, y: Math.sign(player.y - enemy.y) || 1 } : { x: Math.sign(player.x - enemy.x) || 1, y: 0 };
-      enemy.vx = dir.x * enemy.speed * CONFIG.DASH_SPEED_MULT;
-      enemy.vy = dir.y * enemy.speed * CONFIG.DASH_SPEED_MULT;
+      enemy.dashDir = alignedX ? { x: 0, y: Math.sign(player.y - enemy.y) || 1 } : { x: Math.sign(player.x - enemy.x) || 1, y: 0 };
+      enemy.vx = 0;
+      enemy.vy = 0;
     }
 
-    if (enemy.dashing) {
+    if (enemy.windingUp) {
+      enemy.windUpTimer -= dt;
+      enemy.vx = 0;
+      enemy.vy = 0;
+      if (enemy.windUpTimer <= 0) {
+        enemy.windingUp = false;
+        enemy.dashing = true;
+        enemy.vx = enemy.dashDir.x * enemy.speed * CONFIG.DASH_SPEED_MULT;
+        enemy.vy = enemy.dashDir.y * enemy.speed * CONFIG.DASH_SPEED_MULT;
+      }
+    } else if (enemy.dashing) {
       const { tx, ty } = world.tileGrid.worldToTile(enemy.x + enemy.vx * dt, enemy.y + enemy.vy * dt);
       if (world.tileGrid.isSolid(tx, ty)) {
         enemy.dashing = false;

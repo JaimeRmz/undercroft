@@ -259,7 +259,7 @@ async function main() {
       expect(killed, 'a tear aimed straight across a 3-tile pit never killed the turret on the far side');
     }
 
-    // --- full HUD + boss fight --------------------------------------------------------------------
+    // --- full HUD + boss fight, incl. P1.G6's attack telegraph -------------------------------------
     {
       await page.evaluate(() => window.__undercroft.giveLoadout());
       const s = await snap();
@@ -274,6 +274,17 @@ async function main() {
         await page.evaluate(() => window.__undercroft.setHealth(6));
         expect((await snap()).enemies > 0, 'boss room has no boss');
         await shot('boss-and-hud');
+
+        // P1.G6: every boss attack telegraphs 0.4s+ before it fires — catch one in the act and screenshot it.
+        let telegraphed = false;
+        for (let i = 0; i < 80 && !telegraphed; i++) {
+          await page.waitForTimeout(100);
+          await page.evaluate(() => window.__undercroft.setHealth(6));
+          if ((await snap()).boss?.patternState === 'telegraph') telegraphed = true;
+        }
+        expect(telegraphed, 'boss never entered a telegraph state within 8s');
+        if (telegraphed) await shot('boss-telegraph');
+
         await page.evaluate(() => window.__undercroft.killAllEnemies());
       } else {
         await shot('hud-full');

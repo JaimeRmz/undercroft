@@ -39,12 +39,18 @@ test('hopLeap: stays idle then leaps toward the player in a short fast burst', (
   assert.ok(enemy.vx > 60, 'leap velocity should be a multiple of base speed, toward the player');
 });
 
-test('dashCharger: dashes at high speed once aligned on a row/column with the player', () => {
+test('dashCharger: telegraphs (frozen, winding up) for ENEMY_ATTACK_TELEGRAPH_SECONDS, then dashes at high speed', () => {
   const world = freshWorld();
   const player = createPlayer(world, { x: 700, y: 400, stats: new Stats() });
   const enemy = spawnEnemy(world, { id: 'a', hp: 5, speed: 60, behavior: 'dashCharger' }, { x: 400, y: 400 }); // same y: aligned immediately
   updateEnemies(world, player, DT, {});
+  assert.ok(enemy.windingUp, 'should telegraph before dashing, not dash instantly');
+  assert.ok(!enemy.dashing);
+  assert.equal(enemy.vx, 0, 'frozen in place while winding up');
+
+  for (let i = 0; i < Math.ceil(CONFIG.ENEMY_ATTACK_TELEGRAPH_SECONDS / DT) + 1; i++) updateEnemies(world, player, DT, {});
   assert.ok(enemy.dashing);
+  assert.ok(!enemy.windingUp);
   assert.ok(Math.abs(enemy.vx) > 60 * 2, 'dash speed should be a large multiple of base speed');
 });
 

@@ -90,7 +90,7 @@ registerBossPattern('spread', {
 });
 
 registerBossPattern('spiral', {
-  telegraphSeconds: 0.3,
+  telegraphSeconds: 0.4, // P1.G6: every boss attack telegraphs 0.4s+
   durationSeconds: CONFIG.BOSS_SPIRAL_DURATION_SECONDS,
   onStart(world, boss, player) {
     boss._patternTimer = 0;
@@ -158,7 +158,7 @@ registerBossPattern('summonMinions', {
 });
 
 registerBossPattern('teleport', {
-  telegraphSeconds: 0.3,
+  telegraphSeconds: 0.4, // P1.G6: every boss attack telegraphs 0.4s+
   durationSeconds: 0.05,
   onStart(world, boss, player, ctx) {
     if (!ctx.rng) return;
@@ -190,7 +190,7 @@ registerBossPattern('telegraphedLaser', {
 });
 
 registerBossPattern('projectileRain', {
-  telegraphSeconds: 0.3,
+  telegraphSeconds: 0.4, // P1.G6: every boss attack telegraphs 0.4s+
   durationSeconds: CONFIG.BOSS_RAIN_DURATION_SECONDS,
   onStart(world, boss) {
     boss._patternTimer = 0;

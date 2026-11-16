@@ -437,6 +437,10 @@ async function boot() {
         killedBy: run.stats.killedBy ?? null,
         playerPixel: lastPlayerScreen,
         floorCells: [...run.floor.cells.values()].map((c) => ({ key: `${c.x},${c.y}`, type: c.type })),
+        boss: (() => {
+          const boss = room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
+          return boss ? { patternState: boss.patternState, currentPatternId: boss.currentPatternId } : null;
+        })(),
       };
     },
     killAllEnemies() {
