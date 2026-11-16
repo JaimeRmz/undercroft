@@ -24,7 +24,7 @@ import { createFsSource } from '../src/modding/source-fs.js';
 import { ContentRegistries } from '../src/core/registry.js';
 import { generateFloor, cellKey, ROOM_TYPE } from '../src/systems/floorgen.js';
 import { FloorRuntime } from '../src/systems/floor.js';
-import { createTransitionState, startTransition, updateTransition, detectDoorExit, entryPositionForSide } from '../src/systems/transitions.js';
+import { createTransitionState, startTransition, updateTransition, detectDoorExit, entryPositionForSide, oppositeSide } from '../src/systems/transitions.js';
 import { buildItemPools, spawnItemPedestal, resolveItemPedestals, chargeActivesOnRoomClear, ItemInventory } from '../src/systems/items.js';
 import { Currency, resolvePickups, rollRoomClearReward, spawnRewardPickup } from '../src/systems/pickups.js';
 import { TrinketInventory, resolveTrinketPickups } from '../src/systems/trinkets.js';
@@ -66,40 +66,44 @@ function isSecretType(type) {
   return type === ROOM_TYPE.SECRET || type === ROOM_TYPE.SUPER_SECRET;
 }
 
-/** Shortest-path (by real doors) from the start cell to the boss cell, as an ordered list of exit sides to take. */
-function pathToBoss(floor) {
+/**
+ * Full-floor DFS plan: a spanning-tree walk (BFS-tree, DFS-ordered) that visits
+ * every door-reachable non-secret cell exactly once and backtracks to its parent
+ * afterward, using the same adjacency rule FloorRuntime uses to decide which
+ * sides actually get doors (doorSidesForCell in floor.js: any non-secret
+ * neighbor). Returns `moves` (an ordered list of exit sides to walk through,
+ * including backtracks) and `order` (the cell keys visited, for asserting full
+ * coverage against every non-secret cell on the floor).
+ */
+function buildFullFloorTraversal(floor) {
   const startKey = cellKey(floor.startCell.x, floor.startCell.y);
-  const bossKey = cellKey(floor.boss.x, floor.boss.y);
-  const parent = new Map();
-  const visited = new Set([startKey]);
-  const queue = [startKey];
-
-  while (queue.length > 0) {
-    const key = queue.shift();
-    if (key === bossKey) break;
-    const [x, y] = key.split(',').map(Number);
+  const adjacency = new Map();
+  for (const [key, cell] of floor.cells) {
+    if (isSecretType(cell.type)) continue;
+    const neighbors = [];
     for (const { side, dx, dy } of SIDES) {
-      const nk = cellKey(x + dx, y + dy);
+      const nk = cellKey(cell.x + dx, cell.y + dy);
       const neighbor = floor.cells.get(nk);
-      if (!neighbor || isSecretType(neighbor.type) || visited.has(nk)) continue;
-      visited.add(nk);
-      parent.set(nk, { from: key, side });
-      queue.push(nk);
+      if (neighbor && !isSecretType(neighbor.type)) neighbors.push({ side, toKey: nk });
     }
+    adjacency.set(key, neighbors);
   }
 
-  if (!parent.has(bossKey) && bossKey !== startKey) {
-    throw new Error(`pathToBoss: no door-reachable path from start to the boss room (${bossKey})`);
-  }
-  const steps = [];
-  let cur = bossKey;
-  while (cur !== startKey) {
-    const p = parent.get(cur);
-    steps.push({ to: cur, side: p.side });
-    cur = p.from;
-  }
-  steps.reverse();
-  return steps;
+  const visited = new Set([startKey]);
+  const order = [startKey];
+  const moves = [];
+  (function dfs(key) {
+    for (const { side, toKey } of adjacency.get(key) ?? []) {
+      if (visited.has(toKey)) continue;
+      visited.add(toKey);
+      order.push(toKey);
+      moves.push(side);
+      dfs(toKey);
+      moves.push(oppositeSide(side));
+    }
+  })(startKey);
+
+  return { moves, order, nonSecretCellCount: adjacency.size };
 }
 
 function dummyPlayerEntity() {
@@ -327,13 +331,18 @@ function bfsTilePath(tileGrid, startTx, startTy, goalTx, goalTy) {
 
 /**
  * (d) A bot plays a full generated floor per seed: floorgen -> FloorRuntime,
- * walking the shortest door-path to the boss room, fighting whatever's in
- * each room along the way (and picking up treasure-room items/dropped
- * pickups it happens to stand on), until the boss is defeated or the player
- * dies. Mirrors main.js's run-building/update-loop logic headlessly.
+ * walking a DFS spanning-tree plan that visits every door-reachable
+ * non-secret room (not just the shortest path to the boss), fighting
+ * whatever's in each room along the way, until every room has been visited
+ * and the boss is defeated. The player is god-mode (permanently invulnerable,
+ * via Health.invulnTimer = Infinity) so a death never masks a genuine
+ * softlock — this bot is checking "can every room be reached and cleared",
+ * not "can a simple bot survive"; that's what (c)'s single-room check and the
+ * real game's difficulty tuning are for. Mirrors main.js's
+ * run-building/update-loop logic headlessly.
  */
 function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemplates, seedCount = 20) {
-  console.log(`\n[simulate] (d) bot plays ${seedCount} seeded floors (floorgen -> boss defeated)...`);
+  console.log(`\n[simulate] (d) bot plays ${seedCount} seeded floors, visiting every room (floorgen -> full clear -> boss defeated)...`);
   const itemPools = buildItemPools(itemDefs);
   const getItemDef = (id) => itemDefs.find((d) => d.id === id);
   const trinketPools = buildItemPools(trinketDefs);
@@ -347,8 +356,9 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
 
     const floor = generateFloor(1, floorRng);
     const floorRuntime = new FloorRuntime(floor, roomTemplates, templateRng);
-    const path = pathToBoss(floor);
     const bossKey = cellKey(floor.boss.x, floor.boss.y);
+    const { moves, order, nonSecretCellCount } = buildFullFloorTraversal(floor);
+    const visitedRooms = new Set([cellKey(floor.startCell.x, floor.startCell.y)]);
 
     const stockedRooms = new Set();
     const stockRoom = (room, cell) => {
@@ -386,6 +396,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
     const centerY = (room.heightTiles * tileSize) / 2;
     const player = createPlayer(room.world, { x: centerX, y: centerY, stats: new Stats({ damageUps: 3 }) });
     const playerHealth = new Health({ redMax: 6 });
+    playerHealth.invulnTimer = Infinity; // god mode: this bot proves reachability/clearability, not survival
     const currency = new Currency();
     const inventory = new ItemInventory();
     const trinketInventory = new TrinketInventory();
@@ -393,12 +404,14 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
     const input = createInputState();
     const events = createEventBus();
 
-    let pathIndex = 0;
+    let moveIndex = 0;
     let pendingEntrySide = null;
+    let bossEverSeen = false;
     let bossDefeated = false;
     let waypoints = null; // tile path to the current room's exit door, recomputed whenever the room/target changes
 
-    const maxFrames = 1800 * (path.length + 3); // 30 sim-seconds per room on the path, plus slack for the boss fight
+    // ~30 sim-seconds per room to visit (every room gets walked to AND backtracked from), plus slack for the boss fight.
+    const maxFrames = 1800 * (order.length * 2 + 3);
     let frame = 0;
     for (; frame < maxFrames; frame++) {
       input.held.clear();
@@ -410,6 +423,7 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
         if (updateTransition(transition, DT)) {
           room = floorRuntime.getCurrentRoom();
           stockRoom(room, floorRuntime.getCurrentCell());
+          visitedRooms.add(floorRuntime.currentKey);
           const pos = entryPositionForSide(room, pendingEntrySide);
           player.x = pos.x;
           player.y = pos.y;
@@ -422,6 +436,11 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
 
       const enemies = room.world.entities.byType('enemy').filter((e) => e.alive);
       const atBossRoom = floorRuntime.currentKey === bossKey;
+      if (atBossRoom) {
+        const bossAlive = enemies.some((e) => e.isBoss);
+        if (bossAlive) bossEverSeen = true;
+        else if (bossEverSeen) bossDefeated = true;
+      }
 
       if (enemies.length > 0) {
         let nearest = enemies[0];
@@ -457,9 +476,9 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
           input.moveX = Math.abs(dx) > ALIGN_TOLERANCE_PX ? Math.sign(dx) : 0;
           input.moveY = Math.abs(dy) > ALIGN_TOLERANCE_PX ? Math.sign(dy) : 0;
         }
-      } else if (!atBossRoom && pathIndex < path.length) {
+      } else if (moveIndex < moves.length) {
         const tileGrid = room.world.tileGrid;
-        const doorPos = room.doorPositionForSide(path[pathIndex].side);
+        const doorPos = room.doorPositionForSide(moves[moveIndex]);
 
         if (waypoints === null) {
           const here = tileGrid.worldToTile(player.x, player.y);
@@ -501,30 +520,31 @@ function testBotPlaysFloors(enemyDefs, bossDefs, itemDefs, trinketDefs, roomTemp
         }
       }
 
-      if (!playerHealth.alive) break;
-
-      if (atBossRoom) {
-        if (!room.world.entities.byType('enemy').some((e) => e.alive && e.isBoss)) {
-          bossDefeated = true;
-          break;
-        }
-      } else if (pathIndex < path.length) {
+      if (moveIndex < moves.length) {
         const exitSide = detectDoorExit(room, player);
-        if (exitSide && exitSide === path[pathIndex].side) {
+        if (exitSide && exitSide === moves[moveIndex]) {
           const result = floorRuntime.move(exitSide);
           if (result) {
             pendingEntrySide = result.enteredFrom;
             startTransition(transition, exitSide);
-            pathIndex++;
+            moveIndex++;
           }
         }
       }
+
+      if (moveIndex >= moves.length && bossDefeated) break;
     }
 
-    if (!bossDefeated && playerHealth.alive) {
-      throw new Error(`floor seed ${seed}: did not reach/defeat the boss within ${maxFrames} frames (possible softlock), stuck at room ${floorRuntime.currentKey} (path step ${pathIndex}/${path.length})`);
+    const fullyTraversed = visitedRooms.size >= nonSecretCellCount;
+    if (!fullyTraversed || !bossDefeated) {
+      const stuckRoom = floorRuntime.getCurrentRoom();
+      throw new Error(
+        `floor seed ${seed}: softlock — visited ${visitedRooms.size}/${nonSecretCellCount} non-secret rooms, ` +
+          `boss ${bossDefeated ? 'defeated' : 'NOT defeated'}, stuck at room ${floorRuntime.currentKey} ` +
+          `(template=${stuckRoom.templateId ?? 'unknown'}, move ${moveIndex}/${moves.length}) within ${maxFrames} frames`
+      );
     }
-    console.log(`  seed ${seed}: ${bossDefeated ? `boss defeated (${frame} frames, ${path.length} rooms on the path)` : 'player died (not a softlock)'}`);
+    console.log(`  seed ${seed}: every room visited (${visitedRooms.size}/${nonSecretCellCount}), boss defeated (${frame} frames)`);
   }
 }
 
