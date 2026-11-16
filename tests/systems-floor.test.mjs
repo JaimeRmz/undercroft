@@ -106,6 +106,20 @@ test('every non-secret room built by FloorRuntime has doors exactly toward its r
   }
 });
 
+test('every door is tagged with the room type on its far side (P1.G4: doors read as treasure/shop/boss before opening)', () => {
+  const floor = generateFloor(1, new Rng('floor-runtime-leadsto'));
+  const runtime = new FloorRuntime(floor, TEMPLATES, new Rng('templates-leadsto'));
+  for (const cell of floor.cells.values()) {
+    if (cell.type === ROOM_TYPE.SECRET || cell.type === ROOM_TYPE.SUPER_SECRET) continue;
+    const room = runtime.getRoom(cellKey(cell.x, cell.y));
+    for (const [side, door] of room.doors) {
+      const [dx, dy] = DELTAS[side];
+      const neighbor = floor.cells.get(cellKey(cell.x + dx, cell.y + dy));
+      assert.equal(door.leadsToType, neighbor.type);
+    }
+  }
+});
+
 test('secret/super-secret rooms start with zero doors', () => {
   const floor = generateFloor(1, new Rng('floor-runtime-6'));
   const runtime = new FloorRuntime(floor, TEMPLATES, new Rng('templates-6'));

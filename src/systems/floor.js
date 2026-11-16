@@ -49,7 +49,18 @@ export class FloorRuntime {
     if (template) applyTemplateToRoom(room, template);
     room.templateId = template?.id ?? null;
     this._lockKeyDoors(room, cell, doorSides);
+    this._tagDoorDestinations(room, cell, doorSides);
     return room;
+  }
+
+  /** Tags each door with the room type on its far side (rendering only: lets a door read as "treasure"/"shop"/"boss" before it's even opened). */
+  _tagDoorDestinations(room, cell, doorSides) {
+    for (const { side, dx, dy } of SIDE_OF_DELTA) {
+      if (!doorSides.includes(side)) continue;
+      const neighbor = this.floor.cells.get(cellKey(cell.x + dx, cell.y + dy));
+      const door = room.doors.get(side);
+      if (door && neighbor) door.leadsToType = neighbor.type;
+    }
   }
 
   /** Treasure/shop doors are key-locked from floor 2 on (CLAUDE.md §4), on the approaching room's side only. */

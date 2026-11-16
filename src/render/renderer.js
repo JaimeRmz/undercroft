@@ -2,13 +2,15 @@
 import { computeSpriteDrawOps, executeDrawOps, resolveEnemySpec, SPRITES } from './sprites.js';
 import { isFlashing, updateHitFlash, playerBlinkAlpha } from './vfx.js';
 import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
+import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from './tiles.js';
+import { TILE } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
 
 /** Per-chapter palette (CLAUDE.md §3: "each with its own palette"). [assumed] colors — chapter 1 is the original default tint. */
 const CHAPTER_PALETTES = {
-  1: { floor: '#2b2b33', wall: '#15151a', rock: '#5a5248', pit: '#0a0a0c', door: '#443322' },
-  2: { floor: '#243128', wall: '#111c16', rock: '#4d5a4f', pit: '#070c09', door: '#3a4322' },
+  1: { floor: '#2b2b33', wall: '#232330', rock: '#5a5248', pit: '#0a0a0c', door: '#443322' },
+  2: { floor: '#243128', wall: '#1c2e22', rock: '#4d5a4f', pit: '#070c09', door: '#3a4322' },
 };
 
 function paletteForChapter(chapter) {
@@ -25,12 +27,19 @@ export function renderRoom(
 
   const tileColors = paletteForChapter(chapter);
   const tileSize = room.world.tileGrid.tileSize;
+  const doorsByTile = new Map();
+  for (const door of room.doors.values()) doorsByTile.set(`${door.tx},${door.ty}`, door);
+
   for (let ty = 0; ty < room.heightTiles; ty++) {
     for (let tx = 0; tx < room.widthTiles; tx++) {
       const type = room.getTileType(tx, ty);
       const screen = camera.worldToScreen(tx * tileSize, ty * tileSize);
-      ctx.fillStyle = tileColors[type] ?? '#222';
-      ctx.fillRect(screen.x, screen.y, tileSize * camera.zoom, tileSize * camera.zoom);
+      const size = tileSize * camera.zoom;
+      if (type === TILE.WALL) drawWallTile(ctx, screen.x, screen.y, size, tileColors.wall);
+      else if (type === TILE.ROCK) drawRockTile(ctx, screen.x, screen.y, size, tileColors.rock, tx, ty);
+      else if (type === TILE.PIT) drawPitTile(ctx, screen.x, screen.y, size, tileColors.pit);
+      else if (type === TILE.DOOR) drawDoorTile(ctx, screen.x, screen.y, size, tileColors.door, doorsByTile.get(`${tx},${ty}`));
+      else drawFloorTile(ctx, screen.x, screen.y, size, tileColors.floor, tx, ty);
     }
   }
 
