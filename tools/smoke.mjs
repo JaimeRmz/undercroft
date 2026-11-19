@@ -367,6 +367,21 @@ async function main() {
       await shot('item-get-pose');
     }
 
+    // --- P2.Q Q2c: pickup animations (coin spin/glint, heart pulse, pop-in bounce) ---------------
+    {
+      const ok = await page.evaluate(() => {
+        const s = window.__undercroft.snapshot();
+        const p = s.player;
+        window.__undercroft.spawnPickupAt('coin', p.x - 40, p.y);
+        window.__undercroft.spawnPickupAt('heart_full', p.x + 40, p.y);
+        window.__undercroft.spawnPickupAt('key', p.x, p.y - 40);
+        return true;
+      });
+      expect(ok, 'could not spawn test pickups');
+      await page.waitForTimeout(250); // let the pop-in settle a touch
+      await shot('pickup-animations');
+    }
+
     // --- P2.4: familiars (orbital/hover/follower-shooter) actually render and persist across a door ---
     {
       const s0 = await snap();

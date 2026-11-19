@@ -17,6 +17,7 @@ import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, 
 import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from './tiles.js';
 import { drawEnemyTelegraph, drawBossTelegraph } from './telegraphs.js';
 import { drawTear } from './tears.js';
+import { drawPickup } from './pickups.js';
 import { TILE } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
@@ -197,11 +198,8 @@ export function renderRoom(
   };
   for (const pickup of room.world.entities.byType('pickup')) {
     if (!pickup.alive) continue;
-    const screen = camera.worldToScreen(pickup.x, pickup.y);
-    ctx.fillStyle = PICKUP_COLORS[pickup.pickupType] ?? '#999';
-    ctx.beginPath();
-    ctx.arc(screen.x, screen.y, 8 * camera.zoom, 0, Math.PI * 2);
-    ctx.fill();
+    // Pop-in bounce + coin spin/glint + heart pulse (P2.Q Q2c).
+    drawPickup(ctx, pickup, camera, dt, PICKUP_COLORS[pickup.pickupType] ?? '#999');
   }
 
   for (const pickup of room.world.entities.byType('trinketPickup')) {

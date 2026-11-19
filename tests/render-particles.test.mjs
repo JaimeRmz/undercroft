@@ -51,6 +51,45 @@ test('splash spawns one expanding ring particle (ring flag + growTo target)', ()
   assert.equal(p.color, '#cfe9ff');
 });
 
+test('pickup pop-in overshoots past full scale then settles to 1 (P2.Q Q2c)', async () => {
+  const { updatePickupAnim, pickupAnimState } = await import('../src/render/pickups.js');
+  const coin = { pickupType: 'coin' };
+  updatePickupAnim(coin, 0.01); // just spawned → mid-pop
+  const early = pickupAnimState(coin);
+  assert.ok(early.hop > 0, 'hops up during the pop');
+  // Run the pop fully out.
+  for (let i = 0; i < 60; i++) updatePickupAnim(coin, 1 / 60);
+  const settled = pickupAnimState(coin);
+  assert.ok(Math.abs(settled.popScale - 1) < 1e-6, 'settles to full scale');
+  assert.equal(settled.hop, 0, 'no hop once settled');
+});
+
+test('coins spin (width sweeps negative) and glint; hearts pulse (P2.Q Q2c)', async () => {
+  const { updatePickupAnim, pickupAnimState } = await import('../src/render/pickups.js');
+  const coin = { pickupType: 'coin', spawnTimer: 0 };
+  let sawNegativeWidth = false;
+  let sawGlint = false;
+  for (let i = 0; i < 120; i++) {
+    updatePickupAnim(coin, 1 / 60);
+    const s = pickupAnimState(coin);
+    if (s.spinWidth < 0) sawNegativeWidth = true;
+    if (s.glint) sawGlint = true;
+  }
+  assert.ok(sawNegativeWidth, 'coin shows its back over a spin cycle');
+  assert.ok(sawGlint, 'coin glints at the face-flat extremes');
+
+  const heart = { pickupType: 'heart_full', spawnTimer: 0 };
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < 120; i++) {
+    updatePickupAnim(heart, 1 / 60);
+    const p = pickupAnimState(heart).pulse;
+    min = Math.min(min, p);
+    max = Math.max(max, p);
+  }
+  assert.ok(max > 1 && min < 1, 'heart pulse breathes above and below 1');
+});
+
 test('clear empties the pool', () => {
   const pool = new ParticlePool();
   pool.spawn({ x: 0, y: 0, life: 1 });

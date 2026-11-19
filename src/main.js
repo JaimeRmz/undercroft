@@ -824,7 +824,11 @@ async function boot() {
       currentRun.player.y = y;
     },
     setHealth(red) {
+      // Dev/test only: also drains soul/black hearts so "set to N" is the player's total
+      // health, keeping the death smoke scene deterministic (a lone chaser deals ~1 hit/sec
+      // under i-frames, so leftover soul hearts from earlier scenes could outlast its poll).
       currentRun.playerHealth.red = red;
+      currentRun.playerHealth.extra = [];
     },
     giveCoins(n) {
       currentRun.currency.coins += n;
@@ -859,6 +863,10 @@ async function boot() {
     spawnEnemyAt(defId, x, y) {
       const run = currentRun;
       return spawnEnemy(run.room.world, registries.of('enemy').get(defId), { x, y, rng: run.spawnRng });
+    },
+    /** Spawns a pickup at a world position (dev/test only, for P2.Q Q2c's coin-spin/heart-pulse/pop-bounce verification). */
+    spawnPickupAt(type, x, y) {
+      return spawnPickup(currentRun.room.world, type, { x, y, value: 1 });
     },
     /** Picks up 3 real items carrying `transformationId`'s set tag through the real pickUpItem pipeline, so the next tick's checkTransformations call activates it for real (dev/test only, for P2.5 visual verification). */
     triggerTransformation(transformationId) {
