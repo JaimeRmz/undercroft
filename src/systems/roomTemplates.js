@@ -10,6 +10,10 @@ import { TILE } from './room.js';
 const CHAR_TO_TILE = {
   R: TILE.ROCK,
   P: TILE.PIT,
+  M: TILE.MOUND, // destructible mound (P2.Q Q3a)
+  T: TILE.TINTED_ROCK, // reward rock, bomb for a drop (P2.Q Q3a)
+  S: TILE.SPIKE, // walkable floor hazard (P2.Q Q3b)
+  F: TILE.FIREPLACE, // solid flame hazard (P2.Q Q3b)
 };
 
 /** Splits a template's rows into placeable tiles (rocks/pits) and other markers (spawn points, etc). */
@@ -35,6 +39,10 @@ export function applyTemplateToRoom(room, template) {
     if (existing === TILE.WALL || existing === TILE.DOOR) continue;
     if (type === TILE.ROCK) room.placeRock(tx, ty);
     else if (type === TILE.PIT) room.placePit(tx, ty);
+    else if (type === TILE.MOUND) room.placeMound(tx, ty);
+    else if (type === TILE.TINTED_ROCK) room.placeTintedRock(tx, ty);
+    else if (type === TILE.SPIKE) room.placeSpike(tx, ty);
+    else if (type === TILE.FIREPLACE) room.placeFireplace(tx, ty);
   }
   return markers;
 }

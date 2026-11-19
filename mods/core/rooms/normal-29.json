@@ -4,13 +4,13 @@
   "chapter": 1,
   "weight": 1,
   "difficulty": 2,
-  "pattern": "checkerRocks",
+  "pattern": "horizontalPitLine",
   "rows": [
     "#############",
     "#...........#",
-    "#..R.R.R.R..#",
     "#...........#",
-    "#...R.R.R.R.#",
+    "#..PPPPPPP..#",
+    "#...........#",
     "#...........#",
     "#############"
   ]

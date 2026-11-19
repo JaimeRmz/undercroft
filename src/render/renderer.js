@@ -18,6 +18,7 @@ import { drawFloorTile, drawWallTile, drawRockTile, drawMoundTile, drawTintedRoc
 import { drawEnemyTelegraph, drawBossTelegraph } from './telegraphs.js';
 import { drawTear } from './tears.js';
 import { drawPickup } from './pickups.js';
+import { drawFloorProps } from './props.js';
 import { TILE, MOUND_HP, FIREPLACE_HP } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
@@ -80,6 +81,14 @@ export function renderRoom(
       } else drawFloorTile(ctx, screen.x, screen.y, size, tileColors.floor, tx, ty);
     }
   }
+
+  // Decorative floor props (P2.Q Q3c): cosmetic dressing on plain floor tiles only.
+  drawFloorProps(ctx, room, {
+    isFloorTile: (tx, ty) => room.getTileType(tx, ty) === TILE.FLOOR,
+    toScreen: (wx, wy) => camera.worldToScreen(wx, wy),
+    size: tileSize * camera.zoom,
+    chapter,
+  });
 
   for (const decal of decals.decals) {
     const screen = camera.worldToScreen(decal.x, decal.y);

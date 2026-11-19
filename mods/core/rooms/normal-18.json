@@ -4,13 +4,13 @@
   "chapter": 2,
   "weight": 1,
   "difficulty": 3,
-  "pattern": "fourCornerRocks",
+  "pattern": "tintedRockCorners",
   "rows": [
     "#############",
     "#...........#",
-    "#.R.......R.#",
+    "#.T.......R.#",
     "#...........#",
-    "#.R.......R.#",
+    "#.R.......T.#",
     "#...........#",
     "#############"
   ]

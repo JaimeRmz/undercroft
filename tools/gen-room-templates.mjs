@@ -112,6 +112,39 @@ const PATTERNS = {
     setChar(rows, CX - 1, CY, 'R');
     setChar(rows, CX + 1, CY, 'R');
   },
+  // P2.Q Q3c: patterns that place the new destructible/hazard tiles. All keep
+  // the door row + a path between every door clear (mounds/tinted rocks/fires
+  // block; spikes are walkable). The reachability test sweeps these.
+  moundCluster: (rows) => {
+    // Breakable cover off to the sides, never on the door row/columns.
+    for (const [dx, dy] of [[-4, -1], [-3, -1], [4, 1], [3, 1]]) setChar(rows, CX + dx, CY + dy, 'M');
+  },
+  tintedRockCorners: (rows) => {
+    // A reward rock in two corners, flanked by plain rocks (still door-safe).
+    setChar(rows, CX - 4, CY - 1, 'T');
+    setChar(rows, CX + 4, CY + 1, 'T');
+    setChar(rows, CX - 4, CY + 1, 'R');
+    setChar(rows, CX + 4, CY - 1, 'R');
+  },
+  spikeStripes: (rows) => {
+    // Walkable spike lanes above and below the door row — a risk tile, not a wall.
+    for (const dx of [-2, -1, 1, 2]) {
+      setChar(rows, CX + dx, CY - 1, 'S');
+      setChar(rows, CX + dx, CY + 1, 'S');
+    }
+  },
+  fireplaceFlanks: (rows) => {
+    // Two flames flanking the center, with a spike pad between — center + doors stay open.
+    setChar(rows, CX - 3, CY, 'F');
+    setChar(rows, CX + 3, CY, 'F');
+    setChar(rows, CX, CY - 1, 'S');
+    setChar(rows, CX, CY + 1, 'S');
+  },
+  moundAndMound: (rows) => {
+    // A mixed obstacle wall of mounds with a plain rock, offset from the door row.
+    for (const dx of [-2, 0, 2]) setChar(rows, CX + dx, CY - 1, 'M');
+    setChar(rows, CX, CY + 1, 'R');
+  },
 };
 
 const PATTERN_NAMES = Object.keys(PATTERNS);
@@ -143,7 +176,7 @@ function writeTemplate(template) {
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-const normals = buildNormalTemplates(30);
+const normals = buildNormalTemplates(36);
 normals.forEach(writeTemplate);
 
 const specials = [
