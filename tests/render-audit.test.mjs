@@ -119,6 +119,22 @@ test('every registered trinket, card and pill color pickup produces draw calls',
   }
 });
 
+test('the item-get pose draws the held item icon above the player (P2.Q Q2b)', async () => {
+  const { registries } = await loadRealRegistries();
+  const getItemDef = (id) => registries.of('item').get(id);
+  const item = registries.of('item').all()[0];
+  const { room, camera } = freshRoom();
+  const player = createPlayer(room.world, { x: CX, y: CY, stats: new Stats() });
+  player.itemHold = { id: item.id, timer: 1, duration: 1 };
+  const ctx = renderCount(room, player, camera, { getItemDef });
+  const s = camera.worldToScreen(player.x, player.y);
+  // Something is drawn clearly above the player's head (icon is at head-y minus radius+margin).
+  const heldAbove = ctx.calls.some((c) => (c.kind === 'arc' || c.kind === 'fillRect') && Math.abs(c.x - s.x) < 20 && c.y < s.y - (player.radius + 8));
+  assert.ok(heldAbove, 'held item icon should render above the player');
+  // And the timer decays as the pose plays out.
+  assert.ok(player.itemHold.timer < 1, 'item-hold timer decays while rendering');
+});
+
 test('every registered item\'s pedestal and shop slot produce draw calls', async () => {
   const { registries } = await loadRealRegistries();
   const getItemDef = (id) => registries.of('item').get(id);

@@ -501,13 +501,18 @@ async function boot() {
     camera.shake(8, 0.2);
     currentRun.floorRuntime.revealSecretWall(x, y);
   });
-  events.on('item:pickup', ({ name, description, x, y }) => {
+  events.on('item:pickup', ({ id, name, description, x, y }) => {
     if (!currentRun) return;
     showBanner(currentRun.banner, name, description);
     // Pickup flash (P1.G7): a bright radial sparkle at the pedestal/pickup spot, falling back to the player if no position was given (e.g. synergies).
     const px = x ?? currentRun.player.x;
     const py = y ?? currentRun.player.y;
     currentRun.particles.burst(px, py, 14, { color: '#ffe9a0', speed: 90, life: 0.35, size: 3, rng: currentRun.vfxRng });
+    // Item-get pose (P2.Q Q2b): the player raises the picked-up item overhead for ~1s.
+    // Only for real items (not synergy/transformation pseudo-pickups, whose ids aren't item defs).
+    if (id && getItemDef(id)) {
+      currentRun.player.itemHold = { id, timer: CONFIG.ITEM_HOLD_SECONDS, duration: CONFIG.ITEM_HOLD_SECONDS };
+    }
   });
   // Shot puff (P1.G7): a tiny muzzle flash wherever any tear (player or enemy) spawns, colored to match that tear's sprite.
   events.on('tear:fired', ({ x, y, team }) => {
@@ -792,7 +797,17 @@ async function boot() {
           const boss = room.world.entities.byType('enemy').find((e) => e.alive && e.isBoss);
           return boss ? { patternState: boss.patternState, currentPatternId: boss.currentPatternId } : null;
         })(),
+        itemHoldTimer: run.player.itemHold?.timer ?? 0,
       };
+    },
+    /** Picks up a single item through the real inventory + item:pickup pipeline (dev/test only, for P2.Q Q2b's overhead-pose verification). */
+    giveItem(itemId) {
+      const run = currentRun;
+      const def = registries.of('item').get(itemId);
+      if (!def) return false;
+      pickUpItem(run.inventory, run.player.stats, run.playerHealth, def, run.player);
+      events.emit('item:pickup', { id: def.id, name: def.name, description: def.description ?? '', x: run.player.x, y: run.player.y });
+      return true;
     },
     killAllEnemies() {
       for (const e of currentRun.room.world.entities.byType('enemy')) e.alive = false;

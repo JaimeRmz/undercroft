@@ -146,6 +146,27 @@ export function renderRoom(
       ctx.globalAlpha = 1;
     }
 
+    // Item-get pose (P2.Q Q2b): the player raises the just-picked-up item overhead for ~1s.
+    if (player.itemHold?.timer > 0) {
+      player.itemHold.timer = Math.max(0, player.itemHold.timer - dt);
+      const hold = player.itemHold;
+      const riseFrac = Math.min(1, (hold.duration - hold.timer) / 0.2); // quick rise over the first 0.2s, then held
+      const screen = camera.worldToScreen(player.x, player.y - (player.height ?? 0));
+      const iconR = 11 * camera.zoom;
+      const iconY = screen.y - ((player.radius ?? 14) + 14 + riseFrac * 12) * camera.zoom;
+      const def = getItemDef(hold.id);
+      if (def) {
+        // Soft glow backing so the held item reads clearly over any familiars/clutter above the player.
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = '#ffe9a0';
+        ctx.beginPath();
+        ctx.arc(screen.x, iconY, iconR * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        drawIcon(ctx, resolveItemIcon(def), screen.x, iconY, iconR);
+      }
+    }
+
     // Transformation costumes (P2.5): one stacked ring per active transformation, same
     // "tinted ring around the body" language as a champion enemy's tint, just on the player.
     const playerScreen = camera.worldToScreen(player.x, player.y - (player.height ?? 0));

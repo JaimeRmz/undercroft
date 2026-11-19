@@ -356,6 +356,17 @@ async function main() {
       }
     }
 
+    // --- P2.Q Q2b: item-get overhead pose (held item icon above the player) --------------------
+    // Before the familiars/transformation scenes so the overhead icon reads uncluttered.
+    {
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+      const ok = await page.evaluate(() => window.__undercroft.giveItem('core:item-01'));
+      expect(ok, 'giveItem could not find core:item-01');
+      await page.waitForTimeout(100);
+      expect((await snap()).itemHoldTimer > 0, 'item-get pose should be active right after pickup');
+      await shot('item-get-pose');
+    }
+
     // --- P2.4: familiars (orbital/hover/follower-shooter) actually render and persist across a door ---
     {
       const s0 = await snap();
