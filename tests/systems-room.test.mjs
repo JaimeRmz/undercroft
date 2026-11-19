@@ -47,6 +47,40 @@ test('destroyDestructible clears rocks, mounds and tinted rocks and reports whic
   for (const tx of [3, 4, 5]) assert.equal(room.getTileType(tx, 3), TILE.FLOOR);
 });
 
+test('spikes are a walkable hazard; fireplaces are a solid hazard (P2.Q Q3b)', () => {
+  const room = new Room();
+  room.placeSpike(4, 3);
+  room.placeFireplace(5, 3);
+  const g = room.world.tileGrid;
+  // Spike: hazard but not solid and not projectile-blocking (a tear flies over it).
+  assert.ok(g.isHazard(4, 3), 'spike is a hazard');
+  assert.ok(!g.isSolid(4, 3), 'spike is walkable');
+  assert.ok(!g.isBlockingProjectile(4, 3), 'a tear flies over a spike');
+  // Fireplace: hazard AND solid AND projectile-blocking.
+  assert.ok(g.isHazard(5, 3), 'fireplace is a hazard');
+  assert.ok(g.isSolid(5, 3), 'fireplace blocks movement');
+  assert.ok(g.isBlockingProjectile(5, 3), 'fireplace blocks (and is hit by) shots');
+});
+
+test('a fireplace extinguishes after FIREPLACE_HP hits, clearing its hazard/solid flags (P2.Q Q3b)', () => {
+  const room = new Room();
+  room.placeFireplace(4, 3);
+  assert.equal(room.damageFireplace(4, 3), 'damaged');
+  assert.equal(room.damageFireplace(4, 3), 'damaged');
+  assert.equal(room.damageFireplace(4, 3), 'extinguished'); // FIREPLACE_HP = 3
+  assert.equal(room.getTileType(4, 3), TILE.FLOOR);
+  assert.ok(!room.world.tileGrid.isHazard(4, 3), 'an extinguished fireplace no longer hurts');
+  assert.ok(!room.world.tileGrid.isSolid(4, 3), 'an extinguished fireplace no longer blocks');
+  assert.equal(room.damageFireplace(4, 3), null, 'dousing empty floor does nothing');
+});
+
+test('clearing a spike/fireplace back to floor clears the hazard flag (P2.Q Q3b)', () => {
+  const room = new Room();
+  room.placeSpike(4, 3);
+  room.setTileType(4, 3, TILE.FLOOR);
+  assert.ok(!room.world.tileGrid.isHazard(4, 3));
+});
+
 test('doors are centered on each wall and open (passable) by default', () => {
   const room = new Room();
   assert.deepEqual(room.doors.get('north'), { tx: 6, ty: 0, locked: false, keyLocked: false });

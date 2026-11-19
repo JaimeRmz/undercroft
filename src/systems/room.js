@@ -16,12 +16,18 @@ export const TILE = {
   DOOR: 'door',
   MOUND: 'mound', // destructible pile: breaks after a few shots, may drop a pickup (P2.Q Q3a)
   TINTED_ROCK: 'tinted_rock', // looks like a rock but drops a guaranteed reward when bombed (P2.Q Q3a)
+  SPIKE: 'spike', // walkable floor hazard: hurts an entity standing on it (P2.Q Q3b)
+  FIREPLACE: 'fireplace', // solid hazard: hurts on contact, extinguished by shots, may drop a pickup (P2.Q Q3b)
 };
 
 /** Tile types that block both movement and projectiles like a rock does (destructibles included). */
 export const ROCK_LIKE = new Set([TILE.ROCK, TILE.MOUND, TILE.TINTED_ROCK]);
 
+/** Tile types that hurt an entity touching them (spikes are walkable, fireplaces are solid). */
+export const HAZARD_TILES = new Set([TILE.SPIKE, TILE.FIREPLACE]);
+
 export const MOUND_HP = 3; // shots to break a mound (CLAUDE.md: "break in 3-4 hits")
+export const FIREPLACE_HP = 3; // shots to extinguish a fireplace (P2.Q Q3b)
 
 export const DOOR_SIDES = ['north', 'south', 'east', 'west'];
 
@@ -69,10 +75,12 @@ export class Room {
     const doorLocked = door ? door.locked || door.keyLocked : false;
     // Pits block ground-entity movement only. Rocks/mounds/tinted rocks/walls/locked
     // doors block both movement and projectiles. A flier can sit over a pit and still be shot.
-    const solid = type === TILE.WALL || ROCK_LIKE.has(type) || type === TILE.PIT || doorLocked;
-    const blocksProjectile = type === TILE.WALL || ROCK_LIKE.has(type) || doorLocked;
+    // A fireplace is a solid hazard; a spike is a walkable (non-solid) hazard a tear flies over.
+    const solid = type === TILE.WALL || ROCK_LIKE.has(type) || type === TILE.PIT || type === TILE.FIREPLACE || doorLocked;
+    const blocksProjectile = type === TILE.WALL || ROCK_LIKE.has(type) || type === TILE.FIREPLACE || doorLocked;
     this.world.tileGrid.setSolid(tx, ty, solid);
     this.world.tileGrid.setBlocksProjectile(tx, ty, blocksProjectile);
+    this.world.tileGrid.setHazard(tx, ty, HAZARD_TILES.has(type));
   }
 
   getTileType(tx, ty) {
@@ -147,6 +155,31 @@ export class Room {
   /** Places a tinted rock (a rock that drops a guaranteed reward when bombed). */
   placeTintedRock(tx, ty) {
     this.setTileType(tx, ty, TILE.TINTED_ROCK);
+  }
+
+  /** Places a walkable spike hazard (hurts an entity standing on it). */
+  placeSpike(tx, ty) {
+    this.setTileType(tx, ty, TILE.SPIKE);
+  }
+
+  /** Places a solid fireplace hazard (hurts on contact, extinguished after FIREPLACE_HP shots). */
+  placeFireplace(tx, ty, hp = FIREPLACE_HP) {
+    this.setTileType(tx, ty, TILE.FIREPLACE);
+    this.tileHp.set(this._key(tx, ty), hp);
+  }
+
+  /** Deals `amount` hits to a fireplace. Returns 'extinguished' when it goes out (leaving floor), 'damaged' when it survives, or null if the tile isn't a fireplace. */
+  damageFireplace(tx, ty, amount = 1) {
+    if (this.getTileType(tx, ty) !== TILE.FIREPLACE) return null;
+    const key = this._key(tx, ty);
+    const hp = (this.tileHp.get(key) ?? FIREPLACE_HP) - amount;
+    if (hp > 0) {
+      this.tileHp.set(key, hp);
+      return 'damaged';
+    }
+    this.tileHp.delete(key);
+    this.setTileType(tx, ty, TILE.FLOOR);
+    return 'extinguished';
   }
 
   /** Deals `amount` hits to a mound. Returns 'broken' when it's destroyed, 'damaged' when it survives, or null if the tile isn't a mound. */

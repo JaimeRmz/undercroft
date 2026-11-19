@@ -32,6 +32,7 @@ import { spawnEnemy, updateEnemies, killEnemy } from './systems/enemies.js';
 import { findGroundSpawnTile } from './systems/spawnPlacement.js';
 import { updateProjectiles } from './systems/projectiles.js';
 import { resolveCombat } from './systems/combat.js';
+import { resolveTileHazards } from './systems/tileHazards.js';
 import { Health, tickInvuln } from './systems/health.js';
 import { Stats } from './systems/stats.js';
 import { placeBomb, updateBombs } from './systems/bombs.js';
@@ -527,12 +528,17 @@ async function boot() {
     currentRun.particles.burst(entity.x, entity.y, count, { color, speed: 70, life: 0.2, size: 2, rng: currentRun.vfxRng });
     // Splat ring (P2.Q Q1b): an expanding ring on top of the fan, scaled a touch larger on a direct hit.
     currentRun.particles.splash(entity.x, entity.y, { color, radius: reason === 'hit' ? 14 : 9, life: 0.2 });
-    // Mounds (P2.Q Q3a): a player tear that splats on a wall tile chips a mound; breaking it may drop a pickup.
+    // Destructible/extinguishable wall tiles (P2.Q Q3a/Q3b): a player tear that
+    // splats on a wall-blocking tile chips a mound or extinguishes a fireplace;
+    // either may drop a pickup. worldToTile lands on the tile the tear hit.
     if (reason === 'wall' && entity.team === 'player') {
       const { tx, ty } = currentRun.room.world.tileGrid.worldToTile(entity.x, entity.y);
-      if (currentRun.room.damageMound(tx, ty) === 'broken') {
+      const broke = currentRun.room.damageMound(tx, ty) === 'broken';
+      const doused = !broke && currentRun.room.damageFireplace(tx, ty) === 'extinguished';
+      if (broke || doused) {
         const center = currentRun.room.world.tileGrid.tileCenter(tx, ty);
-        if (currentRun.spawnRng.next() < 0.4) {
+        const chance = doused ? CONFIG.FIREPLACE_DROP_CHANCE : 0.4;
+        if (currentRun.spawnRng.next() < chance) {
           spawnRewardPickup(currentRun.room.world, currentRun.spawnRng.pick(['coin', 'heart']), { x: center.x, y: center.y, rng: currentRun.spawnRng });
         }
       }
@@ -625,6 +631,7 @@ async function boot() {
       updateProjectiles(run.room.world, dt, events);
       updateBombs(run.room.world, dt, { player: run.player, playerHealth: run.playerHealth, room: run.room, events, rng: run.spawnRng });
       resolveCombat(run.room.world, { player: run.player, playerHealth: run.playerHealth, events, rng: run.spawnRng });
+      resolveTileHazards(run.room, run.player, run.playerHealth, { events });
       resolveItemPedestals(run.room.world, run.player, {
         inventory: run.inventory,
         stats: run.player.stats,
@@ -932,6 +939,13 @@ async function boot() {
     },
     placeTintedRock(tx, ty) {
       currentRun.room.placeTintedRock(tx, ty);
+    },
+    /** Places a spike / fireplace hazard tile (dev/test only, for P2.Q Q3b verification). */
+    placeSpike(tx, ty) {
+      currentRun.room.placeSpike(tx, ty);
+    },
+    placeFireplace(tx, ty) {
+      currentRun.room.placeFireplace(tx, ty);
     },
     /** Clears a tile back to plain floor regardless of what a template put there (dev/test only). */
     setFloor(tx, ty) {

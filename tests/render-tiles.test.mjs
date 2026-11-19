@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { drawFloorTile, drawWallTile, drawRockTile, drawMoundTile, drawTintedRockTile, drawPitTile, drawDoorTile } from '../src/render/tiles.js';
+import { drawFloorTile, drawWallTile, drawRockTile, drawMoundTile, drawTintedRockTile, drawSpikeTile, drawFireplaceTile, drawPitTile, drawDoorTile } from '../src/render/tiles.js';
 import { createMockCtx } from './helpers/mockCanvas.mjs';
 
 function callCount(fn) {
@@ -19,7 +19,19 @@ test('every tile drawer produces more than a single flat fillRect (adds texture/
   assert.ok(callCount((ctx) => drawRockTile(ctx, 0, 0, 40, '#5a5248', 3, 4)) > 1);
   assert.ok(callCount((ctx) => drawMoundTile(ctx, 0, 0, 40, '#5a5248', 1)) > 1);
   assert.ok(callCount((ctx) => drawTintedRockTile(ctx, 0, 0, 40, '#5a5248')) > 1);
+  assert.ok(callCount((ctx) => drawSpikeTile(ctx, 0, 0, 40, '#2b2b33', 3, 4)) > 1);
+  assert.ok(callCount((ctx) => drawFireplaceTile(ctx, 0, 0, 40, '#2b2b33', 0.5, 1, 3, 4)) > 1);
   assert.ok(callCount((ctx) => drawPitTile(ctx, 0, 0, 40, '#0a0a0c')) > 1);
+});
+
+test('a fireplace flame wobbles with the flicker clock (P2.Q Q3b)', () => {
+  // Different flicker phases must place a flame vertex differently, proving it animates.
+  const trace = (flicker) => {
+    const ctx = createMockCtx(64, 64);
+    drawFireplaceTile(ctx, 0, 0, 40, '#2b2b33', flicker, 1, 0, 0);
+    return JSON.stringify(ctx.calls.filter((c) => c.kind === 'quadraticCurveTo').map((c) => [c.x, c.y]));
+  };
+  assert.notEqual(trace(0), trace(1), 'the flame shape changes between flicker extremes');
 });
 
 test('a damaged mound draws its crack, a full-hp one does not (P2.Q Q3a)', () => {

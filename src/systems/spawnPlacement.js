@@ -7,7 +7,7 @@
  * created). Flying enemies may spawn over a pit; they just can't spawn on a
  * rock, since rocks block projectiles too.
  */
-import { TILE, ROCK_LIKE } from './room.js';
+import { TILE, ROCK_LIKE, HAZARD_TILES } from './room.js';
 import { computeGroundReachableTiles, isGroundTileReachable } from './roomReachability.js';
 
 const MAX_RANDOM_ATTEMPTS = 30;
@@ -15,6 +15,8 @@ const MAX_RANDOM_ATTEMPTS = 30;
 function isAcceptable(room, tx, ty, flies, reachable) {
   const type = room.getTileType(tx, ty);
   if (type === TILE.WALL || type === TILE.DOOR || ROCK_LIKE.has(type)) return false;
+  // Never spawn on a hazard: a fireplace is solid, and a spike would just chip the enemy's own footing.
+  if (HAZARD_TILES.has(type)) return false;
   if (type === TILE.PIT && !flies) return false;
   if (!flies && !isGroundTileReachable(reachable, tx, ty)) return false;
   return true;

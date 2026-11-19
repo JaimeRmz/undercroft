@@ -21,6 +21,10 @@ export class TileGrid {
     // these separate is what lets a flier sitting over a pit still be shot.
     this.solid = new Uint8Array(width * height);
     this.blocksProjectile = new Uint8Array(width * height);
+    // `hazard` marks tiles that hurt an entity standing on/overlapping them
+    // (spikes, open flames — P2.Q Q3b). Independent of solid: a spike is a
+    // walkable hazard (not solid), a fireplace is a solid hazard.
+    this.hazard = new Uint8Array(width * height);
   }
 
   index(tx, ty) {
@@ -51,6 +55,17 @@ export class TileGrid {
   setBlocksProjectile(tx, ty, value) {
     if (!this.inBounds(tx, ty)) return;
     this.blocksProjectile[this.index(tx, ty)] = value ? 1 : 0;
+  }
+
+  /** Out-of-bounds tiles are walls, not hazards. */
+  isHazard(tx, ty) {
+    if (!this.inBounds(tx, ty)) return false;
+    return this.hazard[this.index(tx, ty)] === 1;
+  }
+
+  setHazard(tx, ty, value) {
+    if (!this.inBounds(tx, ty)) return;
+    this.hazard[this.index(tx, ty)] = value ? 1 : 0;
   }
 
   worldToTile(x, y) {

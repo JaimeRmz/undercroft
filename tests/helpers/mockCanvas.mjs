@@ -31,6 +31,7 @@ export function createMockCtx(width = 640, height = 360) {
     closePath() {},
     moveTo() {},
     lineTo() {},
+    quadraticCurveTo(cpx, cpy, x, y) { record('quadraticCurveTo', x, y, { cpx: m.a * cpx + m.e, cpy: m.d * cpy + m.f }); },
     clip() {},
     clearRect() {},
     arc(x, y, r) { record('arc', x, y, { r: r * m.a }); },

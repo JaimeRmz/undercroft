@@ -124,6 +124,70 @@ export function drawPitTile(ctx, x, y, size, pitColor) {
   ctx.strokeRect(x + edge / 2, y + edge / 2, size - edge, size - edge);
 }
 
+/**
+ * Spikes (P2.Q Q3b): a row of sharp metal teeth on the floor, reading
+ * unmistakably as "don't stand here". Floor is drawn underneath by the caller.
+ */
+export function drawSpikeTile(ctx, x, y, size, floorColor, tx = 0, ty = 0) {
+  drawFloorTile(ctx, x, y, size, floorColor, tx, ty);
+  const baseY = y + size * 0.82;
+  const n = 3;
+  const w = size / n;
+  for (let i = 0; i < n; i++) {
+    const sx = x + i * w;
+    ctx.fillStyle = '#b8bcc8';
+    ctx.beginPath();
+    ctx.moveTo(sx + w * 0.1, baseY);
+    ctx.lineTo(sx + w * 0.5, y + size * 0.3);
+    ctx.lineTo(sx + w * 0.9, baseY);
+    ctx.closePath();
+    ctx.fill();
+    // Bright edge catching the light on the left face of each tooth.
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.beginPath();
+    ctx.moveTo(sx + w * 0.1, baseY);
+    ctx.lineTo(sx + w * 0.5, y + size * 0.3);
+    ctx.lineTo(sx + w * 0.5, baseY);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Grounding shadow strip under the teeth.
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.fillRect(x, baseY, size, size * 0.1);
+}
+
+/**
+ * Fireplace (P2.Q Q3b): a dark stone hearth with a live flame. `flicker`
+ * (0..1, from the renderer's clock) wobbles the flame height so it reads as
+ * burning, not a static decal. `intensity` (hp fraction) shrinks the flame as
+ * it's shot down toward extinguishing.
+ */
+export function drawFireplaceTile(ctx, x, y, size, floorColor, flicker = 0, intensity = 1, tx = 0, ty = 0) {
+  drawFloorTile(ctx, x, y, size, floorColor, tx, ty);
+  const cx = x + size / 2;
+  // Stone hearth base.
+  ctx.fillStyle = '#3a342f';
+  ctx.fillRect(x + size * 0.12, y + size * 0.62, size * 0.76, size * 0.3);
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + size * 0.12, y + size * 0.62, size * 0.76, size * 0.3);
+  // Flame: a wobbling teardrop, outer orange over inner yellow.
+  const wobble = (flicker - 0.5) * size * 0.08;
+  const topY = y + size * (0.2 - 0.12 * intensity) + (1 - intensity) * size * 0.3;
+  ctx.fillStyle = '#ff7a22';
+  ctx.beginPath();
+  ctx.moveTo(cx + wobble, topY);
+  ctx.quadraticCurveTo(x + size * 0.86, y + size * 0.6, cx, y + size * 0.74);
+  ctx.quadraticCurveTo(x + size * 0.14, y + size * 0.6, cx + wobble, topY);
+  ctx.fill();
+  ctx.fillStyle = '#ffd34a';
+  ctx.beginPath();
+  ctx.moveTo(cx + wobble * 0.6, topY + size * 0.18 * (1 - 0.3 * intensity));
+  ctx.quadraticCurveTo(x + size * 0.68, y + size * 0.62, cx, y + size * 0.72);
+  ctx.quadraticCurveTo(x + size * 0.32, y + size * 0.62, cx + wobble * 0.6, topY + size * 0.18 * (1 - 0.3 * intensity));
+  ctx.fill();
+}
+
 const DOOR_DESTINATION_TINT = {
   treasure: '#5a3a7a',
   shop: '#2f5a3a',

@@ -14,11 +14,11 @@ import {
   hurtTintAlpha,
 } from './vfx.js';
 import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
-import { drawFloorTile, drawWallTile, drawRockTile, drawMoundTile, drawTintedRockTile, drawPitTile, drawDoorTile } from './tiles.js';
+import { drawFloorTile, drawWallTile, drawRockTile, drawMoundTile, drawTintedRockTile, drawSpikeTile, drawFireplaceTile, drawPitTile, drawDoorTile } from './tiles.js';
 import { drawEnemyTelegraph, drawBossTelegraph } from './telegraphs.js';
 import { drawTear } from './tears.js';
 import { drawPickup } from './pickups.js';
-import { TILE, MOUND_HP } from '../systems/room.js';
+import { TILE, MOUND_HP, FIREPLACE_HP } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
 const CHAMPION_RING_COLORS = { cyan: '#4ad8ff', red: '#ff4a4a', green: '#4aff6a', white: '#ffffff', gold: '#f0d060' };
@@ -36,6 +36,9 @@ function paletteForChapter(chapter) {
   return CHAPTER_PALETTES[chapter] ?? CHAPTER_PALETTES[1];
 }
 
+// Cosmetic clock advanced each frame, used for the fireplace flame wobble (P2.Q Q3b).
+let fireClock = 0;
+
 export function renderRoom(
   ctx,
   { room, camera, playerHealth, particles, decals, dt, chapter = 1, getItemDef = () => null, getTrinketDef = () => null, getCardDef = () => null }
@@ -44,6 +47,8 @@ export function renderRoom(
   ctx.fillStyle = '#0a0a0d';
   ctx.fillRect(0, 0, camera.viewportWidth, camera.viewportHeight);
 
+  fireClock += dt ?? 0;
+  const flameFlicker = 0.5 + 0.5 * Math.sin(fireClock * 11);
   const tileColors = paletteForChapter(chapter);
   const tileSize = room.world.tileGrid.tileSize;
   const doorsByTile = new Map();
@@ -64,7 +69,10 @@ export function renderRoom(
         drawFloorTile(ctx, screen.x, screen.y, size, tileColors.floor, tx, ty);
         drawMoundTile(ctx, screen.x, screen.y, size, tileColors.rock, (room.tileHp.get(`${tx},${ty}`) ?? MOUND_HP) / MOUND_HP);
       } else if (type === TILE.TINTED_ROCK) drawTintedRockTile(ctx, screen.x, screen.y, size, tileColors.rock);
-      else if (type === TILE.PIT) drawPitTile(ctx, screen.x, screen.y, size, tileColors.pit);
+      else if (type === TILE.SPIKE) drawSpikeTile(ctx, screen.x, screen.y, size, tileColors.floor, tx, ty);
+      else if (type === TILE.FIREPLACE) {
+        drawFireplaceTile(ctx, screen.x, screen.y, size, tileColors.floor, flameFlicker, (room.tileHp.get(`${tx},${ty}`) ?? FIREPLACE_HP) / FIREPLACE_HP, tx, ty);
+      } else if (type === TILE.PIT) drawPitTile(ctx, screen.x, screen.y, size, tileColors.pit);
       else if (type === TILE.DOOR) {
         const door = doorsByTile.get(`${tx},${ty}`);
         const pulse = door ? room.doorAnimProgress(doorSideByTile.get(`${tx},${ty}`)) : null;

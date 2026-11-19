@@ -157,6 +157,8 @@ export const CONFIG = {
   SACRIFICE_PAYOUT_HITS: 3, // [assumed] spike touches needed per reward
   SACRIFICE_MAX_PAYOUTS: 3, // [assumed] caps farming a single sacrifice room visit
   CURSE_DOOR_DAMAGE_HALF_HEARTS: 1, // [assumed] "spiked door" damage, both entering and leaving
+  HAZARD_CONTACT_DAMAGE_HALF_HEARTS: 1, // [assumed] spike/fire tile contact damage, gated by i-frames
+  FIREPLACE_DROP_CHANCE: 0.4, // [assumed] chance an extinguished fireplace drops a pickup
   CHALLENGE_WAVE_INTERVAL_SECONDS: 0.5, // [assumed] pause between a wave clearing and the next one spawning
   ARCADE_SLOT_COST: 5, // [assumed] coins per pull
 

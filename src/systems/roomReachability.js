@@ -6,6 +6,9 @@
  */
 import { TILE, ROCK_LIKE } from './room.js';
 
+// A fireplace is a solid hazard that blocks ground movement like a rock; spikes
+// stay traversable (a path may cross them, it just hurts), so they aren't here.
+
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 function key(tx, ty) {
@@ -21,7 +24,7 @@ function bfsFrom(room, startTx, startTy) {
     const k = key(tx, ty);
     if (visited.has(k)) continue;
     const type = room.getTileType(tx, ty);
-    if (type === TILE.WALL || ROCK_LIKE.has(type) || type === TILE.PIT) continue;
+    if (type === TILE.WALL || ROCK_LIKE.has(type) || type === TILE.PIT || type === TILE.FIREPLACE) continue;
     visited.add(k);
     for (const [dx, dy] of DIRS) {
       const ntx = tx + dx;

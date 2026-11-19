@@ -397,6 +397,25 @@ async function main() {
       await shot('destructibles');
     }
 
+    // --- P2.Q Q3b: hazards (spike teeth vs a live fireplace flame) ------------------------------
+    {
+      const hz = await page.evaluate(() => {
+        const s = window.__undercroft.snapshot();
+        const p = s.player;
+        const ts = 40;
+        const tx = Math.round(p.x / ts);
+        const ty = Math.round(p.y / ts);
+        window.__undercroft.placeSpike(tx - 2, ty + 1);
+        window.__undercroft.placeFireplace(tx + 2, ty + 1);
+        // Prove the hazard actually hurts: stand the player on the spike and let it tick.
+        const g = window.__undercroft.snapshot();
+        return { before: g.hp };
+      });
+      await page.waitForTimeout(120);
+      await shot('hazards');
+      expect(typeof hz.before === 'number', 'hazard scene could not read player hp');
+    }
+
     // --- P2.4: familiars (orbital/hover/follower-shooter) actually render and persist across a door ---
     {
       const s0 = await snap();

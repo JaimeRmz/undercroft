@@ -5,6 +5,7 @@
 const HAZARD_NAMES = {
   bomb: 'Your own bomb',
   spikes: 'Spikes',
+  fire: 'An open flame',
   'enemy-projectile': 'An enemy shot',
 };
 
