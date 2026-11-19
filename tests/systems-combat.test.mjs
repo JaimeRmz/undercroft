@@ -27,6 +27,28 @@ test('overlapping enemy deals contact damage to the player', () => {
   assert.equal(playerHealth.red, 5); // lost 1 half-heart
 });
 
+test('taking contact damage flashes, red-tints and knocks the player back away from the enemy (P2.Q Q2a)', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  spawnEnemy(world, CHASER_DEF, { x: 390, y: 400 }); // overlapping, to the player's left
+  const playerHealth = new Health({ redMax: 6 });
+  resolveCombat(world, { player, playerHealth, events: createEventBus() });
+  assert.ok(player.hitFlashTimer > 0, 'white hit flash');
+  assert.ok(player.hurtTintTimer > 0, 'red hurt tint');
+  assert.ok(player.x > 400, 'knocked back away from an enemy on the left');
+});
+
+test('no hurt feedback when the hit is fully blocked by i-frames (P2.Q Q2a)', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  spawnEnemy(world, CHASER_DEF, { x: 390, y: 400 });
+  const playerHealth = new Health({ redMax: 6 });
+  playerHealth.invulnTimer = 1; // already invulnerable → applyDamage applies 0
+  resolveCombat(world, { player, playerHealth, events: createEventBus() });
+  assert.equal(player.x, 400, 'no knockback when no damage lands');
+  assert.ok(!(player.hurtTintTimer > 0), 'no tint when no damage lands');
+});
+
 test('a player tear hitting an enemy reduces its hp and destroys the tear', () => {
   const world = freshWorld();
   const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });

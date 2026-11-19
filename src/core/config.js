@@ -126,6 +126,8 @@ export const CONFIG = {
   HIT_FLASH_SECONDS: 2 / 60, // enemies flash white for 2 frames on a heavy hit
   KNOCKBACK_DISTANCE_PX: 8, // [assumed] instant push-back applied to an enemy's position on a hit
   HITSTOP_FRAMES: 2, // [assumed] ~2-frame full-sim freeze on a killing blow
+  PLAYER_KNOCKBACK_DISTANCE_PX: 14, // [assumed] instant push-back applied to the player when hurt (P2.Q Q2a)
+  PLAYER_HURT_TINT_SECONDS: 0.35, // [assumed] brief red tint overlaid on the player on taking damage (P2.Q Q2a)
 
   // Status effects on enemies (CLAUDE.md §3) — all [assumed], no canonical values given
   POISON_DURATION_SECONDS: 5,

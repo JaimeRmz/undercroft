@@ -10,6 +10,8 @@ import {
   walkBobOffset,
   updateChampionPulse,
   championPulseScale,
+  updateHurtTint,
+  hurtTintAlpha,
 } from './vfx.js';
 import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
 import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from './tiles.js';
@@ -130,6 +132,19 @@ export function renderRoom(
       bodyAngle: Math.atan2(player.moveDir?.y ?? 1, player.moveDir?.x ?? 0),
     });
     ctx.globalAlpha = 1;
+
+    // Hurt tint (P2.Q Q2a): a brief red wash over the player's body when it takes damage.
+    updateHurtTint(player, dt);
+    const tint = hurtTintAlpha(player);
+    if (tint > 0) {
+      const hurtScreen = camera.worldToScreen(player.x, player.y - (player.height ?? 0) + walkBobOffset(player));
+      ctx.globalAlpha = tint;
+      ctx.fillStyle = '#ff2a2a';
+      ctx.beginPath();
+      ctx.arc(hurtScreen.x, hurtScreen.y, (player.radius ?? 14) * camera.zoom, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
 
     // Transformation costumes (P2.5): one stacked ring per active transformation, same
     // "tinted ring around the body" language as a champion enemy's tint, just on the player.

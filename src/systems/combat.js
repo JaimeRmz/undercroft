@@ -11,7 +11,7 @@
  */
 import { circlesOverlap } from '../engine/collision.js';
 import { applyDamage } from './health.js';
-import { triggerHitFlash, triggerSquash } from '../render/vfx.js';
+import { triggerHitFlash, triggerSquash, triggerHurtTint } from '../render/vfx.js';
 import { normalize } from '../core/math.js';
 import { runModifiersOnHitEnemy } from './tearModifiers.js';
 import { isEnemyDamageBlocked, applyEnemyDamage } from './enemies.js';
@@ -28,6 +28,18 @@ function damageMultiplierFor(enemy, projectile) {
   return dot > 0.3 ? CONFIG.FRONT_ARMOR_DAMAGE_MULT : 1;
 }
 
+/** Player feedback on taking a hit (P2.Q Q2a): white flash + squash + red tint + an instant knockback away from `dir`. */
+function hurtPlayer(world, player, dir) {
+  triggerHitFlash(player);
+  triggerSquash(player);
+  triggerHurtTint(player);
+  if (dir && (dir.x || dir.y)) {
+    player.x += dir.x * CONFIG.PLAYER_KNOCKBACK_DISTANCE_PX;
+    player.y += dir.y * CONFIG.PLAYER_KNOCKBACK_DISTANCE_PX;
+    if (!player.flying) world.resolveTileCollision(player);
+  }
+}
+
 export function resolveCombat(world, { player, playerHealth, events, rng } = {}) {
   const enemies = world.entities.byType('enemy');
 
@@ -39,8 +51,7 @@ export function resolveCombat(world, { player, playerHealth, events, rng } = {})
       if (circlesOverlap(player.x, player.y, player.radius, enemy.x, enemy.y, enemy.radius)) {
         const result = applyDamage(playerHealth, enemy.contactDamageHalfHearts, { events, source: enemy.defId });
         if (result.applied > 0) {
-          triggerHitFlash(player);
-          triggerSquash(player);
+          hurtPlayer(world, player, normalize(player.x - enemy.x, player.y - enemy.y));
           if (enemy.dropsCoinsOnHit) {
             spawnPickup(world, PICKUP_TYPE.COIN, { x: enemy.x, y: enemy.y, value: CONFIG.CHAMPION_COINS_ON_HIT_VALUE });
           }
@@ -97,8 +108,7 @@ export function resolveCombat(world, { player, playerHealth, events, rng } = {})
       if (circlesOverlap(projectile.x, projectile.y, projectile.radius, player.x, player.y, player.radius)) {
         const result = applyDamage(playerHealth, Math.round(projectile.damage), { events, source: projectile.ownerDefId ?? 'enemy-projectile' });
         if (result.applied > 0) {
-          triggerHitFlash(player);
-          triggerSquash(player);
+          hurtPlayer(world, player, normalize(projectile.vx, projectile.vy));
         }
         projectile.destroy();
         events?.emit('projectile:splash', { entity: projectile, reason: 'hit' });

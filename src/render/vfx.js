@@ -29,6 +29,26 @@ export function isFlashing(entity) {
   return (entity.hitFlashTimer ?? 0) > 0;
 }
 
+/**
+ * Hurt tint (P2.Q Q2a): a brief red wash overlaid on the player when hurt,
+ * distinct from the white hit flash and the i-frame blink. Fades out over its life.
+ */
+export function triggerHurtTint(entity, seconds = CONFIG.PLAYER_HURT_TINT_SECONDS) {
+  entity.hurtTintTimer = seconds;
+  entity.hurtTintDuration = seconds;
+}
+
+export function updateHurtTint(entity, dt) {
+  if (entity.hurtTintTimer > 0) entity.hurtTintTimer = Math.max(0, entity.hurtTintTimer - dt);
+}
+
+/** 0..1 red-overlay strength: strongest at the moment of the hit, fading to 0. */
+export function hurtTintAlpha(entity) {
+  const timer = entity.hurtTintTimer ?? 0;
+  if (timer <= 0) return 0;
+  return 0.5 * (timer / (entity.hurtTintDuration || CONFIG.PLAYER_HURT_TINT_SECONDS));
+}
+
 const SQUASH_SECONDS = 0.18; // [assumed] a quick, readable squash-and-recover on taking damage
 
 const SQUASH_AMOUNT = 0.25; // default peak stretch (squash-on-hit)
