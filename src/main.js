@@ -527,6 +527,16 @@ async function boot() {
     currentRun.particles.burst(entity.x, entity.y, count, { color, speed: 70, life: 0.2, size: 2, rng: currentRun.vfxRng });
     // Splat ring (P2.Q Q1b): an expanding ring on top of the fan, scaled a touch larger on a direct hit.
     currentRun.particles.splash(entity.x, entity.y, { color, radius: reason === 'hit' ? 14 : 9, life: 0.2 });
+    // Mounds (P2.Q Q3a): a player tear that splats on a wall tile chips a mound; breaking it may drop a pickup.
+    if (reason === 'wall' && entity.team === 'player') {
+      const { tx, ty } = currentRun.room.world.tileGrid.worldToTile(entity.x, entity.y);
+      if (currentRun.room.damageMound(tx, ty) === 'broken') {
+        const center = currentRun.room.world.tileGrid.tileCenter(tx, ty);
+        if (currentRun.spawnRng.next() < 0.4) {
+          spawnRewardPickup(currentRun.room.world, currentRun.spawnRng.pick(['coin', 'heart']), { x: center.x, y: center.y, rng: currentRun.spawnRng });
+        }
+      }
+    }
   });
 
   const loop = new FixedStepLoop({
@@ -887,6 +897,11 @@ async function boot() {
         if (def) spawnFamiliar(run.room.world, def, { player: run.player });
       }
     },
+    /** Removes every familiar in the current room (dev/test only): lets an isolated scene exercise the player without familiars shielding them from a spawned enemy. */
+    clearFamiliars() {
+      const world = currentRun.room.world;
+      for (const familiar of [...world.entities.byType('familiar')]) world.entities.remove(familiar.id);
+    },
     /** Stocks the current room with a P2.6 special room type's content directly (dev/test only, since these room types are rare/gated and this skips waiting on a natural floor roll). */
     debugStockSpecial(type) {
       const run = currentRun;
@@ -910,6 +925,13 @@ async function boot() {
     /** Paints a pit into the current room's tile grid (dev/test only, for P1.G1's pit-vs-tear verification). */
     placePit(tx, ty) {
       currentRun.room.placePit(tx, ty);
+    },
+    /** Places a destructible mound / reward-dropping tinted rock (dev/test only, for P2.Q Q3a verification). */
+    placeMound(tx, ty) {
+      currentRun.room.placeMound(tx, ty);
+    },
+    placeTintedRock(tx, ty) {
+      currentRun.room.placeTintedRock(tx, ty);
     },
     /** Clears a tile back to plain floor regardless of what a template put there (dev/test only). */
     setFloor(tx, ty) {

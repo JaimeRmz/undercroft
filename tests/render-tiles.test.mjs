@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from '../src/render/tiles.js';
+import { drawFloorTile, drawWallTile, drawRockTile, drawMoundTile, drawTintedRockTile, drawPitTile, drawDoorTile } from '../src/render/tiles.js';
 import { createMockCtx } from './helpers/mockCanvas.mjs';
 
 function callCount(fn) {
@@ -17,7 +17,15 @@ test('every tile drawer produces more than a single flat fillRect (adds texture/
   assert.ok(callCount((ctx) => drawFloorTile(ctx, 0, 0, 40, '#2b2b33', 3, 4)) > 1);
   assert.ok(callCount((ctx) => drawWallTile(ctx, 0, 0, 40, '#232330')) > 1);
   assert.ok(callCount((ctx) => drawRockTile(ctx, 0, 0, 40, '#5a5248', 3, 4)) > 1);
+  assert.ok(callCount((ctx) => drawMoundTile(ctx, 0, 0, 40, '#5a5248', 1)) > 1);
+  assert.ok(callCount((ctx) => drawTintedRockTile(ctx, 0, 0, 40, '#5a5248')) > 1);
   assert.ok(callCount((ctx) => drawPitTile(ctx, 0, 0, 40, '#0a0a0c')) > 1);
+});
+
+test('a damaged mound draws its crack, a full-hp one does not (P2.Q Q3a)', () => {
+  const full = callCount((ctx) => drawMoundTile(ctx, 0, 0, 40, '#5a5248', 1));
+  const chipped = callCount((ctx) => drawMoundTile(ctx, 0, 0, 40, '#5a5248', 0.1));
+  assert.ok(chipped > full, 'a chipped mound draws extra crack strokes');
 });
 
 test('rock tiles have two stable shaded variants by tile position ("blocks distinct from rocks")', () => {

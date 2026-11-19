@@ -14,6 +14,39 @@ test('room is 13x7 tiles with solid border walls', () => {
   assert.ok(!room.world.tileGrid.isSolid(6, 3)); // interior floor
 });
 
+test('mounds and tinted rocks block movement and projectiles like rocks (P2.Q Q3a)', () => {
+  const room = new Room();
+  room.placeMound(4, 3);
+  room.placeTintedRock(5, 3);
+  for (const [tx, ty] of [[4, 3], [5, 3]]) {
+    assert.ok(room.world.tileGrid.isSolid(tx, ty), 'destructible blocks movement');
+    assert.ok(room.world.tileGrid.isBlockingProjectile(tx, ty), 'destructible blocks projectiles');
+  }
+});
+
+test('a mound breaks after MOUND_HP hits, turning to floor (P2.Q Q3a)', () => {
+  const room = new Room();
+  room.placeMound(4, 3);
+  assert.equal(room.damageMound(4, 3), 'damaged');
+  assert.equal(room.damageMound(4, 3), 'damaged');
+  assert.equal(room.damageMound(4, 3), 'broken'); // MOUND_HP = 3
+  assert.equal(room.getTileType(4, 3), TILE.FLOOR);
+  assert.ok(!room.world.tileGrid.isSolid(4, 3), 'broken mound no longer blocks');
+  assert.equal(room.damageMound(4, 3), null, 'damaging empty floor does nothing');
+});
+
+test('destroyDestructible clears rocks, mounds and tinted rocks and reports which (P2.Q Q3a)', () => {
+  const room = new Room();
+  room.placeRock(3, 3);
+  room.placeMound(4, 3);
+  room.placeTintedRock(5, 3);
+  assert.equal(room.destroyDestructible(3, 3), TILE.ROCK);
+  assert.equal(room.destroyDestructible(4, 3), TILE.MOUND);
+  assert.equal(room.destroyDestructible(5, 3), TILE.TINTED_ROCK);
+  assert.equal(room.destroyDestructible(6, 3), null, 'plain floor is not destructible');
+  for (const tx of [3, 4, 5]) assert.equal(room.getTileType(tx, 3), TILE.FLOOR);
+});
+
 test('doors are centered on each wall and open (passable) by default', () => {
   const room = new Room();
   assert.deepEqual(room.doors.get('north'), { tx: 6, ty: 0, locked: false, keyLocked: false });

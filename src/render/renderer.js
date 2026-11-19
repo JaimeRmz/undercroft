@@ -14,11 +14,11 @@ import {
   hurtTintAlpha,
 } from './vfx.js';
 import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
-import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from './tiles.js';
+import { drawFloorTile, drawWallTile, drawRockTile, drawMoundTile, drawTintedRockTile, drawPitTile, drawDoorTile } from './tiles.js';
 import { drawEnemyTelegraph, drawBossTelegraph } from './telegraphs.js';
 import { drawTear } from './tears.js';
 import { drawPickup } from './pickups.js';
-import { TILE } from '../systems/room.js';
+import { TILE, MOUND_HP } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
 const CHAMPION_RING_COLORS = { cyan: '#4ad8ff', red: '#ff4a4a', green: '#4aff6a', white: '#ffffff', gold: '#f0d060' };
@@ -60,6 +60,10 @@ export function renderRoom(
       const size = tileSize * camera.zoom;
       if (type === TILE.WALL) drawWallTile(ctx, screen.x, screen.y, size, tileColors.wall);
       else if (type === TILE.ROCK) drawRockTile(ctx, screen.x, screen.y, size, tileColors.rock, tx, ty);
+      else if (type === TILE.MOUND) {
+        drawFloorTile(ctx, screen.x, screen.y, size, tileColors.floor, tx, ty);
+        drawMoundTile(ctx, screen.x, screen.y, size, tileColors.rock, (room.tileHp.get(`${tx},${ty}`) ?? MOUND_HP) / MOUND_HP);
+      } else if (type === TILE.TINTED_ROCK) drawTintedRockTile(ctx, screen.x, screen.y, size, tileColors.rock);
       else if (type === TILE.PIT) drawPitTile(ctx, screen.x, screen.y, size, tileColors.pit);
       else if (type === TILE.DOOR) {
         const door = doorsByTile.get(`${tx},${ty}`);

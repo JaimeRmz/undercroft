@@ -8,6 +8,8 @@ import { circlesOverlap } from '../engine/collision.js';
 import { applyDamage } from './health.js';
 import { triggerHitFlash } from '../render/vfx.js';
 import { applyEnemyDamage } from './enemies.js';
+import { TILE } from './room.js';
+import { spawnRewardPickup } from './pickups.js';
 
 const DEFAULT_FUSE_SECONDS = 1.5; // [assumed]
 const DEFAULT_BLAST_RADIUS = 60; // px, [assumed] ~1.5 tiles
@@ -41,8 +43,13 @@ function explodeBomb(world, bomb, { player, playerHealth, room, events, rng }) {
     for (let ty = minTy; ty <= maxTy; ty++) {
       for (let tx = minTx; tx <= maxTx; tx++) {
         const center = room.world.tileGrid.tileCenter(tx, ty);
-        if (Math.hypot(center.x - bomb.x, center.y - bomb.y) <= bomb.blastRadius) {
-          room.destroyRock(tx, ty);
+        if (Math.hypot(center.x - bomb.x, center.y - bomb.y) > bomb.blastRadius) continue;
+        const destroyed = room.destroyDestructible(tx, ty);
+        // A bombed tinted rock always pays out; a bombed mound sometimes does (P2.Q Q3a).
+        if (destroyed === TILE.TINTED_ROCK && rng) {
+          spawnRewardPickup(world, rng.pick(['coin', 'heart', 'key', 'bomb']), { x: center.x, y: center.y, rng });
+        } else if (destroyed === TILE.MOUND && rng && rng.next() < 0.33) {
+          spawnRewardPickup(world, rng.pick(['coin', 'heart']), { x: center.x, y: center.y, rng });
         }
       }
     }

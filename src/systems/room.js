@@ -14,7 +14,14 @@ export const TILE = {
   ROCK: 'rock',
   PIT: 'pit',
   DOOR: 'door',
+  MOUND: 'mound', // destructible pile: breaks after a few shots, may drop a pickup (P2.Q Q3a)
+  TINTED_ROCK: 'tinted_rock', // looks like a rock but drops a guaranteed reward when bombed (P2.Q Q3a)
 };
+
+/** Tile types that block both movement and projectiles like a rock does (destructibles included). */
+export const ROCK_LIKE = new Set([TILE.ROCK, TILE.MOUND, TILE.TINTED_ROCK]);
+
+export const MOUND_HP = 3; // shots to break a mound (CLAUDE.md: "break in 3-4 hits")
 
 export const DOOR_SIDES = ['north', 'south', 'east', 'west'];
 
@@ -32,6 +39,7 @@ export class Room {
     this.widthTiles = widthTiles;
     this.heightTiles = heightTiles;
     this.tileTypes = new Map();
+    this.tileHp = new Map(); // "tx,ty" -> remaining hits for mounds (P2.Q Q3a)
     this.doors = new Map(); // side -> { tx, ty, locked }
     this.doorAnimTimers = new Map(); // side -> seconds remaining in its open/close flash pulse (P1.G7)
     this.cleared = false;
@@ -59,10 +67,10 @@ export class Room {
     this.tileTypes.set(this._key(tx, ty), type);
     const door = type === TILE.DOOR ? this._doorAt(tx, ty) : null;
     const doorLocked = door ? door.locked || door.keyLocked : false;
-    // Pits block ground-entity movement only. Rocks/walls/locked doors block both
-    // movement and projectiles. A flier can sit over a pit and still be shot.
-    const solid = type === TILE.WALL || type === TILE.ROCK || type === TILE.PIT || doorLocked;
-    const blocksProjectile = type === TILE.WALL || type === TILE.ROCK || doorLocked;
+    // Pits block ground-entity movement only. Rocks/mounds/tinted rocks/walls/locked
+    // doors block both movement and projectiles. A flier can sit over a pit and still be shot.
+    const solid = type === TILE.WALL || ROCK_LIKE.has(type) || type === TILE.PIT || doorLocked;
+    const blocksProjectile = type === TILE.WALL || ROCK_LIKE.has(type) || doorLocked;
     this.world.tileGrid.setSolid(tx, ty, solid);
     this.world.tileGrid.setBlocksProjectile(tx, ty, blocksProjectile);
   }
@@ -130,11 +138,48 @@ export class Room {
     this.setTileType(tx, ty, TILE.PIT);
   }
 
+  /** Places a destructible mound (breaks after MOUND_HP shots). */
+  placeMound(tx, ty, hp = MOUND_HP) {
+    this.setTileType(tx, ty, TILE.MOUND);
+    this.tileHp.set(this._key(tx, ty), hp);
+  }
+
+  /** Places a tinted rock (a rock that drops a guaranteed reward when bombed). */
+  placeTintedRock(tx, ty) {
+    this.setTileType(tx, ty, TILE.TINTED_ROCK);
+  }
+
+  /** Deals `amount` hits to a mound. Returns 'broken' when it's destroyed, 'damaged' when it survives, or null if the tile isn't a mound. */
+  damageMound(tx, ty, amount = 1) {
+    if (this.getTileType(tx, ty) !== TILE.MOUND) return null;
+    const key = this._key(tx, ty);
+    const hp = (this.tileHp.get(key) ?? MOUND_HP) - amount;
+    if (hp > 0) {
+      this.tileHp.set(key, hp);
+      return 'damaged';
+    }
+    this.tileHp.delete(key);
+    this.setTileType(tx, ty, TILE.FLOOR);
+    return 'broken';
+  }
+
   /** Destroys a rock in place (e.g. from a bomb blast, once bombs exist). Returns true if there was one. */
   destroyRock(tx, ty) {
     if (this.getTileType(tx, ty) !== TILE.ROCK) return false;
     this.setTileType(tx, ty, TILE.FLOOR);
     return true;
+  }
+
+  /**
+   * Destroys any destructible tile at (tx, ty) from a blast: plain rock, mound, or
+   * tinted rock. Returns the destroyed tile type (for the caller to roll drops), or null.
+   */
+  destroyDestructible(tx, ty) {
+    const type = this.getTileType(tx, ty);
+    if (!ROCK_LIKE.has(type)) return null;
+    this.tileHp.delete(this._key(tx, ty));
+    this.setTileType(tx, ty, TILE.FLOOR);
+    return type;
   }
 
   lockDoors() {

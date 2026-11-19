@@ -8,6 +8,7 @@ import { Stats } from '../src/systems/stats.js';
 import { Health } from '../src/systems/health.js';
 import { placeBomb, updateBombs } from '../src/systems/bombs.js';
 import { createEventBus } from '../src/core/events.js';
+import { Rng } from '../src/core/rng.js';
 
 const CHASER_DEF = { id: 'core:chaser', hp: 5, speed: 90, radius: 14, behavior: 'chase' };
 
@@ -56,6 +57,25 @@ test('a bomb explosion destroys rocks within the blast radius but leaves distant
   updateBombs(room.world, 1.1, { room, events: createEventBus() });
   assert.equal(room.getTileType(6, 3), 'floor');
   assert.equal(room.getTileType(1, 1), 'rock');
+});
+
+test('a bombed tinted rock drops a guaranteed reward pickup (P2.Q Q3a)', () => {
+  const room = new Room();
+  const c = room.world.tileGrid.tileCenter(6, 3);
+  room.placeTintedRock(6, 3);
+  const bomb = placeBomb(room.world, { x: c.x, y: c.y, fuseSeconds: 1, radius: 60 });
+  updateBombs(room.world, 1.1, { room, events: createEventBus(), rng: new Rng('q3a') });
+  assert.equal(room.getTileType(6, 3), 'floor', 'tinted rock is destroyed');
+  assert.ok(room.world.entities.byType('pickup').some((p) => p.alive), 'a reward pickup dropped');
+});
+
+test('a bombed mound is destroyed like a rock (P2.Q Q3a)', () => {
+  const room = new Room();
+  const c = room.world.tileGrid.tileCenter(6, 3);
+  room.placeMound(6, 3);
+  placeBomb(room.world, { x: c.x, y: c.y, fuseSeconds: 1, radius: 60 });
+  updateBombs(room.world, 1.1, { room, events: createEventBus(), rng: new Rng('q3b') });
+  assert.equal(room.getTileType(6, 3), 'floor');
 });
 
 test('bomb:explode event carries position and radius', () => {

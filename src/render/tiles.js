@@ -60,6 +60,61 @@ export function drawRockTile(ctx, x, y, size, rockColor, tx, ty) {
   ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
 }
 
+/**
+ * Mound (P2.Q Q3a): a soft dome of rubble, distinct from a hard rock — rounded,
+ * lighter, with a crack that deepens as it's chipped (hpFrac 1 → 0). Reads as
+ * "I can shoot this down" rather than "bomb me".
+ */
+export function drawMoundTile(ctx, x, y, size, rockColor, hpFrac = 1) {
+  const cx = x + size / 2;
+  const cy = y + size * 0.6;
+  const r = size * 0.4;
+  ctx.fillStyle = rockColor;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 0); // top dome (upper half-circle)
+  ctx.fill();
+  ctx.fillRect(cx - r, cy, r * 2, size * 0.28); // base
+  // Highlight cap.
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.75, Math.PI, 0);
+  ctx.fill();
+  // Damage crack grows as it's chipped.
+  const crack = (1 - hpFrac) * size * 0.3;
+  if (crack > 0) {
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.lineWidth = 1 + crack * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - size * 0.2);
+    ctx.lineTo(cx - crack * 0.4, cy + size * 0.1);
+    ctx.stroke();
+  }
+}
+
+/**
+ * Tinted rock (P2.Q Q3a): a rock with an unmistakable warm-gold vein so the
+ * player learns "bomb this for a reward". Same hard-edged silhouette as a rock.
+ */
+export function drawTintedRockTile(ctx, x, y, size, rockColor) {
+  ctx.fillStyle = rockColor;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
+  // Gold vein marking it as a reward rock.
+  ctx.strokeStyle = '#e8c050';
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.25, y + size * 0.3);
+  ctx.lineTo(x + size * 0.5, y + size * 0.5);
+  ctx.lineTo(x + size * 0.4, y + size * 0.72);
+  ctx.stroke();
+  ctx.fillStyle = '#f0d878';
+  ctx.beginPath();
+  ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.09, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 export function drawPitTile(ctx, x, y, size, pitColor) {
   ctx.fillStyle = pitColor;
   ctx.fillRect(x, y, size, size);

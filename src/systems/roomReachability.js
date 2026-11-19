@@ -4,7 +4,7 @@
  * (a) validate room templates never bisect their doors into sealed pockets,
  * and (b) keep enemy spawn placement off any pit/rock/unreachable tile.
  */
-import { TILE } from './room.js';
+import { TILE, ROCK_LIKE } from './room.js';
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -21,7 +21,7 @@ function bfsFrom(room, startTx, startTy) {
     const k = key(tx, ty);
     if (visited.has(k)) continue;
     const type = room.getTileType(tx, ty);
-    if (type === TILE.WALL || type === TILE.ROCK || type === TILE.PIT) continue;
+    if (type === TILE.WALL || ROCK_LIKE.has(type) || type === TILE.PIT) continue;
     visited.add(k);
     for (const [dx, dy] of DIRS) {
       const ntx = tx + dx;

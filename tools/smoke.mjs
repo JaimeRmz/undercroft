@@ -382,6 +382,21 @@ async function main() {
       await shot('pickup-animations');
     }
 
+    // --- P2.Q Q3a: destructibles (mound dome vs gold-veined tinted rock) -------------------------
+    {
+      await page.evaluate(() => {
+        const s = window.__undercroft.snapshot();
+        const p = s.player;
+        const ts = 40;
+        const tx = Math.round(p.x / ts);
+        const ty = Math.round(p.y / ts);
+        window.__undercroft.placeMound(tx - 2, ty);
+        window.__undercroft.placeTintedRock(tx + 2, ty);
+      });
+      await page.waitForTimeout(80);
+      await shot('destructibles');
+    }
+
     // --- P2.4: familiars (orbital/hover/follower-shooter) actually render and persist across a door ---
     {
       const s0 = await snap();
@@ -495,6 +510,10 @@ async function main() {
       const normal = s.floorCells.find((c) => c.type === 'normal');
       if (normal) await page.evaluate((key) => window.__undercroft.gotoCell(key), normal.key);
       await page.evaluate(() => window.__undercroft.killAllEnemies());
+      // Clear familiars carried over from the earlier giveFamiliars scene: they shoot/body-block
+      // the spawned chaser (knocking it out of contact during its spawn grace), which would
+      // otherwise keep the player alive and make this death check flaky.
+      await page.evaluate(() => window.__undercroft.clearFamiliars());
       await page.waitForTimeout(300);
       await page.evaluate(() => {
         window.__undercroft.setHealth(1);
