@@ -56,26 +56,9 @@ export const SPRITES = {
     outlineWidth: 2,
     eyes: [{ dx: 0, dy: -2, r: 2.4 }],
   },
-  // Player tears: cool pale blue. Enemy projectiles must never be mistaken for these (see enemyTear).
-  tear: {
-    shape: 'circle',
-    radius: 6,
-    fill: '#cfe8ff',
-    outline: '#3a6a8a',
-    outlineWidth: 1,
-    shadow: false, // flying projectiles don't want a ground shadow
-  },
-  // Enemy/boss projectiles: hot red-orange body, bright core, dark outline and a soft red glow ring.
-  enemyTear: {
-    shape: 'circle',
-    radius: 6,
-    fill: '#ff4a1a',
-    outline: '#1a0000',
-    outlineWidth: 2,
-    glow: { extra: 4, fill: 'rgba(255, 60, 20, 0.35)' },
-    core: { radiusFraction: 0.45, fill: '#ffe08a' },
-    shadow: false,
-  },
+  // Tears (player pale-blue, enemy hot red-orange) are drawn by src/render/tears.js,
+  // which scales each droplet by its damage and draws an arc-height floor shadow —
+  // things a static sprite spec can't express — so there's no 'tear' spec here.
 };
 
 function rotateVec(x, y, angle) {

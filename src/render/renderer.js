@@ -14,6 +14,7 @@ import {
 import { resolveItemIcon, resolveTrinketIcon, resolveCardIcon, resolvePillIcon, drawIcon, drawPedestal } from './contentIcons.js';
 import { drawFloorTile, drawWallTile, drawRockTile, drawPitTile, drawDoorTile } from './tiles.js';
 import { drawEnemyTelegraph, drawBossTelegraph } from './telegraphs.js';
+import { drawTear } from './tears.js';
 import { TILE } from '../systems/room.js';
 
 const PICKUP_LABELS = { heart_full: 'Heart', key: 'Key', bomb: 'Bomb', battery: 'Battery' };
@@ -116,7 +117,7 @@ export function renderRoom(
     ctx.globalAlpha = 1;
   }
   for (const projectile of room.world.entities.byType('projectile')) {
-    if (projectile.alive) drawEntity(projectile, projectile.team === 'enemy' ? 'enemyTear' : 'tear');
+    if (projectile.alive) drawTear(ctx, projectile, camera);
   }
   if (player) {
     // Walk bob (P1.G5): ramps toward full amplitude as the player picks up speed, frozen while still.

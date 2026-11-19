@@ -16,7 +16,7 @@ import { describeDeathCause } from '../src/systems/deathCause.js';
 import { createEventBus } from '../src/core/events.js';
 import { Rng } from '../src/core/rng.js';
 import { CONFIG } from '../src/core/config.js';
-import { SPRITES, computeSpriteDrawOps } from '../src/render/sprites.js';
+import { computeTearDrawOps } from '../src/render/tears.js';
 import { playerBlinkAlpha } from '../src/render/vfx.js';
 import { Camera } from '../src/render/camera.js';
 import { ParticlePool } from '../src/render/particles.js';
@@ -109,17 +109,19 @@ function channels(hex) {
 const luminance = ({ r, g, b }) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 test('enemy projectiles are hot red/orange with a dark outline and visibly different from player tears', () => {
-  const enemy = SPRITES.enemyTear;
-  const player = SPRITES.tear;
-  const body = channels(enemy.fill);
-  assert.ok(body.r > 220 && body.g < 120 && body.b < 60, `enemy tear body ${enemy.fill} must be bright red/orange`);
-  assert.ok(luminance(channels(enemy.outline)) < 40, 'enemy tear outline must be dark');
-  assert.ok(enemy.outlineWidth >= 2, 'enemy tear outline must be thick enough to read');
-  const pBody = channels(player.fill);
+  const enemyOps = computeTearDrawOps(6, 'enemy');
+  const playerOps = computeTearDrawOps(6, 'player');
+  // The body is the full-radius circle carrying the outline.
+  const enemyBody = enemyOps.find((o) => o.radius === 6 && o.outline);
+  const playerBody = playerOps.find((o) => o.radius === 6 && o.outline);
+  const body = channels(enemyBody.fill);
+  assert.ok(body.r > 220 && body.g < 120 && body.b < 60, `enemy tear body ${enemyBody.fill} must be bright red/orange`);
+  assert.ok(luminance(channels(enemyBody.outline)) < 40, 'enemy tear outline must be dark');
+  assert.ok(enemyBody.outlineWidth >= 2, 'enemy tear outline must be thick enough to read');
+  const pBody = channels(playerBody.fill);
   assert.ok(pBody.b > pBody.r, 'player tears stay cool/blue');
-  assert.notEqual(enemy.fill, player.fill);
-  const ops = computeSpriteDrawOps(enemy);
-  assert.ok(ops.length >= 3, 'enemy tear has glow + body + core');
+  assert.notEqual(enemyBody.fill, playerBody.fill);
+  assert.ok(enemyOps.length >= 3, 'enemy tear has glow + body + core');
 });
 
 test('the renderer draws enemy tears and player tears with different colors', () => {
@@ -132,7 +134,9 @@ test('the renderer draws enemy tears and player tears with different colors', ()
   renderRoom(ctx, { room, camera, playerHealth: new Health({ redMax: 6 }), particles: new ParticlePool(), decals: new DecalLayer(), dt: DT });
   const fillAt = (wx) => {
     const s = camera.worldToScreen(wx, 140);
-    const idx = ctx.calls.findIndex((c) => c.kind === 'arc' && Math.abs(c.x - s.x) < 1);
+    // The droplet body is the arc drawn at the tear's exact screen center (the
+    // ground shadow is offset downward, the highlight up-and-left); skip those.
+    const idx = ctx.calls.findIndex((c) => c.kind === 'arc' && Math.abs(c.x - s.x) < 1 && Math.abs(c.y - s.y) < 1);
     // The fill color is the fillStyle recorded on the following 'fill' call.
     return ctx.calls.slice(idx).find((c) => c.kind === 'fill')?.fillStyle;
   };
