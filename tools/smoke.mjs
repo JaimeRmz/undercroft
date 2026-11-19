@@ -432,6 +432,24 @@ async function main() {
       expect(n >= 12, `expected 12 chapter 1&2 enemies spawned, got ${n}`);
     }
 
+    // --- P2.Q Q4c: chapters 3-5 enemy designs (same bar) ---------------------------------------
+    {
+      await page.evaluate(() => window.__undercroft.killAllEnemies());
+      const n = await page.evaluate(() => {
+        const ts = 40;
+        const ch3 = ['core:ashenmaw', 'core:cragback', 'core:lurchpike', 'core:ratchetjaw'];
+        const ch4 = ['core:hollowgale', 'core:marrowcoil', 'core:pallbearer', 'core:scuttlekin'];
+        const ch5 = ['core:emberthrall', 'core:gloamstalker', 'core:hexwarden', 'core:judasfly'];
+        ch3.forEach((id, i) => window.__undercroft.spawnEnemyAt(id, (3 + i * 2.4) * ts, 2.3 * ts));
+        ch4.forEach((id, i) => window.__undercroft.spawnEnemyAt(id, (3 + i * 2.4) * ts, 3.4 * ts));
+        ch5.forEach((id, i) => window.__undercroft.spawnEnemyAt(id, (3 + i * 2.4) * ts, 4.5 * ts));
+        return window.__undercroft.snapshot().enemies;
+      });
+      await page.waitForTimeout(150);
+      await shot('enemy-designs-345');
+      expect(n >= 12, `expected 12 chapter 3-5 enemies spawned, got ${n}`);
+    }
+
     // --- P2.4: familiars (orbital/hover/follower-shooter) actually render and persist across a door ---
     {
       const s0 = await snap();
@@ -550,11 +568,12 @@ async function main() {
       // otherwise keep the player alive and make this death check flaky.
       await page.evaluate(() => window.__undercroft.clearFamiliars());
       await page.waitForTimeout(300);
-      await page.evaluate(() => {
-        window.__undercroft.setHealth(1);
-        window.__undercroft.spawnEnemyOnPlayer('core:chaser');
-      });
+      await page.evaluate(() => window.__undercroft.setHealth(1));
       for (let i = 0; i < 50; i++) {
+        // Re-spawn a chaser onto the player each tick: knockback (Q2a) + dense terrain can shove a
+        // single spawned chaser out of contact before it lands a lethal hit, so a fresh one each
+        // tick guarantees an overlap and keeps this death-pipeline check deterministic.
+        await page.evaluate(() => window.__undercroft.spawnEnemyOnPlayer('core:chaser'));
         await page.waitForTimeout(100);
         if ((await snap()).state === 'dead') break;
       }

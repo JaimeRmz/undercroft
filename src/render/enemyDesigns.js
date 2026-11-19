@@ -66,6 +66,20 @@ const MOUTHS = {
     { op: 'circle', x: -r * 0.2, y: r * 0.34, radius: r * 0.11, fill: '#2a1012' },
     { op: 'circle', x: r * 0.2, y: r * 0.34, radius: r * 0.11, fill: '#2a1012' },
   ],
+  // Upward-pointing fangs (an underbite) — brutish lurkers.
+  underbite: (r) => [
+    { op: 'rect', x: -r * 0.3, y: r * 0.3, width: r * 0.6, height: r * 0.05, fill: '#1a1a1a' },
+    { op: 'polygon', points: [{ x: -r * 0.22, y: r * 0.3 }, { x: -r * 0.08, y: r * 0.3 }, { x: -r * 0.15, y: r * 0.08 }], fill: '#f4efe2', outline: '#1a1a1a', outlineWidth: 1 },
+    { op: 'polygon', points: [{ x: r * 0.08, y: r * 0.3 }, { x: r * 0.22, y: r * 0.3 }, { x: r * 0.15, y: r * 0.08 }], fill: '#f4efe2', outline: '#1a1a1a', outlineWidth: 1 },
+  ],
+  // A tense, wavy clenched line (grim, stitched-together things).
+  grimace: (r) => [
+    { op: 'polygon', points: zig(-r * 0.4, r * 0.34, r * 0.8, r * 0.07, 5), fill: '#1a1a1a' },
+  ],
+  // A pointed hooked beak (winged things).
+  beak: (r) => [
+    { op: 'polygon', points: [{ x: -r * 0.22, y: r * 0.24 }, { x: r * 0.22, y: r * 0.24 }, { x: 0, y: r * 0.62 }], fill: '#e0b848', outline: '#1a1a1a', outlineWidth: 1 },
+  ],
 };
 
 /** Builds a jagged zig-zag strip of `teeth` points spanning width `w` from x0, baseline y, depth d. */
@@ -96,6 +110,34 @@ const ENEMY_MOUTH = {
   'core:peeker': 'smirk',
   'core:satellite': 'maw',
   'core:shellback': 'grit',
+  // Chapter 3 (P2.Q Q4c)
+  'core:ashenmaw': 'gape',
+  'core:bilewretch': 'drool',
+  'core:cragback': 'grit',
+  'core:gravepicker': 'mandibles',
+  'core:lurchpike': 'underbite',
+  'core:ratchetjaw': 'grin',
+  'core:tideling': 'maw',
+  'core:wickwarden': 'wail',
+  // Chapter 4 (P2.Q Q4c)
+  'core:fetterling': 'flatline',
+  'core:grimspawner': 'drool',
+  'core:hollowgale': 'beak',
+  'core:marrowcoil': 'underbite',
+  'core:needlewraith': 'grin',
+  'core:pallbearer': 'grimace',
+  'core:scuttlekin': 'mandibles',
+  'core:vantablight': 'wail',
+  'core:wraithgrip': 'snarl',
+  // Chapter 5 (P2.Q Q4c)
+  'core:direlatch': 'grit',
+  'core:emberthrall': 'gape',
+  'core:faminecoil': 'underbite',
+  'core:gloamstalker': 'smirk',
+  'core:hexwarden': 'grimace',
+  'core:ironveil': 'slit',
+  'core:judasfly': 'beak',
+  'core:knellwing': 'maw',
 };
 
 /** Extra facial design ops for `defId` (mouth + personality), or [] if this enemy has no tailored design yet. */

@@ -18,8 +18,25 @@ const CHAPTER2_IDS = [
   'core:grudge', 'core:peeker', 'core:satellite', 'core:shellback',
 ];
 
-test('every chapter-1 and chapter-2 enemy has a tailored design with mouth ops (P2.Q Q4a/Q4b)', () => {
-  for (const id of [...CHAPTER1_IDS, ...CHAPTER2_IDS]) {
+const CHAPTER3_IDS = [
+  'core:ashenmaw', 'core:bilewretch', 'core:cragback', 'core:gravepicker',
+  'core:lurchpike', 'core:ratchetjaw', 'core:tideling', 'core:wickwarden',
+];
+
+const CHAPTER4_IDS = [
+  'core:fetterling', 'core:grimspawner', 'core:hollowgale', 'core:marrowcoil',
+  'core:needlewraith', 'core:pallbearer', 'core:scuttlekin', 'core:vantablight', 'core:wraithgrip',
+];
+
+const CHAPTER5_IDS = [
+  'core:direlatch', 'core:emberthrall', 'core:faminecoil', 'core:gloamstalker',
+  'core:hexwarden', 'core:ironveil', 'core:judasfly', 'core:knellwing',
+];
+
+const ALL_CHAPTERS = [CHAPTER1_IDS, CHAPTER2_IDS, CHAPTER3_IDS, CHAPTER4_IDS, CHAPTER5_IDS];
+
+test('every core enemy across all 5 chapters has a tailored design with mouth ops (P2.Q Q4a-Q4c)', () => {
+  for (const id of ALL_CHAPTERS.flat()) {
     assert.ok(hasTailoredDesign(id), `${id} should be tailored`);
     const ops = designOpsFor(id, { radius: 14 });
     assert.ok(ops.length > 0, `${id} should contribute facial ops`);
@@ -31,11 +48,11 @@ test('an untailored enemy id gets no facial ops (unchanged) (P2.Q Q4a)', () => {
   assert.deepEqual(designOpsFor('core:some-chapter-4-thing', { radius: 14 }), []);
 });
 
-test('each chapter shows a variety of mouths, not one repeated shape (P2.Q Q4a/Q4b)', () => {
-  for (const [label, ids] of [['ch1', CHAPTER1_IDS], ['ch2', CHAPTER2_IDS]]) {
+test('each chapter shows a variety of mouths, not one repeated shape (P2.Q Q4a-Q4c)', () => {
+  ALL_CHAPTERS.forEach((ids, i) => {
     const prints = ids.map((id) => JSON.stringify(designOpsFor(id, { radius: 14 })));
-    assert.ok(new Set(prints).size >= 4, `${label} enemies should show a variety of mouths`);
-  }
+    assert.ok(new Set(prints).size >= 4, `chapter ${i + 1} enemies should show a variety of mouths`);
+  });
 });
 
 test("resolveEnemySpec folds the design ops into a chapter-1 enemy's accessories (P2.Q Q4a)", () => {
