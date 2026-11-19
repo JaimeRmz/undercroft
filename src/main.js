@@ -520,6 +520,8 @@ async function boot() {
     const count = reason === 'hit' ? 6 : 4;
     const color = entity.team === 'enemy' ? '#ff9a5a' : '#cfe9ff';
     currentRun.particles.burst(entity.x, entity.y, count, { color, speed: 70, life: 0.2, size: 2, rng: currentRun.vfxRng });
+    // Splat ring (P2.Q Q1b): an expanding ring on top of the fan, scaled a touch larger on a direct hit.
+    currentRun.particles.splash(entity.x, entity.y, { color, radius: reason === 'hit' ? 14 : 9, life: 0.2 });
   });
 
   const loop = new FixedStepLoop({

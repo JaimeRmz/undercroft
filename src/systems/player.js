@@ -7,6 +7,11 @@
 import { CONFIG } from '../core/config.js';
 import { normalizeDiagonal, moveToward, clamp } from '../core/math.js';
 import { fireWeapon, WEAPON_TYPES } from './weapons.js';
+import { triggerSquash } from '../render/vfx.js';
+
+// Recoil-on-fire (P2.Q Q1b): a gentle, brief squash so rapid fire reads as snappy, not jittery.
+const FIRE_SQUASH_SECONDS = 0.1;
+const FIRE_SQUASH_AMOUNT = 0.12;
 
 const SHOOT_DIRS = {
   shootUp: { x: 0, y: -1 },
@@ -102,6 +107,7 @@ export function updatePlayer(world, player, input, dt, { events } = {}) {
       const chargeFraction = player.chargeTime / CONFIG.CHARGE_SHOT_MAX_SECONDS;
       fireWeapon(world, player, dir, { events, chargeFraction });
       player.fireCooldown = player.stats.fireCooldownSeconds;
+      triggerSquash(player, FIRE_SQUASH_SECONDS, FIRE_SQUASH_AMOUNT);
       events?.emit('player:shoot', { player, dir });
       player.chargeAction = null;
       player.chargeTime = 0;
@@ -110,6 +116,7 @@ export function updatePlayer(world, player, input, dt, { events } = {}) {
     const dir = SHOOT_DIRS[player.aimAction];
     fireWeapon(world, player, dir, { events });
     player.fireCooldown = player.stats.fireCooldownSeconds;
+    triggerSquash(player, FIRE_SQUASH_SECONDS, FIRE_SQUASH_AMOUNT);
     events?.emit('player:shoot', { player, dir });
   }
 }

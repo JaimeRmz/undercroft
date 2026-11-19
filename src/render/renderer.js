@@ -308,11 +308,22 @@ export function renderRoom(
   for (const p of particles.particles) {
     if (!p.alive) continue;
     const screen = camera.worldToScreen(p.x, p.y);
-    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(screen.x, screen.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    const lifeFrac = Math.max(0, p.life / p.maxLife);
+    ctx.globalAlpha = lifeFrac;
+    if (p.ring) {
+      // Splash ring (P2.Q Q1b): grows outward and fades as it expires.
+      const radius = (p.size + (p.growTo - p.size) * (1 - lifeFrac)) * camera.zoom;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2 * camera.zoom;
+      ctx.beginPath();
+      ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(screen.x, screen.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.globalAlpha = 1;
   }
 

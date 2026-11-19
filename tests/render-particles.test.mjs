@@ -40,6 +40,17 @@ test('burst spawns `count` particles radiating outward using the injected rng (d
   assert.deepEqual(poolA.particles, poolB.particles);
 });
 
+test('splash spawns one expanding ring particle (ring flag + growTo target)', () => {
+  const pool = new ParticlePool();
+  pool.splash(5, 6, { color: '#cfe9ff', radius: 12, life: 0.2 });
+  assert.equal(pool.particles.length, 1);
+  const p = pool.particles[0];
+  assert.ok(p.ring, 'splash particle is a ring');
+  assert.equal(p.growTo, 12, 'ring grows to the requested radius');
+  assert.ok(p.growTo > p.size, 'ring expands outward from its start size');
+  assert.equal(p.color, '#cfe9ff');
+});
+
 test('clear empties the pool', () => {
   const pool = new ParticlePool();
   pool.spawn({ x: 0, y: 0, life: 1 });

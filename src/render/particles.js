@@ -5,11 +5,20 @@ export class ParticlePool {
     this.particles = [];
   }
 
-  spawn({ x, y, vx = 0, vy = 0, life, color = '#fff', size = 2 }) {
+  spawn({ x, y, vx = 0, vy = 0, life, color = '#fff', size = 2, ring = false, growTo = 0 }) {
     if (this.particles.length >= this.max) this.particles.shift(); // drop oldest to stay under budget
-    const particle = { x, y, vx, vy, life, maxLife: life, color, size, alive: true };
+    const particle = { x, y, vx, vy, life, maxLife: life, color, size, alive: true, ring, growTo };
     this.particles.push(particle);
     return particle;
+  }
+
+  /**
+   * Splash/splat (P2.Q Q1b): a single expanding, fading ring at a point — used
+   * when a tear splats at end of range or on impact, on top of the outward fan.
+   * The renderer grows a `ring` particle's radius from `size` to `growTo` over its life.
+   */
+  splash(x, y, { color = '#fff', radius = 10, life = 0.22 } = {}) {
+    this.spawn({ x, y, life, color, size: 2, ring: true, growTo: radius });
   }
 
   /** Bursts `count` particles outward from a point at varying speed/life, via an injected Rng for determinism. */

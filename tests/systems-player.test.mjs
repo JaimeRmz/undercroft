@@ -183,6 +183,18 @@ test('facingDir (head) tracks the current aim direction and keeps the last one a
   assert.deepEqual(player.facingDir, { x: 1, y: 0 }, 'should keep facing the last aimed direction once no shoot key is held');
 });
 
+test('firing triggers a brief recoil squash on the player (P2.Q Q1b)', () => {
+  const world = freshWorld();
+  const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });
+  const input = createInputState();
+  const dt = 1 / 60;
+  assert.ok(!(player.squashTimer > 0), 'no squash before firing');
+  press(input, 'shootRight');
+  updatePlayer(world, player, input, dt);
+  assert.ok(player.squashTimer > 0, 'firing sets a squash timer');
+  assert.ok(player.squashAmount > 0 && player.squashAmount < 0.25, 'fire recoil is gentler than the hit squash');
+});
+
 test('moveDir (body) tracks the current movement direction and keeps the last one once stopped (CLAUDE.md §3)', () => {
   const world = freshWorld();
   const player = createPlayer(world, { x: 400, y: 400, stats: new Stats() });

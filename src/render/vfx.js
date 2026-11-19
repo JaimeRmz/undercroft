@@ -31,10 +31,17 @@ export function isFlashing(entity) {
 
 const SQUASH_SECONDS = 0.18; // [assumed] a quick, readable squash-and-recover on taking damage
 
-/** Squash-on-hit (P1.G5): a brief vertical-compress/horizontal-stretch that eases back to normal. */
-export function triggerSquash(entity, seconds = SQUASH_SECONDS) {
+const SQUASH_AMOUNT = 0.25; // default peak stretch (squash-on-hit)
+
+/**
+ * Squash-on-hit (P1.G5) / recoil-on-fire (P2.Q Q1b): a brief vertical-compress/
+ * horizontal-stretch that eases back to normal. `amount` is the peak stretch —
+ * a gentler value gives the lighter per-shot recoil so rapid fire doesn't jitter.
+ */
+export function triggerSquash(entity, seconds = SQUASH_SECONDS, amount = SQUASH_AMOUNT) {
   entity.squashTimer = seconds;
   entity.squashDuration = seconds;
+  entity.squashAmount = amount;
 }
 
 export function updateSquash(entity, dt) {
@@ -46,7 +53,7 @@ export function squashScale(entity) {
   const timer = entity.squashTimer ?? 0;
   if (timer <= 0) return { x: 1, y: 1 };
   const frac = timer / (entity.squashDuration || SQUASH_SECONDS); // 1 at impact -> 0 as it recovers
-  const amount = 0.25 * frac;
+  const amount = (entity.squashAmount ?? SQUASH_AMOUNT) * frac;
   return { x: 1 + amount, y: 1 - amount };
 }
 
