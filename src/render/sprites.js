@@ -5,6 +5,7 @@
  * context, exercised by the Playwright smoke test instead of unit tests.
  */
 import { accessoryOpsFor } from './enemyAccessories.js';
+import { designOpsFor } from './enemyDesigns.js';
 
 /** Built-in specs for the P0 vertical slice. Mods can supply their own via the same shape. */
 export const SPRITES = {
@@ -185,6 +186,18 @@ export function hashString(str) {
   return h >>> 0;
 }
 
+/**
+ * The body color an enemy renders with, used to tint its death burst/splat so
+ * each enemy dies in its own color (P2.Q Q4a). Mirrors resolveEnemySpec: a
+ * hand-authored spec's fill, else the generated hsl() derived from the defId hash.
+ */
+export function enemyBodyColor(entity) {
+  const base = SPRITES[entity?.defId];
+  if (base?.fill) return base.fill;
+  const hue = hashString(String(entity?.defId)) % 360;
+  return `hsl(${hue}, 45%, 45%)`;
+}
+
 const generatedSpecCache = new Map();
 
 /** Small satellite circles around a boss's main body, one per phase it has left — "bosses large and multi-part" (P1.G5), and a readable cue of how many phases remain. */
@@ -216,7 +229,15 @@ export function resolveEnemySpec(entity) {
     const key = `hand|${entity.defId}`;
     let spec = generatedSpecCache.get(key);
     if (!spec) {
-      spec = { ...base, radius: baseRadius, accessories: accessoryOpsFor(entity.defId, { radius: baseRadius, fill: base.fill, outline: base.outline }) };
+      spec = {
+        ...base,
+        radius: baseRadius,
+        // Q4a mouth/design ops drawn under the archetype accessory so facial features read first.
+        accessories: [
+          ...designOpsFor(entity.defId, { radius: baseRadius }),
+          ...accessoryOpsFor(entity.defId, { radius: baseRadius, fill: base.fill, outline: base.outline }),
+        ],
+      };
       generatedSpecCache.set(key, spec);
     }
     return spec;
@@ -229,7 +250,8 @@ export function resolveEnemySpec(entity) {
   const eyeDx = radius * 0.3;
   const fill = `hsl(${hue}, 45%, ${entity.isBoss ? 38 : 45}%)`;
   const outline = `hsl(${hue}, 50%, 14%)`;
-  const accessories = accessoryOpsFor(entity.defId, { radius, fill, outline });
+  const designOps = designOpsFor(entity.defId, { radius });
+  const accessories = [...designOps, ...accessoryOpsFor(entity.defId, { radius, fill, outline })];
 
   if (entity.isBoss) {
     // Bosses vary by current phase, so they're recomputed fresh rather than cached by defId.

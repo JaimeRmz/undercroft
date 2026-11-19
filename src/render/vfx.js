@@ -86,6 +86,22 @@ export function walkBobOffset(entity, amplitude = 2) {
   return Math.sin(entity.bobPhase ?? 0) * amplitude;
 }
 
+/**
+ * Idle breathing (P2.Q Q4a): a gentle always-on vertical breathe so a living
+ * enemy never sits perfectly frozen. Phase is seeded from the entity id so a
+ * room full of the same enemy doesn't breathe in lockstep. Returns a {x, y}
+ * scale pair (wider when squashed shorter), composable with the hit squash.
+ */
+export function updateIdleBreath(entity, dt) {
+  if (entity.breathPhase === undefined) entity.breathPhase = ((entity.id ?? 0) % 10) * 0.6;
+  entity.breathPhase += dt * 2.4;
+}
+
+export function idleBreathScale(entity, amount = 0.05) {
+  const s = Math.sin(entity.breathPhase ?? 0) * amount;
+  return { x: 1 - s, y: 1 + s };
+}
+
 /** Champion pulse (P1.G5): a slow breathing scale applied to the tinted ring drawn around a champion enemy. */
 export function updateChampionPulse(entity, dt) {
   entity.championPulseT = (entity.championPulseT ?? 0) + dt;

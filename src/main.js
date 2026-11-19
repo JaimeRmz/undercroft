@@ -77,6 +77,7 @@ import { consumeHitstopFrame } from './render/hitstop.js';
 import { ParticlePool } from './render/particles.js';
 import { DecalLayer } from './render/decals.js';
 import { renderRoom } from './render/renderer.js';
+import { enemyBodyColor } from './render/sprites.js';
 import { computeMinimapIcons, drawMinimap } from './ui/map.js';
 import { createBannerState, showBanner, updateBanner, drawBanner } from './ui/itemBanner.js';
 import { computeHudModel } from './ui/hudModel.js';
@@ -458,8 +459,13 @@ async function boot() {
   events.on('enemy:death', ({ enemy }) => {
     if (!currentRun) return;
     currentRun.stats.kills += 1;
-    currentRun.particles.burst(enemy.x, enemy.y, 12, { color: '#8a3a4a', rng: currentRun.vfxRng });
-    currentRun.decals.add({ x: enemy.x, y: enemy.y, color: '#5a1a1a', size: 10, alpha: 0.5 });
+    // Death animation (P2.Q Q4a): a burst + an expanding splat ring, both tinted to the
+    // enemy's own body color, plus a persistent goo splat decal scaled with the enemy.
+    const color = enemyBodyColor(enemy);
+    const r = enemy.radius ?? 14;
+    currentRun.particles.burst(enemy.x, enemy.y, 14, { color, speed: 90, life: 0.3, size: 2.5, rng: currentRun.vfxRng });
+    currentRun.particles.splash(enemy.x, enemy.y, { color, radius: r * 1.4, life: 0.25 });
+    currentRun.decals.add({ x: enemy.x, y: enemy.y, color: '#5a1a1a', size: Math.max(9, r * 0.8), alpha: 0.5 });
     if (enemy.isBoss) {
       const itemId = itemPools.draw('boss', currentRun.spawnRng);
       if (itemId) spawnItemPedestal(currentRun.room.world, itemId, { x: enemy.x, y: enemy.y });

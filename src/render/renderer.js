@@ -8,6 +8,8 @@ import {
   squashScale,
   updateWalkBob,
   walkBobOffset,
+  updateIdleBreath,
+  idleBreathScale,
   updateChampionPulse,
   championPulseScale,
   updateHurtTint,
@@ -107,12 +109,13 @@ export function renderRoom(
     updateSquash(entity, dt);
     const bobY = walkBobOffset(entity);
     const squash = squashScale(entity);
+    const breath = idleBreathScale(entity); // {1,1} for anything without a breath phase (e.g. the player)
     const screen = camera.worldToScreen(entity.x, entity.y - (entity.height ?? 0) + bobY);
     executeDrawOps(ctx, computeSpriteDrawOps(spec, facing), {
       x: screen.x,
       y: screen.y,
-      scaleX: camera.zoom * squash.x,
-      scaleY: camera.zoom * squash.y,
+      scaleX: camera.zoom * squash.x * breath.x,
+      scaleY: camera.zoom * squash.y * breath.y,
       flashWhite: isFlashing(entity),
     });
   };
@@ -124,6 +127,9 @@ export function renderRoom(
   for (const enemy of room.world.entities.byType('enemy')) {
     if (!enemy.alive) continue;
     ctx.globalAlpha = enemyAlpha;
+    // Idle breathing + a walk bob that ramps with the enemy's own speed (P2.Q Q4a).
+    updateIdleBreath(enemy, dt);
+    updateWalkBob(enemy, dt, Math.min(1, Math.hypot(enemy.vx ?? 0, enemy.vy ?? 0) / 120));
     drawEntity(enemy, resolveEnemySpec(enemy));
     const screen = camera.worldToScreen(enemy.x, enemy.y - (enemy.height ?? 0));
     if (enemy.isChampion) {
