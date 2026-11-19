@@ -13,8 +13,13 @@ const CHAPTER1_IDS = [
   'core:hopper', 'core:rattler', 'core:turret', 'core:wraith',
 ];
 
-test('every chapter-1 enemy has a tailored design with mouth ops (P2.Q Q4a)', () => {
-  for (const id of CHAPTER1_IDS) {
+const CHAPTER2_IDS = [
+  'core:broodmother', 'core:doppel', 'core:globule', 'core:grubber',
+  'core:grudge', 'core:peeker', 'core:satellite', 'core:shellback',
+];
+
+test('every chapter-1 and chapter-2 enemy has a tailored design with mouth ops (P2.Q Q4a/Q4b)', () => {
+  for (const id of [...CHAPTER1_IDS, ...CHAPTER2_IDS]) {
     assert.ok(hasTailoredDesign(id), `${id} should be tailored`);
     const ops = designOpsFor(id, { radius: 14 });
     assert.ok(ops.length > 0, `${id} should contribute facial ops`);
@@ -26,10 +31,11 @@ test('an untailored enemy id gets no facial ops (unchanged) (P2.Q Q4a)', () => {
   assert.deepEqual(designOpsFor('core:some-chapter-4-thing', { radius: 14 }), []);
 });
 
-test('the chapter-1 mouths are not all identical (distinct personalities) (P2.Q Q4a)', () => {
-  const prints = CHAPTER1_IDS.map((id) => JSON.stringify(designOpsFor(id, { radius: 14 })));
-  // The 8 enemies map to several mouth styles; at least 4 distinct shapes.
-  assert.ok(new Set(prints).size >= 4, 'chapter-1 enemies should show a variety of mouths');
+test('each chapter shows a variety of mouths, not one repeated shape (P2.Q Q4a/Q4b)', () => {
+  for (const [label, ids] of [['ch1', CHAPTER1_IDS], ['ch2', CHAPTER2_IDS]]) {
+    const prints = ids.map((id) => JSON.stringify(designOpsFor(id, { radius: 14 })));
+    assert.ok(new Set(prints).size >= 4, `${label} enemies should show a variety of mouths`);
+  }
 });
 
 test("resolveEnemySpec folds the design ops into a chapter-1 enemy's accessories (P2.Q Q4a)", () => {

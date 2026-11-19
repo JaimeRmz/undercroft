@@ -43,6 +43,29 @@ const MOUTHS = {
     { op: 'circle', x: 0, y: r * 0.32, radius: r * 0.26, fill: '#2a1012', outline: '#1a1a1a', outlineWidth: 1 },
     { op: 'polygon', points: zig(-r * 0.2, r * 0.18, r * 0.4, r * 0.12, 3), fill: '#f4efe2' },
   ],
+  // A flat, expressionless line (mimics/doppelganger — unsettlingly neutral).
+  flatline: (r) => [
+    { op: 'rect', x: -r * 0.35, y: r * 0.34, width: r * 0.7, height: r * 0.06, fill: '#1a1a1a' },
+  ],
+  // Side pincer mandibles meeting at the middle (burrowers).
+  mandibles: (r) => [
+    { op: 'polygon', points: [{ x: -r * 0.5, y: r * 0.22 }, { x: -r * 0.05, y: r * 0.4 }, { x: -r * 0.45, y: r * 0.5 }], fill: '#d8c7a8', outline: '#1a1a1a', outlineWidth: 1 },
+    { op: 'polygon', points: [{ x: r * 0.5, y: r * 0.22 }, { x: r * 0.05, y: r * 0.4 }, { x: r * 0.45, y: r * 0.5 }], fill: '#d8c7a8', outline: '#1a1a1a', outlineWidth: 1 },
+  ],
+  // An asymmetric sly smirk (ambushers that hide and pop out).
+  smirk: (r) => [
+    { op: 'polygon', points: [{ x: -r * 0.35, y: r * 0.3 }, { x: r * 0.35, y: r * 0.22 }, { x: r * 0.3, y: r * 0.36 }, { x: -r * 0.32, y: r * 0.4 }], fill: '#2a1012', outline: '#1a1a1a', outlineWidth: 1 },
+  ],
+  // A drooping, drooling maw (spawners/brooders).
+  drool: (r) => [
+    { op: 'circle', x: 0, y: r * 0.3, radius: r * 0.2, fill: '#2a1012', outline: '#1a1a1a', outlineWidth: 1 },
+    { op: 'circle', x: r * 0.08, y: r * 0.52, radius: r * 0.07, fill: 'rgba(150,200,120,0.7)' },
+  ],
+  // Two tiny splitting maws (blobs that divide).
+  split: (r) => [
+    { op: 'circle', x: -r * 0.2, y: r * 0.34, radius: r * 0.11, fill: '#2a1012' },
+    { op: 'circle', x: r * 0.2, y: r * 0.34, radius: r * 0.11, fill: '#2a1012' },
+  ],
 };
 
 /** Builds a jagged zig-zag strip of `teeth` points spanning width `w` from x0, baseline y, depth d. */
@@ -55,6 +78,7 @@ function zig(x0, y, w, d, teeth) {
 }
 
 const ENEMY_MOUTH = {
+  // Chapter 1 (P2.Q Q4a)
   'core:chaser': 'grin',
   'core:drifter': 'maw',
   'core:charger': 'grit',
@@ -63,6 +87,15 @@ const ENEMY_MOUTH = {
   'core:rattler': 'snarl',
   'core:turret': 'slit',
   'core:wraith': 'wail',
+  // Chapter 2 (P2.Q Q4b)
+  'core:broodmother': 'drool',
+  'core:doppel': 'flatline',
+  'core:globule': 'split',
+  'core:grubber': 'mandibles',
+  'core:grudge': 'snarl',
+  'core:peeker': 'smirk',
+  'core:satellite': 'maw',
+  'core:shellback': 'grit',
 };
 
 /** Extra facial design ops for `defId` (mouth + personality), or [] if this enemy has no tailored design yet. */

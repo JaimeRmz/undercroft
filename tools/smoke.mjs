@@ -416,18 +416,20 @@ async function main() {
       expect(typeof hz.before === 'number', 'hazard scene could not read player hp');
     }
 
-    // --- P2.Q Q4a: chapter-1 enemy designs (distinct bodies + mouths, idle breathe) -------------
+    // --- P2.Q Q4a/Q4b: chapter 1 & 2 enemy designs (distinct bodies + mouths, idle breathe) -----
     {
       await page.evaluate(() => window.__undercroft.killAllEnemies());
       const n = await page.evaluate(() => {
         const ts = 40;
-        const ids = ['core:chaser', 'core:charger', 'core:hopper', 'core:turret', 'core:wraith', 'core:rattler'];
-        ids.forEach((id, i) => window.__undercroft.spawnEnemyAt(id, (3 + i * 1.6) * ts, 2.3 * ts));
+        const ch1 = ['core:chaser', 'core:charger', 'core:hopper', 'core:turret', 'core:wraith', 'core:rattler'];
+        const ch2 = ['core:broodmother', 'core:doppel', 'core:globule', 'core:grubber', 'core:peeker', 'core:shellback'];
+        ch1.forEach((id, i) => window.__undercroft.spawnEnemyAt(id, (3 + i * 1.6) * ts, 2.3 * ts));
+        ch2.forEach((id, i) => window.__undercroft.spawnEnemyAt(id, (3 + i * 1.6) * ts, 4.5 * ts));
         return window.__undercroft.snapshot().enemies;
       });
       await page.waitForTimeout(150);
       await shot('enemy-designs');
-      expect(n >= 6, `expected 6 chapter-1 enemies spawned, got ${n}`);
+      expect(n >= 12, `expected 12 chapter 1&2 enemies spawned, got ${n}`);
     }
 
     // --- P2.4: familiars (orbital/hover/follower-shooter) actually render and persist across a door ---
