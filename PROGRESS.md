@@ -94,6 +94,34 @@ Rule: finish every task in a tier before starting the next one. Commit after eve
 - [x] P2.9 Save system: settings + persistent unlocks + mid-run save on room entry, "Continue" on the main menu; round-trip tests
 - [x] P2.10 Unlocks/achievements (data-driven conditions → unlock items/characters), stats page. **GATE P2.** ✅ PASSED 2026-11-16
 
+## P2.Q — Make it feel like the reference (highest priority)
+Do these strictly in order, before any P3 task. Each task is sized for ~45 min. **Done means:** `npm test` green, Playwright screenshots read and judged per rule 11, then commit `P2.Q<n>: <task>`. If a task breaks something and you can't fix it in 20 min: `git revert`, log it in KNOWN_ISSUES.md, move on.
+- [ ] Q1a Tears look: round glossy droplet (highlight + outline), size scales with damage, floor shadow under each tear whose offset shows arc height
+- [ ] Q1b Tears feel: fall at end of range and splat with a splash animation; player squash on fire; head snaps to the shooting direction instantly
+- [ ] Q2a Player animation: walk-cycle bob, head/body split (head = shoot dir, body = move dir), hurt flash + knockback + brief red tint
+- [ ] Q2b Item get: player holds the item overhead ~1s, name + flavor-text banner
+- [ ] Q2c Pickup animation: pickups pop out with a bounce and settle; coins spin/glint; hearts pulse
+- [ ] Q3a Destructibles: mounds (break in 3-4 hits, may drop a pickup); tinted rocks (drop a reward when bombed); per-tile collision flags for all of them
+- [ ] Q3b Hazards: fireplaces (hurt on touch, shoot to extinguish, may drop a pickup); spikes
+- [ ] Q3c Dressing: a few decorative floor props per chapter; add mounds/fires/tinted rocks/spikes to room templates (templates must still pass reachability)
+- [ ] Q4a Enemy design, chapter 1 enemies: original readable design (body shape, eyes, mouth, limbs/wings/tails), idle anim, attack wind-up, death anim + splat decal
+- [ ] Q4b Enemy design, chapter 2 enemies (same bar)
+- [ ] Q4c Enemy design, chapters 3-5 enemies (same bar)
+- [ ] Q4d Motion personality: fliers buzz/bob, crawlers squash and stretch, big enemies shake the screen when they land; render audit: no two enemies share a silhouette
+- [ ] Q5a Behavior audit: check every enemy against the §3 archetypes; each has a readable approach → telegraph → attack → recover cycle; fix any enemy that just slides at the player
+- [ ] Q5b Enemy shot varieties: single, triple spread, 4-way/8-way burst, arcing lob, homing, creep-leaving; assign them across the roster
+- [ ] Q5c Creep puddles (damaging and slowing variants) as data-driven hazards
+- [ ] Q6a Boss intro splash: original name + portrait card ~1.5s on room entry; boss HP bar with the name
+- [ ] Q6b Boss phases: phase-change flash + roar shake; faster/more aggressive per phase; every boss has 3+ distinct telegraphed attacks
+- [ ] Q6c Boss death: big death animation + burst, then item drop + trapdoor
+- [ ] Q7 Hit-feel tuning: enemy hit flash, small knockback, ~2-frame hitstop on heavy hits, damage-scaled shake, per-enemy colored death bursts, persistent blood/goo decals; tune so it feels punchy, not floaty
+- [ ] Q8a Floor identity: per-chapter palette, floor tile pattern and wall style
+- [ ] Q8b Floor identity: per-chapter enemy mix + one signature hazard each; floor name banner + short descent transition between floors
+- [ ] Q9a Audio SFX: synthesized SFX for every action (shoot, hit, enemy death, pickups, doors, bombs, telegraphs, player hurt, item fanfare) + volume settings (covers the SFX part of P3.6)
+- [ ] Q9b Audio music: simple procedural music loop per chapter (covers the music part of P3.6)
+- [ ] Q10 Difficulty curve: bot runs with god mode OFF over 20 seeds; tune so floor 1 is easy, 2-4 fair, later floors hard but beatable; report the average floor reached here
+- [ ] Q11 Item variety: convert at least 1/3 of the pure stat-up items into items that visibly change shots or gameplay
+
 ## P3 — Modding power + tools
 - [ ] P3.1 Full mod scripting API (§4), override + `$patch`, dependency resolution, hot reload (console + polling)
 - [ ] P3.2 `mods/example-mod/` demonstrating everything in §4; tests load it

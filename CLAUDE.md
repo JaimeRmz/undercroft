@@ -186,3 +186,15 @@ Never idle. In order:
 4. Append new tasks to PROGRESS.md under "P4 — Expansion" and keep going.
 
 If you find a `STOP` file in the repo root, commit your work and end the session.
+
+---
+
+## 9. Lessons from playtests
+- Every entity has a sprite. The render audit enforces it.
+- Collision uses per-tile flags (solid, destructible, hazard, pit, and so on), not ad-hoc checks.
+- Every room template passes the reachability check (all doors and pickups reachable).
+- Every object is identifiable at a glance: player, enemies, shots, pickups and hazards each read distinctly.
+- A tier is done only when the bot gate and the visual gate both pass.
+- Mechanics may match the reference closely, but ALL art, names, characters, items and text stay original.
+- Never stop to ask. Log decisions in DECISIONS.md.
+- Small commits. Never leave the build broken.
